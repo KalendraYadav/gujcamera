@@ -588,57 +588,291 @@
 
 ## 6. Watchlist & Alert Management Endpoints
 
-### 6.1 List Watchlists
-* **Method & Path**: `GET /api/v1/watchlist`
-* **Auth**: Authenticated (`INVESTIGATOR`, `DEPARTMENT_ADMIN`, `SUPER_ADMIN`)
-* **Success Response** (`200 OK`): Returns array of active watchlist groups and entry counts.
+### 6.0 Fundamental Policing & Legal Disclaimer
+> [!IMPORTANT]
+> **Watchlist Plate Match ≠ Confirmed Human Identity**:
+> A watchlist match confirms exclusively that a camera sensor captured a vehicle bearing a license plate matching an active watchlist record. It **does NOT** automatically confirm the identity or culpability of the driver or occupants. Corroborating physical evidence, visual frame inspection, and authorized investigative verification are mandatory before law enforcement action.
 
-### 6.2 Add Plate to Watchlist
-* **Method & Path**: `POST /api/v1/watchlist/:id/entries`
+---
+
+### 6.1 List Watchlists
+* **Method & Path**: `GET /api/v1/watchlists` (Alias: `GET /api/v1/watchlist`)
+* **Auth**: Authenticated (All Roles: `SUPER_ADMIN`, `DEPARTMENT_ADMIN`, `INVESTIGATOR`, `OPERATOR`, `SYSTEM_AUDITOR`, `VIEWER`)
+* **Query Parameters**:
+  * `department_id`: Optional UUID filter.
+  * `search`: Search filter matching watchlist name or owner.
+  * `cursor`: Keyset pagination cursor.
+  * `limit`: Results per page (default: 20, max: 100).
+* **Success Response** (`200 OK`):
+```json
+{
+  "data": [
+    {
+      "id": "w1111111-0000-0000-0000-000000000001",
+      "name": "Ahmedabad Stolen Vehicles Watchlist (DEMO)",
+      "department_id": "d1111111-0000-0000-0000-000000000001",
+      "department_name": "Ahmedabad City Police Commissionerate",
+      "owner": "Crime Branch Unit 3",
+      "entries_count": 2,
+      "created_at": "2026-09-09T00:00:00.000Z"
+    }
+  ],
+  "pagination": {
+    "limit": 20,
+    "total": 2,
+    "next_cursor": null
+  }
+}
+```
+
+---
+
+### 6.2 Create Watchlist
+* **Method & Path**: `POST /api/v1/watchlists` (Alias: `POST /api/v1/watchlist`)
+* **Auth**: Authenticated (`SUPER_ADMIN`, `DEPARTMENT_ADMIN`)
+  * `SUPER_ADMIN`: Can create watchlists for any department.
+  * `DEPARTMENT_ADMIN`: Strictly restricted to own assigned department (`user.departmentId === body.department_id`).
+* **Request Body**:
+```json
+{
+  "name": "Statewide Contraband Interdiction Target List",
+  "department_id": "d1111111-0000-0000-0000-000000000001",
+  "owner": "State Intelligence Bureau"
+}
+```
+* **Success Response** (`201 Created`): Returns created `Watchlist` object.
+* **Notable Errors**:
+  * `400 Bad Request`: `DEPARTMENT_NOT_FOUND` or input validation failure.
+  * `403 Forbidden`: `DEPARTMENT_ACCESS_DENIED` (Department Admin targeting foreign department) or `FORBIDDEN_RESOURCE`.
+* **Audit**: Synchronous `WATCHLIST_CREATE` recorded in `audit_logs`.
+
+---
+
+### 6.3 Get Single Watchlist
+* **Method & Path**: `GET /api/v1/watchlists/:id`
+* **Auth**: Authenticated (All Roles)
+* **Success Response** (`200 OK`):
+```json
+{
+  "id": "w1111111-0000-0000-0000-000000000001",
+  "name": "Ahmedabad Stolen Vehicles Watchlist (DEMO)",
+  "department_id": "d1111111-0000-0000-0000-000000000001",
+  "department_name": "Ahmedabad City Police Commissionerate",
+  "owner": "Crime Branch Unit 3",
+  "total_entries": 2,
+  "active_entries": 2,
+  "inactive_entries": 0,
+  "created_at": "2026-09-09T00:00:00.000Z"
+}
+```
+* **Notable Errors**: `404 Not Found` (`WATCHLIST_NOT_FOUND`).
+
+---
+
+### 6.4 Update Watchlist
+* **Method & Path**: `PATCH /api/v1/watchlists/:id`
+* **Auth**: Authenticated (`SUPER_ADMIN`, `DEPARTMENT_ADMIN`)
+* **Request Body**:
+```json
+{
+  "name": "Ahmedabad Stolen Vehicles — High Priority",
+  "owner": "Crime Branch Special Unit"
+}
+```
+* **Success Response** (`200 OK`): Returns updated watchlist record.
+* **Audit**: Synchronous `WATCHLIST_UPDATE`.
+
+---
+
+### 6.5 Activate / Deactivate Watchlist
+* **Method & Path**: `POST /api/v1/watchlists/:id/activate` & `POST /api/v1/watchlists/:id/deactivate`
+* **Auth**: Authenticated (`SUPER_ADMIN`, `DEPARTMENT_ADMIN`)
+* **Behavior**: Bulk-toggles `active = true` or `active = false` across all entries in the target watchlist. Deactivated entries are retained for historical auditability but will not generate new alerts.
+* **Success Response** (`200 OK`):
+```json
+{
+  "message": "Watchlist successfully activated",
+  "id": "w1111111-0000-0000-0000-000000000001",
+  "entries_activated": 2
+}
+```
+* **Audit**: Synchronous `WATCHLIST_ACTIVATE` or `WATCHLIST_DEACTIVATE`.
+
+---
+
+### 6.6 Add Flagged Plate to Watchlist
+* **Method & Path**: `POST /api/v1/watchlists/:id/entries` (Alias: `POST /api/v1/watchlist/:id/entries`)
 * **Auth**: Authenticated (`INVESTIGATOR`, `DEPARTMENT_ADMIN`, `SUPER_ADMIN`)
 * **Request Body**:
 ```json
 {
-  "plate": "GJ01XY9999",
+  "plate": "gj 01-ab 1234",
   "category": "STOLEN_VEHICLE",
-  "reason": "Red Fortuner reported stolen from Prahladnagar - FIR #204/2026",
+  "reason": "White Hyundai Creta reported stolen from Vastrapur - FIR #102/2026",
   "priority": "CRITICAL",
-  "expires_at": "2026-10-09T00:00:00.000Z"
+  "expires_at": "2026-12-31T23:59:59.000Z"
 }
 ```
-* **Success Response** (`201 Created`): Returns created `WatchlistEntry`.
-* **Audit**: Synchronous `WATCHLIST_ENTRY_CREATED`.
+* **Plate Normalization**: Automatically converts input to canonical uppercase alphanumeric representation (`GJ01AB1234`). Rejects invalid syntax with `400 INVALID_PLATE_FORMAT`.
+* **Success Response** (`201 Created`):
+```json
+{
+  "id": "e1111111-0000-0000-0000-000000000001",
+  "watchlist_id": "w1111111-0000-0000-0000-000000000001",
+  "plate_normalized": "GJ01AB1234",
+  "category": "STOLEN_VEHICLE",
+  "reason": "White Hyundai Creta reported stolen from Vastrapur - FIR #102/2026",
+  "priority": "CRITICAL",
+  "added_by": "investigator.demo@gujcamera.local",
+  "expires_at": "2026-12-31T23:59:59.000Z",
+  "active": true,
+  "created_at": "2026-09-09T00:00:00.000Z"
+}
+```
+* **Notable Errors**:
+  * `400 Bad Request`: `INVALID_PLATE_FORMAT`.
+  * `403 Forbidden`: `DEPARTMENT_ACCESS_DENIED` or `FORBIDDEN_RESOURCE` (`OPERATOR`, `VIEWER`).
+  * `409 Conflict`: `DUPLICATE_WATCHLIST_ENTRY` (Plate is already actively flagged on this watchlist).
+* **Audit**: Synchronous `WATCHLIST_ENTRY_CREATE`.
 
-### 6.3 List Live Alerts
+---
+
+### 6.7 List Watchlist Entries
+* **Method & Path**: `GET /api/v1/watchlists/:id/entries`
+* **Auth**: Authenticated (All Roles)
+* **Query Parameters**: `active` (boolean), `category` (string), `search` (plate or reason), `cursor`, `limit`.
+* **Success Response** (`200 OK`): Returns paginated entries for the watchlist.
+
+---
+
+### 6.8 Update / Deactivate Watchlist Entry
+* **Method & Path**: `PATCH /api/v1/watchlists/entries/:entryId` & `POST /api/v1/watchlists/entries/:entryId/deactivate`
+* **Auth**: Authenticated (`INVESTIGATOR`, `DEPARTMENT_ADMIN`, `SUPER_ADMIN`)
+* **Request Body** (`PATCH`):
+```json
+{
+  "reason": "FIR amended with additional suspect details",
+  "priority": "HIGH",
+  "active": false
+}
+```
+* **Success Response** (`200 OK`): Returns updated entry.
+* **Audit**: Synchronous `WATCHLIST_ENTRY_UPDATE` or `WATCHLIST_ENTRY_DEACTIVATE`.
+
+---
+
+### 6.9 Evaluate Sighting & Generate Alert (Matching Engine)
+* **Method & Path**: `POST /api/v1/alerts/match-sighting`
+* **Auth**: Authenticated (`OPERATOR`, `INVESTIGATOR`, `DEPARTMENT_ADMIN`, `SUPER_ADMIN`)
+* **Request Body**:
+```json
+{
+  "sighting_id": "vs-001-uuid"
+}
+```
+* **Matching Semantics**:
+  * Evaluates `VehicleSighting.plate_normalized` against all `WatchlistEntry` records where `active = true` and `(expires_at IS NULL OR expires_at > NOW())`.
+  * **Deduplication**: Strictly prevents duplicate alerts on `(source_sighting_id, watchlist_entry_id)`. If an alert already exists, it is returned without re-inserting.
+* **Success Response** (`201 Created`):
+```json
+{
+  "sighting_id": "vs-001-uuid",
+  "plate_normalized": "GJ01AB1234",
+  "matched": true,
+  "alerts_generated": 1,
+  "alerts": [
+    {
+      "id": "al-001-uuid",
+      "severity": "CRITICAL",
+      "status": "NEW",
+      "timestamp": "2026-09-09T01:50:32.000Z",
+      "source_sighting": {
+        "id": "vs-001-uuid",
+        "timestamp": "2026-09-09T01:50:32.000Z",
+        "confidence": 0.9620,
+        "consensus_frames": 7,
+        "frame_ref": "s3://vault/frames/cam-ahm-02-gj01ab1234.jpg",
+        "camera": {
+          "id": "c1111111-0000-0000-0000-000000000002",
+          "name": "CAM-AHM-02: C.G. Road - Swastik Char Rasta",
+          "coordinates": { "lat": 23.035412, "long": 72.559281 },
+          "location": { "address": "Swastik Cross Road, Navrangpura", "district": "Ahmedabad" }
+        },
+        "vehicle": {
+          "plate_normalized": "GJ01AB1234",
+          "attributes": { "color": "White", "make": "Hyundai", "model": "Creta" }
+        }
+      },
+      "watchlist_match": {
+        "entry_id": "e1111111-0000-0000-0000-000000000001",
+        "plate_normalized": "GJ01AB1234",
+        "category": "STOLEN_VEHICLE",
+        "reason": "White Hyundai Creta reported stolen from Vastrapur - FIR #102/2026",
+        "priority": "CRITICAL"
+      },
+      "disclaimer": "Watchlist plate match does not confirm human identity or suspect guilt; corroborating physical evidence and investigator verification required."
+    }
+  ]
+}
+```
+* **Audit**: Synchronous `ALERT_CREATE`.
+
+---
+
+### 6.10 List Alerts
 * **Method & Path**: `GET /api/v1/alerts`
-* **Auth**: Authenticated (`OPERATOR`, `INVESTIGATOR`, `SUPER_ADMIN`)
+* **Auth**: Authenticated (`OPERATOR`, `INVESTIGATOR`, `DEPARTMENT_ADMIN`, `SUPER_ADMIN`)
 * **Query Parameters**:
   * `status`: Filter by `AlertStatus` (`NEW`, `ACKNOWLEDGED`, `INVESTIGATING`, `RESOLVED`, `DISMISSED`).
   * `severity`: Filter by `AlertSeverity` (`CRITICAL`, `HIGH`, `MEDIUM`, `LOW`).
-  * `cursor`, `limit`.
-* **Success Response** (`200 OK`): Returns ordered alerts with linked sighting metadata and matching watchlist rationale.
+  * `watchlist_id`: Filter by watchlist UUID.
+  * `plate`: License plate search (exact or prefix).
+  * `camera_id`: Camera UUID.
+  * `department_id`: Department UUID.
+  * `from` / `to`: Timestamp bounds on observation `ts`.
+  * `page`, `limit` (default: 20, max: 100).
+* **Ordering**: Ordered chronologically by indexed `(status ASC, ts DESC)`.
+* **Success Response** (`200 OK`): Returns paginated alert summaries with sighting and camera metadata.
 
-### 6.4 Transition Alert Status (State Machine Enforcement)
-* **Method & Path**: `PATCH /api/v1/alerts/:id/status`
-* **Auth**: Authenticated (`OPERATOR`, `INVESTIGATOR`)
-* **Request Body**:
-```json
-{
-  "status": "ACKNOWLEDGED",
-  "reason": "Operator confirmed plate read matches visual crop"
-}
-```
-* **State Transition Rules (Enforced Server-Side)**:
-  * `NEW` ➔ `ACKNOWLEDGED` (Operator)
-  * `NEW` ➔ `DISMISSED` (Operator — False Positive)
-  * `ACKNOWLEDGED` ➔ `INVESTIGATING` (Investigator)
-  * `ACKNOWLEDGED` ➔ `DISMISSED` (Investigator)
-  * `INVESTIGATING` ➔ `RESOLVED` (Investigator)
-  * `INVESTIGATING` ➔ `DISMISSED` (Investigator)
-* **Success Response** (`200 OK`): Returns updated `Alert` record.
+---
+
+### 6.11 Get Single Alert Deep-Dive
+* **Method & Path**: `GET /api/v1/alerts/:id`
+* **Auth**: Authenticated (`OPERATOR`, `INVESTIGATOR`, `DEPARTMENT_ADMIN`, `SUPER_ADMIN`)
+* **Success Response** (`200 OK`): Returns full alert entity with observation details, camera coordinates, location, linked vehicle, and watchlist entry metadata.
+* **Notable Errors**: `404 Not Found` (`ALERT_NOT_FOUND`).
+
+---
+
+### 6.12 Alert Lifecycle State Machine Transitions
+* **Method & Path**:
+  * Generic: `PATCH /api/v1/alerts/:id` & `PATCH /api/v1/alerts/:id/status`
+  * Action Routes:
+    * `POST /api/v1/alerts/:id/acknowledge` (OPERATOR, SUPER_ADMIN)
+    * `POST /api/v1/alerts/:id/investigate` (INVESTIGATOR, SUPER_ADMIN)
+    * `POST /api/v1/alerts/:id/resolve` (INVESTIGATOR, SUPER_ADMIN)
+    * `POST /api/v1/alerts/:id/dismiss` (OPERATOR for NEW false positives, INVESTIGATOR for active cases; SUPER_ADMIN)
+* **Auth**: Authenticated per state transition role rules.
+* **State Machine Rules (Enforced Server-Side)**:
+  ```
+  NEW ────────► ACKNOWLEDGED ────────► INVESTIGATING ────────► RESOLVED (terminal)
+   │                  │                      │
+   ▼                  ▼                      ▼
+  DISMISSED       DISMISSED              DISMISSED (terminal)
+  ```
+  * `NEW` ➔ `ACKNOWLEDGED`: Allowed for `OPERATOR`, `SUPER_ADMIN`. Sets `acknowledged_by_id`.
+  * `NEW` ➔ `DISMISSED`: Allowed for `OPERATOR`, `SUPER_ADMIN`. Sets `dismissal_reason`.
+  * `ACKNOWLEDGED` ➔ `INVESTIGATING`: Allowed for `INVESTIGATOR`, `SUPER_ADMIN`.
+  * `ACKNOWLEDGED` ➔ `DISMISSED`: Allowed for `INVESTIGATOR`, `SUPER_ADMIN`.
+  * `INVESTIGATING` ➔ `RESOLVED`: Allowed for `INVESTIGATOR`, `SUPER_ADMIN`. Sets `resolved_by_id`.
+  * `INVESTIGATING` ➔ `DISMISSED`: Allowed for `INVESTIGATOR`, `SUPER_ADMIN`.
 * **Notable Errors**:
-  * `409 Conflict`: `INVALID_STATE_TRANSITION` (e.g., trying to transition `RESOLVED` back to `NEW`).
-* **Audit**: Synchronous `ALERT_STATUS_TRANSITION`.
+  * `403 Forbidden`: `FORBIDDEN_RESOURCE` (Role not authorized for target transition, e.g. Operator attempting to resolve an alert).
+  * `404 Not Found`: `ALERT_NOT_FOUND`.
+  * `409 Conflict`: `INVALID_STATE_TRANSITION` (Illegal transition attempt, e.g., jumping from `NEW` to `RESOLVED`, or attempting to transition out of terminal `RESOLVED`/`DISMISSED` state).
+* **Audit**: Synchronous `ALERT_ACKNOWLEDGE`, `ALERT_INVESTIGATE`, `ALERT_RESOLVE`, or `ALERT_DISMISS`.
+
+---
 
 ---
 
@@ -672,4 +906,4 @@
   * `resource`: Filter by affected table (e.g. `User`, `WatchlistEntry`, `Alert`, `Camera`).
   * `actor_id`: Filter by actor UUID.
   * `from`, `to`, `cursor`, `limit`.
-* **Success Response** (`200 OK`): Returns immutable audit records with before/after state diffs.
+* **Success Response** (`200 OK`): Returns synchronous audit records with before/after state capture.

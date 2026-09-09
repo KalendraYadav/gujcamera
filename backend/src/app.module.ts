@@ -7,6 +7,8 @@ import { AuthModule } from './modules/auth/auth.module';
 import { HealthModule } from './modules/health/health.module';
 import { CamerasModule } from './modules/cameras/cameras.module';
 import { VehiclesModule } from './modules/vehicles/vehicles.module';
+import { WatchlistsModule } from './modules/watchlists/watchlists.module';
+import { AlertsModule } from './modules/alerts/alerts.module';
 import { RequestIdMiddleware } from './common/middleware/request-id.middleware';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { RolesGuard } from './common/guards/roles.guard';
@@ -25,6 +27,8 @@ import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
     HealthModule,
     CamerasModule,
     VehiclesModule,
+    WatchlistsModule,
+    AlertsModule,
   ],
   providers: [
     // Global JWT authentication guard (respects @Public() decorator)
