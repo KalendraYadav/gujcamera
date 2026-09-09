@@ -355,12 +355,25 @@
 
 ## 5. Vehicle Search & Investigation Endpoints
 
-### 5.1 Vehicle Search (Prefix / Exact Match)
-* **Method & Path**: `GET /api/v1/vehicles/search`
-* **Auth**: Authenticated (`INVESTIGATOR`, `SUPER_ADMIN`)
+### 5.0 Department Authorization & Cross-Department Investigation Architecture Rule
+* **Architectural Rule**: Cross-Department Unified Intelligence Access (Rule A & C).
+* **Architectural Justification (`master_architecture.md` §3.1, §3.2, §6.2, §14.2)**:
+  * **Core Problem Statement**: Per `master_architecture.md` §3.1, Gujarat's 80,000+ cameras were historically fragmented across departmental and jurisdictional silos. A sighting on one camera could not be linked across jurisdictions, hindering investigations of stolen or fleeing vehicles where minutes matter.
+  * **Entity Model**: The `Vehicle` entity represents a physical, mobile object traversing jurisdictions and carries no `department_id` in the canonical data schema (`master_architecture.md` §6.2). `VehicleSighting` records an observation event at a specific `Camera`.
+  * **Role-Based Access Control (RBAC)**: All vehicle investigation endpoints (`/vehicles`, `/vehicles/:plate`, `/vehicles/:plate/sightings`, `/vehicles/:plate/timeline`) are restricted to authorized investigative roles (`INVESTIGATOR`, `DEPARTMENT_ADMIN`, `SUPER_ADMIN`). Non-investigative roles (`OPERATOR`, `VIEWER`, `SYSTEM_AUDITOR`) are rejected server-side with `403 FORBIDDEN_RESOURCE`.
+  * **Cross-Department Visibility**: An authorized `INVESTIGATOR` possesses state-wide visibility across cameras owned by different departments (e.g., Ahmedabad City Police and Gandhinagar District Police) to enable cross-district route reconstruction. Artificial department isolation on vehicle tracking is explicitly prohibited by the architecture as it defeats the primary mission of the unified platform.
+  * **Optional Department Scoping**: Investigators may optionally filter sightings to a specific department by providing `?department_id=<UUID>` in query parameters.
+  * **Accountability via Synchronous Auditing**: Every sensitive investigative read (`VEHICLE_SEARCH`, `VEHICLE_DETAIL_VIEW`, `VEHICLE_SIGHTINGS_VIEW`, `VEHICLE_TIMELINE_SEARCH`) is synchronously logged to `audit_logs` with actor ID, timestamp, plate, and search parameters.
+
+### 5.1 Vehicle Search (Prefix / Exact Match / Time Range)
+* **Method & Path**: `GET /api/v1/vehicles` & `GET /api/v1/vehicles/search`
+* **Auth**: Authenticated (`INVESTIGATOR`, `DEPARTMENT_ADMIN`, `SUPER_ADMIN`)
 * **Query Parameters**:
-  * `q`: Search string (e.g., `GJ01AB` or `GJ01AB1234`).
-  * `limit`: Results limit (default: 10).
+  * `q` (or `plate`): Search string (e.g. `GJ01AB` or `GJ01AB1234`). Automatically normalized (spaces, hyphens, and casing stripped).
+  * `from`: Optional ISO-8601 timestamp start (`gte` on `last_seen`).
+  * `to`: Optional ISO-8601 timestamp end (`lte` on `last_seen`).
+  * `limit`: Results per page (default: 20, max: 100).
+  * `page`: Page number (1-indexed, default: 1).
 * **Success Response** (`200 OK`):
 ```json
 {
@@ -369,59 +382,202 @@
       "plate_normalized": "GJ01AB1234",
       "first_seen": "2026-09-09T01:40:00.000Z",
       "last_seen": "2026-09-09T01:50:00.000Z",
-      "attributes": { "color": "White", "make": "Hyundai", "model": "Creta" },
+      "attributes": { "color": "White", "make": "Hyundai", "model": "Creta", "type": "SUV" },
       "total_sightings": 2,
-      "is_watchlisted": true
+      "is_watchlisted": true,
+      "watchlist_category": "STOLEN_VEHICLE",
+      "watchlist_priority": "CRITICAL"
     }
-  ]
+  ],
+  "pagination": {
+    "page": 1,
+    "limit": 20,
+    "total": 1,
+    "total_pages": 1
+  }
 }
 ```
+* **Notable Errors**:
+  * `400 Bad Request`: `BAD_REQUEST` (Malformed timestamp or invalid pagination parameter).
+  * `401 Unauthorized`: Missing or invalid Bearer token.
+  * `403 Forbidden`: `FORBIDDEN_RESOURCE` (Role lacking investigation privileges, e.g., `OPERATOR` or `VIEWER`).
+* **Audit**: Synchronous `VEHICLE_SEARCH` record stored in `audit_logs`.
 
-### 5.2 Chronological Vehicle Timeline & GIS Route
-* **Method & Path**: `GET /api/v1/vehicles/:plate/timeline`
-* **Auth**: Authenticated (`INVESTIGATOR`, `SUPER_ADMIN`)
+---
+
+### 5.2 Single Vehicle Deep-Dive Record
+* **Method & Path**: `GET /api/v1/vehicles/:plate`
+* **Auth**: Authenticated (`INVESTIGATOR`, `DEPARTMENT_ADMIN`, `SUPER_ADMIN`)
+* **Path Parameters**:
+  * `plate`: Vehicle license plate string (e.g., `GJ01AB1234` or `gj-01-ab-1234`).
+* **Success Response** (`200 OK`):
+```json
+{
+  "plate_normalized": "GJ01AB1234",
+  "first_seen": "2026-09-09T01:40:00.000Z",
+  "last_seen": "2026-09-09T01:50:00.000Z",
+  "attributes": { "color": "White", "make": "Hyundai", "model": "Creta", "type": "SUV" },
+  "total_sightings": 2,
+  "is_watchlisted": true,
+  "watchlist_details": {
+    "category": "STOLEN_VEHICLE",
+    "priority": "CRITICAL",
+    "reason": "White Hyundai Creta reported stolen from Vastrapur - FIR #102/2026",
+    "flagged_at": "2026-09-09T00:00:00.000Z"
+  },
+  "first_known_sighting": {
+    "id": "vs-001-uuid",
+    "timestamp": "2026-09-09T01:40:32.000Z",
+    "camera_name": "CAM-AHM-01: SG Highway - Pakwan Crossroad Junction",
+    "location": "Pakwan Crossroad, Sarkhej - Gandhinagar Hwy, Bodakdev",
+    "district": "Ahmedabad"
+  },
+  "last_known_sighting": {
+    "id": "vs-002-uuid",
+    "timestamp": "2026-09-09T01:50:32.000Z",
+    "camera_name": "CAM-AHM-02: C.G. Road - Swastik Char Rasta",
+    "location": "Swastik Cross Road, Chimanlal Girdharlal Rd, Navrangpura",
+    "district": "Ahmedabad"
+  }
+}
+```
+* **Notable Errors**:
+  * `404 Not Found`: `VEHICLE_NOT_FOUND` (Plate has never been observed by the system).
+* **Audit**: Synchronous `VEHICLE_DETAIL_VIEW` record stored in `audit_logs`.
+
+---
+
+### 5.3 Vehicle Sighting History
+* **Method & Path**: `GET /api/v1/vehicles/:plate/sightings`
+* **Auth**: Authenticated (`INVESTIGATOR`, `DEPARTMENT_ADMIN`, `SUPER_ADMIN`)
+* **Query Parameters**:
+  * `from`: Filter sightings on or after ISO timestamp.
+  * `to`: Filter sightings on or before ISO timestamp.
+  * `camera_id`: Filter sightings captured by specific Camera UUID.
+  * `department_id`: Filter sightings captured by cameras belonging to specified Department UUID.
+  * `sort`: Sighting timestamp sort order (`asc` = chronological, `desc` = newest first, default: `asc`).
+  * `limit`: Results per page (default: 20, max: 100).
+  * `page`: Page number (default: 1).
+* **Success Response** (`200 OK`):
+```json
+{
+  "plate_normalized": "GJ01AB1234",
+  "data": [
+    {
+      "id": "vs-001-uuid",
+      "plate_normalized": "GJ01AB1234",
+      "timestamp": "2026-09-09T01:40:32.000Z",
+      "confidence": 0.9450,
+      "consensus_frames": 6,
+      "frame_ref": "s3://police-evidence-vault/frames/2026/09/09/cam-ahm-01-gj01ab1234-sighting1.jpg",
+      "camera_id": "c1111111-0000-0000-0000-000000000001",
+      "camera_name": "CAM-AHM-01: SG Highway - Pakwan Crossroad Junction",
+      "department_id": "d1111111-0000-0000-0000-000000000001",
+      "department_name": "Ahmedabad City Police Commissionerate",
+      "coordinates": {
+        "lat": 23.0338142,
+        "long": 72.5073289
+      },
+      "location": {
+        "address": "Pakwan Crossroad, Sarkhej - Gandhinagar Hwy, Bodakdev",
+        "zone": "West Zone",
+        "district": "Ahmedabad"
+      }
+    }
+  ],
+  "pagination": {
+    "page": 1,
+    "limit": 20,
+    "total": 2,
+    "total_pages": 1
+  }
+}
+```
+* **Notable Errors**:
+  * `404 Not Found`: `VEHICLE_NOT_FOUND`.
+* **Audit**: Synchronous `VEHICLE_SIGHTINGS_VIEW` record stored in `audit_logs`.
+
+---
+
+### 5.4 Chronological Vehicle Timeline & GIS Route Reconstruction
+* **Method & Path**: `GET /api/v1/vehicles/:plate/timeline` & `GET /api/v1/vehicles/:plate/route`
+* **Auth**: Authenticated (`INVESTIGATOR`, `DEPARTMENT_ADMIN`, `SUPER_ADMIN`)
 * **Query Parameters**:
   * `from`: Optional ISO timestamp start.
   * `to`: Optional ISO timestamp end.
+  * `max_speed_kmh`: PoC heuristic speed threshold for plausibility validation (default: 150 km/h).
+* **Route Calculation & Plausibility Model**:
+  * Consecutive observations are sorted chronologically (`ts ASC`).
+  * Distances between consecutive cameras are calculated using PostGIS native WGS-84 `geography` Great-Circle distance (`ST_Distance(point1, point2)` in **meters**).
+  * Travel time between sightings is calculated in **seconds**.
+  * Implied average velocity is computed in **km/h** (`(meters / 1000) / (seconds / 3600)`).
+  * If implied velocity exceeds the threshold or indicates a simultaneous observation at distinct locations (0s elapsed, >50m distance), the hop is flagged as `is_plausible: false` and `plausibility_status: 'REQUIRES_REVIEW'`.
+  * Hop confidence follows `master_architecture.md` Section 10: `min(confidence_A, confidence_B, plausibility_score)`.
 * **Success Response** (`200 OK`):
 ```json
 {
   "plate_normalized": "GJ01AB1234",
   "total_sightings": 2,
-  "route_plausibility_score": 0.95,
+  "route_plausibility_score": 1.0,
   "sightings": [
     {
       "id": "vs-001-uuid",
-      "camera_id": "cam-001-uuid",
+      "timestamp": "2026-09-09T01:40:32.000Z",
+      "camera_id": "c1111111-0000-0000-0000-000000000001",
       "camera_name": "CAM-AHM-01: SG Highway - Pakwan Crossroad Junction",
       "coordinates": { "lat": 23.0338142, "long": 72.5073289 },
-      "timestamp": "2026-09-09T01:40:32.000Z",
+      "location": {
+        "address": "Pakwan Crossroad, Sarkhej - Gandhinagar Hwy, Bodakdev",
+        "zone": "West Zone",
+        "district": "Ahmedabad"
+      },
       "confidence": 0.9450,
       "consensus_frames": 6,
-      "frame_snapshot_url": "s3://police-evidence-vault/frames/..."
+      "frame_ref": "s3://police-evidence-vault/frames/..."
     },
     {
       "id": "vs-002-uuid",
-      "camera_id": "cam-002-uuid",
+      "timestamp": "2026-09-09T01:50:32.000Z",
+      "camera_id": "c1111111-0000-0000-0000-000000000002",
       "camera_name": "CAM-AHM-02: C.G. Road - Swastik Char Rasta",
       "coordinates": { "lat": 23.0354120, "long": 72.5592810 },
-      "timestamp": "2026-09-09T01:50:32.000Z",
+      "location": {
+        "address": "Swastik Cross Road, Chimanlal Girdharlal Rd, Navrangpura",
+        "zone": "West Zone",
+        "district": "Ahmedabad"
+      },
       "confidence": 0.9620,
       "consensus_frames": 7,
-      "frame_snapshot_url": "s3://police-evidence-vault/frames/..."
+      "frame_ref": "s3://police-evidence-vault/frames/..."
     }
   ],
   "route_segments": [
     {
-      "from_camera_id": "cam-001-uuid",
-      "to_camera_id": "cam-002-uuid",
+      "from_camera_id": "c1111111-0000-0000-0000-000000000001",
+      "from_camera_name": "CAM-AHM-01: SG Highway - Pakwan Crossroad Junction",
+      "from_coordinates": { "lat": 23.0338142, "long": 72.5073289 },
+      "from_timestamp": "2026-09-09T01:40:32.000Z",
+      "to_camera_id": "c1111111-0000-0000-0000-000000000002",
+      "to_camera_name": "CAM-AHM-02: C.G. Road - Swastik Char Rasta",
+      "to_coordinates": { "lat": 23.0354120, "long": 72.5592810 },
+      "to_timestamp": "2026-09-09T01:50:32.000Z",
       "distance_meters": 5320.4,
-      "travel_time_seconds": 600,
-      "estimated_speed_kmh": 31.9,
+      "elapsed_seconds": 600,
+      "estimated_speed_kmh": 31.92,
       "is_plausible": true,
+      "plausibility_status": "PLAUSIBLE",
+      "plausibility_reason": "Plausible observed transit of 31.92 km/h over 5320.4m",
       "segment_confidence": 0.9450
     }
-  ]
+  ],
+  "summary": {
+    "total_distance_meters": 5320.4,
+    "total_elapsed_seconds": 600,
+    "average_speed_kmh": 31.92,
+    "hops_count": 1,
+    "implausible_hops_count": 0
+  },
+  "disclaimer": "Observed movement between camera observations; does not represent an exact physical driving route or turn-by-turn navigation."
 }
 ```
 * **Notable Errors**:
