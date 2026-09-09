@@ -118,13 +118,14 @@
 
 ### 4.1 List Cameras (with GIS Viewport & Filters)
 * **Method & Path**: `GET /api/v1/cameras`
-* **Auth**: Authenticated (Viewer+)
+* **Auth**: Authenticated (`SUPER_ADMIN`, `DEPARTMENT_ADMIN`, `INVESTIGATOR`, `OPERATOR`, `SYSTEM_AUDITOR`, `VIEWER`)
 * **Query Parameters**:
-  * `bbox`: Bounding box formatted as `minLong,minLat,maxLong,maxLat` (e.g. `72.45,22.95,72.65,23.15`).
-  * `status`: Filter by `OperationalStatus` (`ONLINE`, `DEGRADED`, `OFFLINE`).
+  * `bbox`: Bounding box formatted as `minLong,minLat,maxLong,maxLat` in WGS-84 decimal degrees (e.g. `72.45,22.98,72.60,23.08`). Evaluated server-side in PostgreSQL using native PostGIS GiST spatial indexing (`ST_Within(st_setsrid(st_makepoint(long, lat), 4326), ST_MakeEnvelope(...))`).
+  * `status`: Filter by `OperationalStatus` (`ONLINE`, `CONNECTING`, `DEGRADED`, `OFFLINE`, `ERROR`).
   * `department_id`: Filter by owning department UUID.
-  * `cursor`: Cursor for pagination.
-  * `limit`: Items per page (default: 20, max: 100).
+  * `cursor`: UUID for keyset pagination.
+  * `limit`: Items per page (default: 20, minimum: 1, maximum: 100).
+  * `is_active`: Filter by active status (boolean, default: `true`). Decommissioned cameras are excluded by default.
 * **Success Response** (`200 OK`):
 ```json
 {
@@ -133,12 +134,17 @@
       "id": "c1111111-0000-0000-0000-000000000001",
       "name": "CAM-AHM-01: SG Highway - Pakwan Crossroad Junction",
       "department_id": "d1111111-0000-0000-0000-000000000001",
+      "department_name": "Ahmedabad City Police Commissionerate",
       "lat": 23.0338142,
       "long": 72.5073289,
       "protocol": "RTSP",
+      "connector_type_id": "conn-001-uuid",
       "operational_status": "ONLINE",
+      "is_active": true,
+      "created_at": "2026-09-09T00:00:00.000Z",
+      "updated_at": "2026-09-09T00:00:00.000Z",
       "location": {
-        "address": "Pakwan Crossroad, Bodakdev",
+        "address": "Pakwan Crossroad, Sarkhej - Gandhinagar Hwy, Bodakdev",
         "zone": "West Zone",
         "district": "Ahmedabad"
       },
@@ -150,16 +156,78 @@
           "fps": 25,
           "url_or_handle": "rtsp://simulator:8554/live/cam-ahm-01"
         }
-      ]
+      ],
+      "health": {
+        "status": "ONLINE",
+        "last_heartbeat": "2026-09-09T07:30:00.000Z",
+        "fps_actual": 25,
+        "packet_loss": 0
+      }
     }
   ],
-  "next_cursor": "c1111111-0000-0000-0000-000000000005"
+  "pagination": {
+    "limit": 20,
+    "total": 5,
+    "next_cursor": "c1111111-0000-0000-0000-000000000005"
+  }
 }
 ```
+* **Notable Errors**:
+  * `400 Bad Request`: `INVALID_BBOX` (Bounding box string is malformed, coordinates outside WGS-84 ranges, or min exceeds max).
+  * `401 Unauthorized`: Missing or invalid Bearer token.
 
-### 4.2 Onboard New Camera
+---
+
+### 4.2 Find Nearby Cameras (PostGIS Geodesic Proximity)
+* **Method & Path**: `GET /api/v1/cameras/nearby`
+* **Auth**: Authenticated (All Roles)
+* **Query Parameters**:
+  * `lat`: Center point latitude in WGS-84 decimal degrees (between `-90.0` and `90.0`).
+  * `lng` (or `long`): Center point longitude in WGS-84 decimal degrees (between `-180.0` and `180.0`).
+  * `radius`: **Proximity search radius in METERS** (e.g. `5000` = 5 km, `10000` = 10 km). Must be greater than 0 and maximum `500,000` meters (500 km).
+  * `limit`: Maximum results to return (default: 20, max: 100).
+* **Spatial Calculation**: Evaluated via PostGIS `ST_DWithin` and `ST_Distance` over WGS-84 `geography` type, performing true Great-Circle geodesic distance calculations on the spheroid (unit: **meters**). Results are strictly ordered ascending by distance.
+* **Success Response** (`200 OK`):
+```json
+{
+  "data": [
+    {
+      "id": "c1111111-0000-0000-0000-000000000002",
+      "name": "CAM-AHM-02: C.G. Road - Swastik Char Rasta",
+      "department_id": "d1111111-0000-0000-0000-000000000001",
+      "lat": 23.035412,
+      "long": 72.559281,
+      "protocol": "ONVIF",
+      "operational_status": "ONLINE",
+      "is_active": true,
+      "distance_meters": 1894.14,
+      "location": {
+        "address": "Swastik Cross Road, Chimanlal Girdharlal Rd, Navrangpura",
+        "zone": "West Zone",
+        "district": "Ahmedabad"
+      }
+    }
+  ],
+  "query": {
+    "lat": 23.0225,
+    "lng": 72.5714,
+    "radius_meters": 10000,
+    "unit": "meters"
+  },
+  "total": 1
+}
+```
+* **Notable Errors**:
+  * `400 Bad Request`: `INVALID_COORDINATES` (Latitude must be -90..90, Longitude must be -180..180).
+  * `400 Bad Request`: `INVALID_RADIUS` (Radius must be a positive number between 1 and 500,000 meters).
+
+---
+
+### 4.3 Onboard New Camera
 * **Method & Path**: `POST /api/v1/cameras`
-* **Auth**: Authenticated (`DEPARTMENT_ADMIN`, `SUPER_ADMIN`)
+* **Auth**: Authenticated (`SUPER_ADMIN`, `DEPARTMENT_ADMIN`)
+  * `SUPER_ADMIN`: Can onboard cameras for any police department.
+  * `DEPARTMENT_ADMIN`: Can strictly onboard cameras only for their own assigned department (`user.departmentId === body.department_id`).
 * **Request Body**:
 ```json
 {
@@ -168,7 +236,8 @@
   "lat": 23.0298410,
   "long": 72.5042180,
   "protocol": "RTSP",
-  "connector_type_id": "conn-001-uuid",
+  "connector_type_id": "c0000000-0000-0000-0000-000000000001",
+  "operational_status": "ONLINE",
   "location": {
     "address": "Iscon Flyover Link, SG Highway",
     "zone": "West Zone",
@@ -182,16 +251,105 @@
   }
 }
 ```
-* **Success Response** (`201 Created`): Returns created `Camera` object with ID.
+* **Success Response** (`201 Created`): Returns created `Camera` object with generated UUID, location, stream, and initial health.
 * **Notable Errors**:
-  * `400 Bad Request`: `INVALID_COORDINATES` (Latitude must be -90..90, Longitude -180..180).
-  * `409 Conflict`: `DUPLICATE_STREAM_ENDPOINT` (Stream URL already claimed by another camera).
-* **Audit**: Synchronous `CAMERA_ONBOARDED`.
+  * `400 Bad Request`: `BAD_REQUEST` (Missing required fields, validation error, non-whitelisted property).
+  * `400 Bad Request`: `DEPARTMENT_NOT_FOUND` / `CONNECTOR_NOT_FOUND`.
+  * `403 Forbidden`: `DEPARTMENT_ACCESS_DENIED` (Department Admin attempted to create camera in a different department).
+  * `409 Conflict`: `DUPLICATE_STREAM_ENDPOINT` (Stream URL or handle is already claimed by another camera).
+* **Audit**: Synchronous `CAMERA_ONBOARDED` record stored in `audit_logs`.
 
-### 4.3 Get Single Camera Deep-Dive
+---
+
+### 4.4 Get Single Camera Deep-Dive
 * **Method & Path**: `GET /api/v1/cameras/:id`
-* **Auth**: Authenticated (Viewer+)
-* **Success Response** (`200 OK`): Returns full camera record including health history and connector details.
+* **Auth**: Authenticated (All Roles)
+* **Success Response** (`200 OK`): Returns complete camera record including location, streams, and operational health telemetry. Sensitive connector credentials and tokens are strictly excluded.
+* **Notable Errors**:
+  * `400 Bad Request`: `BAD_REQUEST` (Invalid UUID format).
+  * `404 Not Found`: `CAMERA_NOT_FOUND` (Camera does not exist).
+
+---
+
+### 4.5 Update Camera
+* **Method & Path**: `PATCH /api/v1/cameras/:id`
+* **Auth**: Authenticated (`SUPER_ADMIN`, `DEPARTMENT_ADMIN`)
+  * `DEPARTMENT_ADMIN`: Can only update cameras belonging to their own department.
+* **Request Body** (Partial updates supported):
+```json
+{
+  "name": "CAM-AHM-06: Iscon Flyover Link Updated",
+  "operational_status": "DEGRADED",
+  "location": {
+    "address": "Iscon Flyover Link Updated, Bodakdev",
+    "zone": "West Zone",
+    "district": "Ahmedabad"
+  }
+}
+```
+* **Success Response** (`200 OK`): Returns updated camera record.
+* **Notable Errors**:
+  * `400 Bad Request`: Validation failure.
+  * `403 Forbidden`: `DEPARTMENT_ACCESS_DENIED`.
+  * `404 Not Found`: `CAMERA_NOT_FOUND`.
+* **Audit**: Synchronous `CAMERA_UPDATED` record capturing before/after state diff.
+
+---
+
+### 4.6 Soft Decommission Camera
+* **Method & Path**: `DELETE /api/v1/cameras/:id`
+* **Auth**: Authenticated (`SUPER_ADMIN`, `DEPARTMENT_ADMIN`)
+* **Behavior**: Soft-decommissions camera by setting `is_active = false` and `operational_status = 'OFFLINE'`. Preserves all historical telemetry, vehicle sightings, detections, and evidence intact.
+* **Success Response** (`200 OK`):
+```json
+{
+  "message": "Camera successfully decommissioned (soft deletion)",
+  "id": "c1111111-0000-0000-0000-000000000006",
+  "is_active": false,
+  "operational_status": "OFFLINE"
+}
+```
+* **Notable Errors**:
+  * `403 Forbidden`: `DEPARTMENT_ACCESS_DENIED`.
+  * `404 Not Found`: `CAMERA_NOT_FOUND`.
+* **Audit**: Synchronous `CAMERA_DECOMMISSIONED` record stored in `audit_logs`.
+
+---
+
+### 4.7 Camera Health & Operational Telemetry
+* **Method & Path**: `GET /api/v1/cameras/:id/health`
+  * **Auth**: Authenticated (All Roles)
+  * **Success Response** (`200 OK`):
+  ```json
+  {
+    "camera_id": "c1111111-0000-0000-0000-000000000001",
+    "name": "CAM-AHM-01: SG Highway - Pakwan Crossroad Junction",
+    "operational_status": "ONLINE",
+    "is_active": true,
+    "health": {
+      "status": "ONLINE",
+      "last_heartbeat": "2026-09-09T07:30:00.000Z",
+      "fps_actual": 25,
+      "packet_loss": 0,
+      "updated_at": "2026-09-09T07:30:00.000Z"
+    }
+  }
+  ```
+* **Method & Path**: `GET /api/v1/cameras/health/summary`
+  * **Auth**: Authenticated (All Roles)
+  * **Success Response** (`200 OK`):
+  ```json
+  {
+    "total_cameras": 5,
+    "online": 4,
+    "degraded": 1,
+    "offline": 0,
+    "connecting": 0,
+    "error": 0,
+    "decommissioned": 0,
+    "note": "Camera operational health derived from registered camera telemetry and heartbeats, independent of API/database infrastructure health"
+  }
+  ```
 
 ---
 
