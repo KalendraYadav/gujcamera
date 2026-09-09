@@ -1,0 +1,2 @@
+# Keep ai-worker/models directory in source control
+# Binary weights (*.pt, *.onnx) are gitignored

@@ -96,3 +96,8 @@ desktop.ini
 .idea/
 *.swp
 *.swo
+
+# AI model weights
+ai-worker/models/*.pt
+ai-worker/models/*.onnx
+!ai-worker/models/.gitkeep

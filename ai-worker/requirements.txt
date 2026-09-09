@@ -1,0 +1,7 @@
+ultralytics==8.4.145
+opencv-python-headless==4.10.0.84
+numpy>=1.24.0,<2.1.0
+pydantic>=2.7.0
+pydantic-settings>=2.2.0
+pytest>=8.0.0
+requests>=2.31.0

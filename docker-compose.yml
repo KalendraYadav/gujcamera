@@ -118,6 +118,36 @@ services:
     depends_on:
       - video-gateway
 
+  # ----------------------------------------------------------------------------
+  # 6. AI Vision Worker (Phase 3B: Frame Ingestion & Stream Consumer)
+  # ----------------------------------------------------------------------------
+  ai-worker:
+    build:
+      context: ./ai-worker
+      dockerfile: Dockerfile
+    container_name: gujcamera_ai_worker
+    restart: unless-stopped
+    environment:
+      LOG_LEVEL: ${AI_WORKER_LOG_LEVEL:-INFO}
+      WORKER_NAME: ${AI_WORKER_NAME:-gujcamera-ai-worker-01}
+      SAMPLE_FPS: ${AI_WORKER_SAMPLE_FPS:-3.0}
+      BASE_RECONNECT_DELAY: ${AI_WORKER_BASE_RECONNECT_DELAY:-2.0}
+      MAX_RECONNECT_DELAY: ${AI_WORKER_MAX_RECONNECT_DELAY:-30.0}
+      DECODE_FAILURE_THRESHOLD: ${AI_WORKER_DECODE_FAILURE_THRESHOLD:-5}
+      METRICS_INTERVAL: ${AI_WORKER_METRICS_INTERVAL:-10.0}
+      CAMERA_STREAMS: "CAM-AHM-01=rtsp://video-gateway:8554/cam-ahm-01,CAM-AHM-02=rtsp://video-gateway:8554/cam-ahm-02"
+      VEHICLE_MODEL_PATH: ${VEHICLE_MODEL_PATH:-/app/models/yolov8n.pt}
+      PLATE_MODEL_PATH: ${PLATE_MODEL_PATH:-}
+      VEHICLE_CONFIDENCE_THRESHOLD: ${VEHICLE_CONFIDENCE_THRESHOLD:-0.40}
+      PLATE_CONFIDENCE_THRESHOLD: ${PLATE_CONFIDENCE_THRESHOLD:-0.35}
+    volumes:
+      - ./ai-worker/models:/app/models:ro
+      - ./video-gateway/fixtures:/fixtures:ro
+    networks:
+      - gujcamera_network
+    depends_on:
+      - video-gateway
+
 # ------------------------------------------------------------------------------
 # Persistent Storage Volumes
 # ------------------------------------------------------------------------------
