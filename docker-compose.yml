@@ -79,6 +79,45 @@ services:
       retries: 5
       start_period: 5s
 
+  # ----------------------------------------------------------------------------
+  # 4. MediaMTX RTSP Streaming Gateway (Video Middleware)
+  # ----------------------------------------------------------------------------
+  video-gateway:
+    image: bluenviron/mediamtx:1.9.3
+    container_name: gujcamera_video_gateway
+    restart: unless-stopped
+    ports:
+      - "${RTSP_PORT:-${RTSP_SIMULATOR_PORT:-8554}}:8554"
+      - "${HLS_PORT:-8888}:8888"
+    volumes:
+      - ./video-gateway/mediamtx.yml:/mediamtx.yml:ro
+    networks:
+      gujcamera_network:
+        aliases:
+          - video-gateway
+          - simulator
+
+  # ----------------------------------------------------------------------------
+  # 5. FFmpeg CCTV Stream Loop Simulator (Deterministic Test Feeds)
+  # ----------------------------------------------------------------------------
+  stream-simulator:
+    image: linuxserver/ffmpeg:latest
+    container_name: gujcamera_stream_simulator
+    restart: unless-stopped
+    entrypoint: ["/bin/bash", "/scripts/stream-loop.sh"]
+    environment:
+      GATEWAY_HOST: video-gateway
+      GATEWAY_PORT: 8554
+      RETRY_INTERVAL: 3
+      FIXTURES_DIR: /fixtures
+    volumes:
+      - ./video-gateway/fixtures:/fixtures:ro
+      - ./video-gateway/stream-loop.sh:/scripts/stream-loop.sh:ro
+    networks:
+      - gujcamera_network
+    depends_on:
+      - video-gateway
+
 # ------------------------------------------------------------------------------
 # Persistent Storage Volumes
 # ------------------------------------------------------------------------------

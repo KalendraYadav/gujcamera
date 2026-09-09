@@ -1,0 +1,37 @@
+# ==============================================================================
+# MediaMTX Configuration — Gujarat Police Innovation Challenge 2026
+# Role: Real-time Video Streaming Gateway (RTSP / HLS)
+# ==============================================================================
+
+logLevel: info
+logDestinations: [stdout]
+
+# Network Listeners
+rtsp: yes
+rtspAddress: :8554
+protocols: [tcp, udp]
+encryption: "no"
+
+# HLS streaming (available for future browser preview)
+hls: yes
+hlsAddress: :8888
+hlsAlwaysRemux: no
+
+# Disable unneeded protocols to minimize resource consumption and attack surface
+rtmp: no
+srt: no
+webrtc: no
+api: no
+metrics: no
+
+# Path Configurations
+paths:
+  cam-ahm-01:
+    source: publisher
+  cam-ahm-02:
+    source: publisher
+  live/cam-ahm-01:
+    source: publisher
+  live/cam-ahm-02:
+    source: publisher
+  all_others:
