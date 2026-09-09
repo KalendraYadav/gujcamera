@@ -13,13 +13,15 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     OPENCV_FFMPEG_CAPTURE_OPTIONS="rtsp_transport;tcp" \
     YOLO_CONFIG_DIR=/tmp/Ultralytics
 
-# Install minimal OS dependencies required for video decoding (FFmpeg and GLib)
+# Install minimal OS dependencies required for video decoding (FFmpeg, GLib) and OCR (Tesseract 5)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ffmpeg \
     libglib2.0-0 \
     libgomp1 \
     libgl1 \
     curl \
+    tesseract-ocr \
+    tesseract-ocr-eng \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app

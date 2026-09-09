@@ -66,6 +66,13 @@ class Settings(BaseSettings):
     PLATE_CONFIDENCE_THRESHOLD: float = Field(default=0.35, ge=0.1, le=1.0)
     INFERENCE_DEVICE: str = "cpu"
 
+    # Optical Character Recognition Pipeline (Phase 3D)
+    OCR_ENABLED: bool = True
+    OCR_ENGINE: str = "TESSERACT"
+    OCR_MIN_CONFIDENCE: float = Field(default=0.30, ge=0.0, le=1.0)
+    OCR_ACCEPT_CONFIDENCE: float = Field(default=0.60, ge=0.0, le=1.0)
+    OCR_TESSERACT_CMD: str = ""
+
     def get_camera_configs(self) -> List[CameraConfig]:
         """Resolve and parse the list of active camera streams"""
         cameras: List[CameraConfig] = []

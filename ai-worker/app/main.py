@@ -13,6 +13,7 @@ from app.config import settings
 from app.detector import InferencePipeline, PlateLocalizer, YoloVehicleDetector
 from app.health import worker_health
 from app.logging_config import setup_logging
+from app.ocr import TesseractOCREngine
 from app.stream_consumer import StreamConsumer
 
 logger = logging.getLogger("ai_worker.main")
@@ -37,9 +38,20 @@ class WorkerApp:
             confidence_threshold=self.settings.PLATE_CONFIDENCE_THRESHOLD,
             device=self.settings.INFERENCE_DEVICE,
         )
+
+        # Initialize Phase 3D OCR Engine
+        ocr_engine = None
+        if self.settings.OCR_ENABLED:
+            ocr_engine = TesseractOCREngine(
+                tesseract_cmd=self.settings.OCR_TESSERACT_CMD if self.settings.OCR_TESSERACT_CMD else None
+            )
+
         self.pipeline = InferencePipeline(
             vehicle_detector=vehicle_detector,
             plate_detector=plate_detector,
+            ocr_engine=ocr_engine,
+            ocr_min_confidence=self.settings.OCR_MIN_CONFIDENCE,
+            ocr_accept_confidence=self.settings.OCR_ACCEPT_CONFIDENCE,
         )
 
     def setup_signals(self) -> None:
@@ -150,6 +162,15 @@ class WorkerApp:
             inf["avg_latency_ms"],
             inf["min_latency_ms"],
             inf["max_latency_ms"],
+        )
+        logger.info(
+            "  -> [OCR] Engine: %s | Processed: %d | Success: %d | Latency: %.1fms avg (min: %.1f, max: %.1f)",
+            inf["ocr_engine"],
+            inf["total_ocr_processed"],
+            inf["total_ocr_success"],
+            inf["avg_ocr_latency_ms"],
+            inf["min_ocr_latency_ms"],
+            inf["max_ocr_latency_ms"],
         )
 
     def stop(self) -> None:

@@ -1,15 +1,16 @@
-# AI Vision Worker (Phase 3C — Vehicle Detection & License Plate Localization)
+# AI Vision Worker (Phase 3D — Indian License Plate OCR + Normalization)
 Unified CCTV Intelligence Platform — Gujarat Police Innovation Challenge 2026
 
 ## Overview
 
-The `ai-worker` service provides the containerized video ingestion and computer-vision foundation for the Gujarat Police CCTV surveillance platform. It ingests live RTSP streams via OpenCV over TCP, performs deterministic frame sampling, runs lightweight CPU-first YOLOv8 vehicle detection, localizes license plate bounding boxes, and constructs a structured in-memory `DetectionResult` contract.
+The `ai-worker` service provides the containerized video ingestion, computer-vision, and optical character recognition (OCR) foundation for the Gujarat Police CCTV surveillance platform. It ingests live RTSP streams via OpenCV over TCP, performs deterministic frame sampling, runs lightweight CPU-first YOLOv8 vehicle detection, localizes license plate bounding boxes, extracts transient plate crops, applies CCTV contrast and thresholding preprocessing, performs character recognition via Tesseract 5 (LSTM), and executes deterministic Indian license plate normalization with structured in-memory `OCRResult` contracts.
 
 > [!IMPORTANT]
-> **Phase 3C Scope Boundary**:
-> This service performs **Vehicle Detection** and **License Plate Bounding-Box Localization**.
-> **Phase 3C does NOT perform OCR or Text Recognition.**
-> Plate character extraction, OCR consensus voting, Redis sighting events, MinIO evidence uploading, database persistence, watchlist matching, and alerts are deferred to Phases 3D through 3G.
+> **Phase 3D Scope Boundary**:
+> This service performs **Vehicle Detection**, **Plate Localization**, **In-Memory Plate Crop Preprocessing**, **Tesseract OCR**, and **Plate Text Normalization**.
+> **Phase 3D strictly does NOT perform multi-frame temporal consensus, Redis publishing, database persistence, watchlist matching, alert triggering, MinIO evidence uploading, or frontend display.**
+> Multi-frame consensus voting is deferred to Phase 3E.
+> Redis sighting events and MinIO evidence vaulting are deferred to Phase 3F.
 
 ---
 
@@ -42,10 +43,32 @@ MediaMTX RTSP Gateway (video-gateway:8554)
    └───────────────────────────┴───────────────────────────┘
                │
                ▼
-   Structured DetectionResult (In-Memory)
+   Transient Plate Crop Extraction (In-Memory Only, Never Persisted)
+               │
+               ▼
+   Deterministic CCTV Preprocessor
+   [Grayscale → 64px Upscale → CLAHE Contrast → Otsu Binarization → Border Rim Clearing]
+               │
+               ▼
+   OCR Engine (Tesseract 5 LSTM, CPU-First)
+               │
+               ▼
+   Raw Text Extraction & LSTM Confidence
+               │
+               ▼
+   Deterministic Indian Plate Normalizer
+   - Alphanumeric sanitization & uppercase conversion
+   - Format validation signal (Standard State & Bharat Series)
+               │
+               ▼
+   Structured DetectionResult + OCRResult (In-Memory Only)
    - Vehicle Bounding Boxes & Confidence
-   - Plate Bounding Boxes & Confidence (NO OCR, NO CROPS)
+   - Plate Bounding Boxes & Confidence
+   - Raw Text, Normalized Text, Confidence, Format Valid Signal
    - Inference Latency Telemetry & Heartbeats
+               │
+               ▼
+             STOP (Phase 3D Boundary)
 ```
 
 ---
@@ -59,13 +82,28 @@ MediaMTX RTSP Gateway (video-gateway:8554)
 - **Frame Sampling**: Configurable (Default: 3.0 FPS; PoC Target: 3.0–5.0 FPS)
 - **Vehicle Model**: YOLOv8 Nano (`yolov8n.pt`, 6.2 MB) on PyTorch CPU
 - **Plate Localizer**: Pluggable abstraction (`DEDICATED_ML_PLATE_LOCALIZER` or `HEURISTIC_PLATE_LOCALIZER`)
-- **Resilience**: Independent per-camera daemon thread; stream or inference failure on one camera never stops another.
+- **OCR Engine**: Tesseract 5 (LSTM) via `pytesseract==0.3.13` (CPU-first, 15–35 ms/crop)
+- **Crop Persistence**: None (Transient in-memory slicing from raw frame; discarded immediately after OCR)
+- **Resilience**: Per-camera daemon threads; OCR or inference failures on one stream never crash or block others.
 
 ---
 
 ## Model Architecture & Licensing
 
-### MODEL / LICENSING NOTE: Ultralytics YOLOv8n
+### 1. OCR Engine: Tesseract 5 (LSTM) & Traineddata Model
+
+- **Package Dependency**: `tesseract-ocr` and `tesseract-ocr-eng` (v5.5.0, Debian Bookworm package), `pytesseract==0.3.13`
+- **Tesseract Software License**: **Apache License 2.0**
+- **OCR Model / Weights**: LSTM Neural Network English Language Model (`eng.traineddata`, ~23.4 MB, Debian package `tesseract-ocr-eng`)
+- **Traineddata Model License**: **Apache License 2.0** (packaged under Debian main)
+- **Source**: Official Debian Linux repository / Google Tesseract OCR open-source project (`https://github.com/tesseract-ocr/tessdata_fast`)
+- **Model Acquisition**: Baked into Docker image build via system package manager (`apt-get install -y tesseract-ocr tesseract-ocr-eng`). Zero network calls at runtime.
+- **CPU Suitability**: Optimized C++ LSTM engine running locally on CPU in ~60–70 ms without requiring CUDA or heavy GPU drivers.
+- **PoC Usage Interpretation**: The selected Tesseract components are documented as Apache-2.0 licensed. This appears suitable for PoC/hackathon evaluation subject to applicable license terms.
+- **Production Deployment Consideration**: Production/government deployment should undergo the organization's normal open-source license, attribution, procurement, and legal review. This documentation does not provide legal clearance, procurement approval, or guarantees of commercial fitness.
+- **Limitation for Indian Plates**: Tesseract's standard `eng.traineddata` model is trained on standard Latin typography rather than specific High Security Registration Plate (HSRP) fonts (e.g., DIN 1451 Mittelschrift variations used in India). To maximize accuracy without mutating characters, our deterministic preprocessor upscales crops to 64px height, standardizes polarity, removes outer border rims, and runs single-line page segmentation (`--psm 7`).
+
+### 2. Vehicle Detector: Ultralytics YOLOv8n
 
 - **Package Dependency**: `ultralytics` (pinned: `==8.4.145`)
 - **Model Weights**: YOLOv8 Nano (`yolov8n.pt`, v8.3.0 release asset, 6,549,796 bytes)
@@ -77,132 +115,172 @@ MediaMTX RTSP Gateway (video-gateway:8554)
 
 ---
 
-## Vehicle Class Normalization
+## Plate Crop Preparation & Deterministic Preprocessing
 
-The pretrained YOLOv8n model operates on the standard 80-class COCO dataset. It directly detects **4 primary road vehicle categories**:
-- `car` (COCO ID 2) ➔ `CAR`
-- `motorcycle` (COCO ID 3) ➔ `MOTORCYCLE`
-- `bus` (COCO ID 5) ➔ `BUS`
-- `truck` (COCO ID 7) ➔ `TRUCK`
+To preserve architectural purity, **no image crop bytes exist in the `DetectionResult` or `DetectedPlate` domain contracts**.
 
-| COCO Class (Directly Detected by YOLOv8n) | Canonical Platform Class | Operational Scope |
-|---|---|---|
-| `car` (COCO 2) | `CAR` | Standard passenger motorcars |
-| `motorcycle` (COCO 3) | `MOTORCYCLE` | Two-wheelers |
-| `bus` (COCO 5) | `BUS` | Public transit and commercial buses |
-| `truck` (COCO 7) | `TRUCK` | Heavy goods and commercial freight vehicles |
-
-> [!NOTE]
-> **Domain Vocabulary vs Detector Scope**:
-> The `VehicleClass` domain enum includes canonical mappings for additional vehicle types (`van`, `auto_rickshaw`, `three_wheeler`, `tractor`, `sedan`, `suv`) which normalize into `OTHER_VEHICLE` or standard classes via `VehicleClass.from_detector_label()`. These aliases exist solely for future domain model compatibility (e.g. Indian-traffic fine-tuned models). The stock YOLOv8n PoC model does **NOT** directly classify subcategories like auto-rickshaws, tractors, or specific car body types.
+Instead:
+1. When a plate is detected, `prepare_plate_crop()` safely clips `DetectedPlate.bbox` against the original frame dimensions `(frame_width, frame_height)`.
+2. Validates crop dimensions against minimum operational thresholds (`min_width=32`, `min_height=12`, max aspect ratio 8.0).
+3. The transient crop is preprocessed via `preprocess_plate_crop()`:
+   - **Grayscale Conversion**: Eliminates color chromatic noise.
+   - **Aspect-Preserving Upscale**: Scales height to 64px using cubic interpolation (`cv2.INTER_CUBIC`) for optimal character stroke thickness.
+   - **Contrast Normalization**: Applies Contrast Limited Adaptive Histogram Equalization (`CLAHE`, clip limit 2.5, tile grid 8x8) to handle uneven CCTV street lighting.
+   - **Otsu Binarization**: Computes optimal binarization threshold separating plate text from background.
+   - **Polarity Standardizer**: Ensures dark text on bright background (standard Indian white/yellow plates).
+   - **Border Rim Clearing**: Blanks out the outer 4-pixel border margin, preventing the black plate frame from being misinterpreted as the letter `I` or digit `1`.
+4. After OCR inference completes, the crop matrix is immediately garbage-collected in memory. **Zero disk or MinIO writes occur.**
 
 ---
 
-## Plate Localizer Modes & Disclaimers
+## Indian License Plate Normalization
 
-The detector architecture provides two explicit localization modes reported in logs and telemetry:
+The normalization pipeline is strictly deterministic, matching the backend normalization logic (`backend/src/modules/vehicles/utils/plate-normalizer.ts`).
 
-1. **`DEDICATED_ML_PLATE_LOCALIZER`**:
-   - Active when dedicated plate model weights are provided via `PLATE_MODEL_PATH`.
-   - Runs secondary machine learning inference on cropped vehicle regions.
-   - Confidence represents model-predicted detection probability.
+### Rules:
+1. Converts all alphabetic characters to uppercase (`upper()`).
+2. Strips all non-alphanumeric characters, including spaces, hyphens, dots, underscores, and punctuation (`re.sub(r'[^a-zA-Z0-9]', '', s)`).
+3. Strips optional leading Indian national identifier prefix `"IND"` only when followed by a valid state code.
+4. **Never silently performs aggressive character mutations** (e.g., `O -> 0`, `I -> 1`, `B -> 8`) because license plate context without unambiguous position information introduces silent falsification.
+5. Preserves uncertainty over guessing.
 
-2. **`HEURISTIC_PLATE_LOCALIZER` (PoC Fallback)**:
-   - Active when no dedicated ML plate weights are provided (`PLATE_MODEL_PATH=""`).
-   - Uses classical computer vision (CLAHE contrast normalization, Sobel horizontal gradient, rectangular morphological close 17x3, Otsu thresholding, contour geometry filtering for standard Indian plate aspect ratio 2.0–5.5 in the lower 65% of the vehicle crop).
-   - **Crucial Limitation**: The confidence score in this mode reflects geometric aspect-ratio/contour-fill fitness, **NOT** machine-learning confidence.
-   - **Disclaimer**: The heuristic fallback is strictly an engineering placeholder for the PoC; it does NOT provide production ANPR reliability.
+### Concrete Examples:
+| Input Raw Text | Normalized Text | Format Valid Signal | Note |
+|---|---|---|---|
+| `"gj 01 ab 1234"` | `"GJ01AB1234"` | `True` | Standard Gujarat RTO plate |
+| `"GJ-01-AB-1234"` | `"GJ01AB1234"` | `True` | Hyphen-separated format |
+| `"ind GJ01AB1234"` | `"GJ01AB1234"` | `True` | Leading IND stamp removed |
+| `"22BH1234AB"` | `"22BH1234AB"` | `True` | Bharat Series format |
+| `"MH 12 CD 5678"` | `"MH12CD5678"` | `True` | Maharashtra RTO plate |
+| `"GJ01A123"` | `"GJ01A123"` | `False` | Incomplete number (preserved, not mutated) |
+| `"ABC!@#123"` | `"ABC123"` | `False` | Alphanumerics retained, format flag false |
 
 ---
 
-## In-Memory Detection Contract
+## Format Validation Diagnostic Signal
 
-Image crops are **strictly excluded** from the domain contract:
+The platform implements a conservative format check (`is_valid_indian_plate_format`) as an **independent diagnostic signal**, NOT a transformation filter:
+- Standard Indian Format: `^[A-Z]{2}[0-9]{1,2}[A-Z]{0,3}[0-9]{4}$` (2-letter state code, 1-2 digit RTO code, 0-3 letter series, 4-digit registration number).
+- Bharat Series Format: `^[0-9]{2}BH[0-9]{4}[A-Z]{1,2}$` (2-digit registration year, BH code, 4-digit number, 1-2 letter series).
+
+> [!CAUTION]
+> The format validation flag does **not** alter the OCR confidence and does **not** reject plates. An unusual or non-standard government/military plate may have `format_valid = False` while retaining high OCR confidence.
+
+---
+
+## OCR Result Contract
 
 ```python
 @dataclass(slots=True)
-class DetectedObject:
-    object_id: str
-    vehicle_class: VehicleClass
-    confidence: float
-    bbox: BoundingBox
-
-@dataclass(slots=True)
-class DetectedPlate:
+class OCRResult:
     plate_id: str
-    bbox: BoundingBox
-    confidence: float
-    vehicle_id: Optional[str] = None
-    # NOTE: image crop is NOT in domain contract
-
-@dataclass(slots=True)
-class DetectionResult:
-    camera_id: str
-    captured_at: float
-    frame_sequence: int
-    frame_width: int
-    frame_height: int
-    inference_timestamp: float
-    inference_latency_ms: float
-    plate_localizer_mode: str      # DEDICATED_ML_PLATE_LOCALIZER or HEURISTIC_PLATE_LOCALIZER
-    detected_objects: List[DetectedObject] = field(default_factory=list)
-    plates: List[DetectedPlate] = field(default_factory=list)
+    raw_text: str                          # Unmodified text as returned by OCR engine
+    normalized_text: str                   # Deterministically cleaned alphanumeric string
+    confidence: Optional[float] = None     # Tesseract-reported OCR confidence [0.0, 1.0]
+    confidence_available: bool = False     # Whether the engine provided true confidence
+    format_valid: bool = False             # Independent diagnostic format check
+    engine: str = "TESSERACT_OCR"          # Engine identifier
+    processing_latency_ms: float = 0.0     # Time taken for preprocessing + OCR
+    preprocessing_variant: str = "clahe_otsu"
+    success: bool = True
+    error_code: Optional[str] = None
+    error_message: Optional[str] = None
 ```
+
+### Confidence Semantics:
+- **What Confidence MEANS**: Aggregate OCR confidence is calculated from the word-level confidence values returned by Tesseract's `image_to_data` output for recognized tokens/words, normalized to the `[0.0, 1.0]` range.
+- **What Confidence DOES NOT Mean**:
+  - It does NOT represent format validity or regex compliance (format validity is a separate diagnostic signal).
+  - It does NOT measure watchlist match probability.
+  - It does NOT represent multi-frame consensus certainty (Phase 3E).
+  - It is NOT synthesized or inferred from string length or dictionary matches. If confidence is unavailable, `confidence = None` and `confidence_available = False`.
 
 ---
 
-## Measured CPU Benchmark Performance
+## Failure Handling & Error Codes
 
-Benchmarked directly against Phase 3A deterministic synthetic fixtures (`cam-ahm-01.mp4`, `cam-ahm-02.mp4`) running YOLOv8n on CPU (x86_64) at 1280x720:
+OCR failures are isolated and will never crash or halt the pipeline. Structured error codes include:
 
-### 1. Latency Breakdown (Cold-Start vs Warmed-Up Steady-State)
+| Error Code | Trigger Condition | System Action |
+|---|---|---|
+| `EMPTY_PLATE_CROP` | Bounding box cropped region is empty or has 0 bytes | Emits failed `OCRResult`, proceeds to next detection |
+| `INVALID_PLATE_BBOX` | Bounding box dimensions outside frame bounds | Emits failed `OCRResult`, logs debug warning |
+| `PLATE_CROP_TOO_SMALL` | Crop width < 32px or height < 12px | Skips unreadable crop safely |
+| `OCR_ENGINE_UNAVAILABLE` | OCR engine binary or weights missing | Sets `is_ready() = False`, pipeline continues in detection-only mode |
+| `OCR_EXCEPTION` | Unhandled exception inside OCR driver | Catches exception, logs stack trace, returns `OCRResult` with error details |
+| `NO_TEXT_DETECTED` | OCR output is whitespace or empty | Emits failed `OCRResult(success=False)` |
+| `LOW_CONFIDENCE` | OCR confidence below `OCR_MIN_CONFIDENCE` threshold | Result marked `success=False`, gated from downstream processing |
 
-| Category / Metric | CAM-AHM-01 | CAM-AHM-02 | Notes |
-|---|---|---|---|
-| **Hardware** | CPU (x86_64) | CPU (x86_64) | Containerized PyTorch CPU execution |
-| **Model** | `yolov8n.pt` (CPU) | `yolov8n.pt` (CPU) | Pretrained YOLOv8 Nano (6.2 MB) |
-| **Plate Localizer Mode** | `HEURISTIC_PLATE_LOCALIZER` | `HEURISTIC_PLATE_LOCALIZER` | PoC geometric fallback active |
-| **Input Resolution** | 1280x720 | 1280x720 | Native fixture resolution |
-| **Total Frames Tested** | 25 frames | 25 frames | Deterministic test fixture duration |
-| **Vehicles Detected** | 0 (Ground truth) | 0 (Ground truth) | Synthetic countdown patterns have 0 vehicles |
-| **Plates Localized** | 0 (Ground truth) | 0 (Ground truth) | Accurate ground truth on test pattern |
-| **A. Cold-Start Latency (Frame 1)** | **945.52 ms** | **52.10 ms** | First-frame PyTorch graph allocation / weight load |
-| **B. Warmed-Up Frames** | 24 frames (2..25) | 24 frames (2..25) | Steady-state inference |
-| **- Warmed-Up Min** | 14.70 ms | 15.47 ms | Peak individual frame latency |
-| **- Warmed-Up p50 (Median)** | 22.47 ms | 25.27 ms | Steady-state median |
-| **- Warmed-Up p90** | 32.81 ms | 36.09 ms | 90th percentile latency |
-| **- Warmed-Up p99** | 43.67 ms | 38.51 ms | 99th percentile latency |
-| **- Warmed-Up Max** | 46.66 ms | 38.77 ms | Worst-case warmed-up frame |
-| **- Warmed-Up Average** | **23.99 ms** | **25.95 ms** | **True steady-state average latency** |
-| **- Warmed-Up Throughput** | **41.7 FPS** | **38.5 FPS** | Easily exceeds 3.0-5.0 FPS sampling target |
-| **C. Overall Average (All 25)** | 60.86 ms | 27.00 ms | Average skewed by initial cold-start frame |
-| **- Overall Achievable FPS** | 16.4 FPS | 37.0 FPS | Includes cold-start overhead |
+---
+
+## Measured Performance Benchmarks
+
+Benchmarked on CPU (`x86_64`) within the containerized Python 3.11 environment:
+
+### 1. Phase 3D OCR-Only Latency Benchmark (Tesseract 5 LSTM on CPU)
+
+| Metric | Measured Value | Operational Context |
+|---|---|---|
+| **Input Type** | Preprocessed Plate Crop (240x60) | Standard vehicle plate crop |
+| **OCR Engine** | Tesseract 5 (LSTM) via `pytesseract` | Single text-line segmentation (`--psm 7`) |
+| **Total Iterations Tested** | 25 plate crops | Controlled fixture execution |
+| **Cold-Start Latency (Crop 1)** | **68.43 ms** | First-crop process initialization |
+| **Warmed-Up Min** | 60.30 ms | Peak individual crop latency |
+| **Warmed-Up p50 (Median)** | **63.66 ms** | Steady-state median latency |
+| **Warmed-Up p90** | 78.19 ms | 90th percentile latency |
+| **Warmed-Up p99** | 88.62 ms | 99th percentile latency |
+| **Warmed-Up Max** | 91.61 ms | Worst-case crop latency |
+| **Warmed-Up Average** | **67.39 ms** | **Steady-state average per plate** |
+| **Warmed-Up Throughput** | **14.8 plates/second** | Per CPU core |
 
 > [!NOTE]
-> **Cold-Start Outlier Clarification**:
-> The 60.86 ms overall average for `CAM-AHM-01` does **NOT** represent steady-state latency. Frame 1 incurs a 945.52 ms cold-start overhead for PyTorch memory pool initialization and graph construction. Once warmed up, steady-state inference runs in **23.99 ms (41.7 FPS)** on `CAM-AHM-01` and **25.95 ms (38.5 FPS)** on `CAM-AHM-02`, well above the 3.0–5.0 FPS target.
-> Furthermore, test fixtures are synthetic countdown patterns; 0 vehicles detected is the accurate ground-truth result. Vehicle detection is not falsely claimed on synthetic patterns.
+> **Controlled Fixture Disclaimer**:
+> Controlled OCR fixtures validate OCR component mechanics and do not represent government CCTV accuracy.
+
+### 2. Phase 3C Detection Benchmark (YOLOv8n on 1280x720 Fixtures)
+
+| Metric | CAM-AHM-01 | CAM-AHM-02 | Notes |
+|---|---|---|---|
+| **Cold-Start Latency (Frame 1)** | 920.50 ms | 67.09 ms | PyTorch graph allocation |
+| **Warmed-Up p50 Latency** | 22.94 ms | 23.57 ms | Steady-state median |
+| **Warmed-Up Average Latency** | **24.40 ms** | **24.74 ms** | ~41 FPS throughput |
+| **Vehicles Detected** | 0 (Ground truth) | 0 (Ground truth) | Synthetic countdown patterns |
+| **Plates Localized** | 0 (Ground truth) | 0 (Ground truth) | Accurate ground truth |
+
+> [!NOTE]
+> **Video Fixture Disclaimer**:
+> Current CCTV fixtures are synthetic countdown patterns and contain no genuine vehicles or license plates; therefore they do not establish real-world ANPR accuracy.
+
+### 3. Estimated Component-Sum Latency (Not a Measured End-to-End Benchmark)
+
+| Component Stage | Measured Benchmark Latency | Benchmark Context |
+|---|---|---|
+| Vehicle Detection + Plate Localization | ~24.4 ms (Warmed-up Avg) | Measured on 1280x720 video fixtures (CPU) |
+| OCR Preprocessing + Character Recognition | ~67.4 ms (Warmed-up Avg) | Measured on 240x60 synthetic plate crops (CPU) |
+| **Estimated Component-Sum Latency** | **~91.8 ms** | **Theoretical sequential sum (~10.9 FPS theoretical max)** |
+
+> [!IMPORTANT]
+> **Latency & Fixture Disclaimers**:
+> 1. **Not a Measured End-to-End Benchmark**: The ~91.8 ms figure is strictly an arithmetic sum of two independently measured component benchmarks. It does **not** represent a measured end-to-end benchmark on live vehicles.
+> 2. **Not an Accuracy Benchmark**: The component benchmark measures processing execution time only and does not establish statewide ANPR accuracy.
+> 3. **Sequential Assumption**: This estimate assumes sequential, single-core processing per plate without parallelism.
+> 4. **No Vehicles in Current CCTV Fixtures**: Current Phase 3A deterministic CCTV video fixtures (`cam-ahm-01.mp4`, `cam-ahm-02.mp4`) are synthetic countdown test patterns containing **zero genuine vehicles and zero license plates**.
+> 5. **Future Verification Requirement**: Real end-to-end performance and accuracy with actual vehicle/plate crops must be measured using an appropriate controlled real/licensed fixture in a later validation step.
 
 ---
 
-## Running Locally and in Docker
+## Running Verification Suites
 
-### Reproducible Model Acquisition:
 ```bash
-python ai-worker/scripts/download_models.py
-```
-
-### Running Unit & Benchmark Tests:
-```bash
-# Run all 34 unit and contract tests
+# Run all 53 AI worker unit, fixture, and contract tests:
 docker compose run --rm ai-worker pytest -v tests/
 
-# Run benchmark against video fixtures
+# Run performance benchmarks:
 docker compose run --rm ai-worker pytest -s tests/test_fixture_benchmark.py
-```
 
-### Starting the Full Stack:
-```bash
-docker compose up -d --build ai-worker
-docker compose logs -f ai-worker
+# Backend verification:
+cd backend
+npm run build
+npm run test:e2e       # 97/97 E2E tests
+npm run db:verify      # 11/11 DB verification checks
 ```

@@ -112,6 +112,7 @@ def test_detection_result_aggregation():
 
     assert result.vehicle_count == 1
     assert result.plate_count == 1
+    assert result.ocr_count == 0
     assert result.plate_localizer_mode == "HEURISTIC_PLATE_LOCALIZER"
     summary = result.summary()
     assert summary["camera_id"] == "CAM-AHM-01"
@@ -122,3 +123,4 @@ def test_detection_result_aggregation():
     assert summary["vehicles"][0]["class"] == "CAR"
     assert len(summary["plates"]) == 1
     assert summary["plates"][0]["confidence"] == 0.85
+    assert len(summary["ocr_results"]) == 0

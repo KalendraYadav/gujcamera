@@ -140,6 +140,7 @@ class DetectionResult:
     plate_localizer_mode: str = "HEURISTIC_PLATE_LOCALIZER"
     detected_objects: List[DetectedObject] = field(default_factory=list)
     plates: List[DetectedPlate] = field(default_factory=list)
+    ocr_results: List[Any] = field(default_factory=list)
 
     @property
     def vehicle_count(self) -> int:
@@ -148,6 +149,10 @@ class DetectionResult:
     @property
     def plate_count(self) -> int:
         return len(self.plates)
+
+    @property
+    def ocr_count(self) -> int:
+        return len(self.ocr_results)
 
     def summary(self) -> Dict[str, Any]:
         """Produce lightweight summary dictionary for logging and metrics"""
@@ -159,4 +164,8 @@ class DetectionResult:
             "plate_localizer_mode": self.plate_localizer_mode,
             "vehicles": [obj.to_dict() for obj in self.detected_objects],
             "plates": [plate.to_dict() for plate in self.plates],
+            "ocr_results": [
+                ocr.to_dict() if hasattr(ocr, "to_dict") else ocr
+                for ocr in self.ocr_results
+            ],
         }
