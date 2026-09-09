@@ -80,8 +80,10 @@ frames_cache/
 *.avi
 *.mkv
 *.mov
-*.ts
+*.m2ts
 *.hls
+recordings/*.ts
+video_cache/*.ts
 
 # Operating system files
 .DS_Store
