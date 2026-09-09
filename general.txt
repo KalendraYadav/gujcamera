@@ -1,0 +1,103 @@
+Model 1 + Model 3 + selective Model 2 capabilities
+
+
+                 ┌──────────────────────┐
+                 │ CCTV REGISTRY + GIS  │
+                 │      MODEL 1         │
+                 └──────────┬───────────┘
+                            │
+                            ▼
+             ┌──────────────────────────┐
+             │ FEDERATION / MIDDLEWARE  │
+             │         MODEL 3          │
+             └────────────┬─────────────┘
+                          │
+          ┌───────────────┼────────────────┐
+          ▼               ▼                ▼
+      RTSP/ONVIF      Vendor APIs      VMS/SDK
+          │               │                │
+          └───────────────┼────────────────┘
+                          ▼
+                ┌─────────────────┐
+                │ STREAM GATEWAY  │
+                └────────┬────────┘
+                         ▼
+                ┌─────────────────┐
+                │ AI ANALYTICS    │
+                │ ANPR            │
+                │ Detection       │
+                │ Tracking        │
+                └────────┬────────┘
+                         ▼
+              ┌──────────────────────┐
+              │ EVENT / WATCHLIST DB │
+              └──────────┬───────────┘
+                         ▼
+                   🚨 ALERT ENGINE
+                         │
+             ┌───────────┼───────────┐
+             ▼           ▼           ▼
+           GIS       Dashboard    Vehicle Route
+
+
+
+#same arcticture 
+
+
+                               ┌───────────────────────┐
+                    │     MODEL 1           │
+                    │ CCTV REGISTRY + GIS   │
+                    └───────────┬───────────┘
+                                │
+                                ▼
+              ┌────────────────────────────────┐
+              │       FEDERATION LAYER         │
+              │           MODEL 3              │
+              │                                │
+              │ Adapter / Connector Framework  │
+              └───────────────┬────────────────┘
+                              │
+          ┌───────────────────┼────────────────────┐
+          │                   │                    │
+        RTSP                ONVIF              Vendor API
+          │                   │                    │
+          └───────────────────┼────────────────────┘
+                              ▼
+                   ┌────────────────────┐
+                   │ STREAM GATEWAY     │
+                   │ HLS / WebRTC       │
+                   └─────────┬──────────┘
+                             ▼
+                 ┌────────────────────────┐
+                 │ AI ANALYTICS ENGINE    │
+                 │                        │
+                 │ ANPR                   │
+                 │ Vehicle Detection      │
+                 │ Person Detection       │
+                 │ Tracking               │
+                 │ Event Detection        │
+                 └───────────┬────────────┘
+                             ▼
+                ┌─────────────────────────┐
+                │ EVENT / METADATA STORE  │
+                └────────────┬────────────┘
+                             │
+                 ┌───────────┴───────────┐
+                 ▼                       ▼
+          WATCHLIST ENGINE          VEHICLE TRACKER
+                 │                       │
+                 ▼                       ▼
+          🚨 REAL-TIME ALERT       🗺️ GIS ROUTE
+                 │                       │
+                 └───────────┬───────────┘
+                             ▼
+                  ┌─────────────────────┐
+                  │ POLICE COMMAND UI   │
+                  │                     │
+                  │ Video Wall          │
+                  │ Alerts              │
+                  │ Search              │
+                  │ GIS                 │
+                  │ Vehicle Timeline    │
+                  │ Camera Health        │
+                  └─────────────────────┘

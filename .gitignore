@@ -1,0 +1,95 @@
+# ==============================================================================
+# Unified CCTV Intelligence Platform — .gitignore
+# Gujarat Police Innovation Challenge 2026
+# ==============================================================================
+
+# Environment variables & secrets (NEVER commit these!)
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.env
+!*.env.example
+*.pem
+*.key
+*.cert
+*.crt
+
+# Node.js dependencies & build outputs
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+dist/
+build/
+out/
+.next/
+*.tsbuildinfo
+
+# Python virtual environments & caches
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+ENV/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Local Docker volumes & database data mounts
+data/
+postgres-data/
+redis-data/
+minio-data/
+volumes/
+
+# Logs & temp files
+logs/
+*.log
+tmp/
+temp/
+
+# Large video files, stream recordings, and frame caches
+video_cache/
+recordings/
+test_videos/
+frames_cache/
+*.mp4
+*.avi
+*.mkv
+*.mov
+*.ts
+*.hls
+
+# Operating system files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor directories (keep personal configs out)
+.vscode/
+.idea/
+*.swp
+*.swo

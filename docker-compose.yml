@@ -1,0 +1,99 @@
+# ==============================================================================
+# Unified CCTV Intelligence Platform — Docker Compose
+# Gujarat Police Innovation Challenge 2026
+#
+# PoC Infrastructure Stack:
+# - PostgreSQL 16 + PostGIS 3.4 (Relational + Spatial Geospatial Database)
+# - Redis 7 Alpine (In-memory Cache & High-throughput Event Stream)
+# - MinIO (S3-Compatible Immutable Evidence Object Storage)
+# ==============================================================================
+
+services:
+  # ----------------------------------------------------------------------------
+  # 1. PostgreSQL 16 with PostGIS Extension
+  # ----------------------------------------------------------------------------
+  postgres:
+    image: postgis/postgis:16-3.4-alpine
+    container_name: gujcamera_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-gujcamera_admin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-gujcamera_dev_secret}
+      POSTGRES_DB: ${POSTGRES_DB:-gujcamera_db}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - gujcamera_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-gujcamera_admin} -d ${POSTGRES_DB:-gujcamera_db}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # ----------------------------------------------------------------------------
+  # 2. Redis 7 (In-Memory Cache & Redis Streams Event Broker)
+  # ----------------------------------------------------------------------------
+  redis:
+    image: redis:7-alpine
+    container_name: gujcamera_redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - gujcamera_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+  # ----------------------------------------------------------------------------
+  # 3. MinIO S3 Object Storage (Frame Evidence & Snapshot Vault)
+  # ----------------------------------------------------------------------------
+  minio:
+    image: minio/minio:latest
+    container_name: gujcamera_minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minio_admin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minio_dev_secret_2026}
+    ports:
+      - "${MINIO_PORT:-9000}:9000"
+      - "${MINIO_CONSOLE_PORT:-9001}:9001"
+    volumes:
+      - minio_data:/data
+    networks:
+      - gujcamera_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+# ------------------------------------------------------------------------------
+# Persistent Storage Volumes
+# ------------------------------------------------------------------------------
+volumes:
+  postgres_data:
+    name: gujcamera_postgres_data
+  redis_data:
+    name: gujcamera_redis_data
+  minio_data:
+    name: gujcamera_minio_data
+
+# ------------------------------------------------------------------------------
+# Isolated Internal Network
+# ------------------------------------------------------------------------------
+networks:
+  gujcamera_network:
+    name: gujcamera_network
+    driver: bridge
