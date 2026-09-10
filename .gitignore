@@ -106,3 +106,4 @@ ai-worker/models/*.onnx
 
 
 question.md
+commandToRUN.md
