@@ -4,11 +4,9 @@
 // Source of Truth: master_architecture.md (Section 11 & Phase 5A Specification)
 // ==============================================================================
 
-import { apiClient } from './client';
+import { apiClient, getApiBaseUrl } from './client';
 import { EvidenceInspection } from '@/types/evidence';
 import { tokenStorage } from '@/lib/auth/session';
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
 
 export const evidenceApi = {
   /**
@@ -38,7 +36,7 @@ export const evidenceApi = {
       headers['Authorization'] = `Bearer ${accessToken}`;
     }
 
-    const response = await fetch(`${API_BASE_URL}/evidence/${id}/export`, {
+    const response = await fetch(`${getApiBaseUrl()}/evidence/${id}/export`, {
       method: 'GET',
       headers,
     });

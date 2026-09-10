@@ -43,6 +43,10 @@ function LiveMonitoringContent() {
   const [error, setError] = useState<string | null>(null);
   const [playbackStatus, setPlaybackStatus] = useState<PlaybackStatus>('IDLE');
 
+  const handlePlaybackStatusChange = useCallback((st: PlaybackStatus) => {
+    setPlaybackStatus(st);
+  }, []);
+
   // Load cameras from real backend API
   const loadCameras = useCallback(async () => {
     setIsLoading(true);
@@ -295,7 +299,7 @@ function LiveMonitoringContent() {
               key={selectedCamera.id}
               streamUrl={streamResolution.hlsUrl}
               camera={selectedCamera}
-              onStatusChange={(st) => setPlaybackStatus(st)}
+              onStatusChange={handlePlaybackStatusChange}
             />
           ) : (
             /* Honest Non-Playable Fallback */
@@ -502,13 +506,13 @@ function LiveMonitoringContent() {
                       fontWeight: 600,
                       fontFamily: 'var(--font-mono)',
                       color:
-                        selectedCamera.health?.packet_loss && selectedCamera.health.packet_loss > 0.05
+                        selectedCamera.health?.packet_loss && selectedCamera.health.packet_loss > 5.0
                           ? 'var(--color-alert)'
                           : 'var(--color-success)',
                     }}
                   >
                     {selectedCamera.health?.packet_loss != null
-                      ? `${(selectedCamera.health.packet_loss * 100).toFixed(2)}%`
+                      ? `${selectedCamera.health.packet_loss.toFixed(2)}%`
                       : '0.00%'}
                   </div>
                 </div>

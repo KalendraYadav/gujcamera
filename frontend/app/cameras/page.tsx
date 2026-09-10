@@ -28,13 +28,20 @@ import { LoadingState } from '@/components/ui/LoadingState';
 import { ErrorState } from '@/components/ui/ErrorState';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { CameraDetailDrawer } from '@/components/cameras/CameraDetailDrawer';
+import { useAuth } from '@/lib/auth/context';
+import { hasRoleAccess } from '@/lib/auth/rbac';
 import Link from 'next/link';
 
 export default function CameraRegistryPage() {
+  const { user } = useAuth();
+  const canOnboard = hasRoleAccess(user?.role, ['SUPER_ADMIN', 'DEPARTMENT_ADMIN']);
+
   const [cameras, setCameras] = useState<Camera[]>([]);
   const [healthSummary, setHealthSummary] = useState<CameraHealthSummary | null>(null);
   const [selectedCamera, setSelectedCamera] = useState<Camera | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
+  const isRefreshingRef = React.useRef<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
   // Filters
@@ -43,7 +50,10 @@ export default function CameraRegistryPage() {
   const [deptFilter, setDeptFilter] = useState<string>('ALL');
 
   const fetchRegistryData = useCallback(async () => {
-    setIsLoading(true);
+    // Prevent duplicate concurrent refresh requests
+    if (isRefreshingRef.current) return;
+    isRefreshingRef.current = true;
+    setIsRefreshing(true);
     setError(null);
 
     try {
@@ -55,11 +65,19 @@ export default function CameraRegistryPage() {
 
       setCameras(camerasRes.data);
       setHealthSummary(summaryRes);
+
+      // Keep selected camera synced if one is currently inspected
+      setSelectedCamera((prev) => {
+        if (!prev) return null;
+        return camerasRes.data.find((c) => c.id === prev.id) || prev;
+      });
     } catch (err: any) {
       console.error('Failed to fetch camera registry:', err);
       setError(err.message || 'Camera registry unavailable. Network or authorization error.');
     } finally {
       setIsLoading(false);
+      setIsRefreshing(false);
+      isRefreshingRef.current = false;
     }
   }, []);
 
@@ -141,25 +159,28 @@ export default function CameraRegistryPage() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
             <SimulatedDataBadge />
 
-            <Link
-              href="/admin"
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 'var(--space-2)',
-                padding: 'var(--space-2) var(--space-3)',
-                backgroundColor: 'rgba(6, 182, 212, 0.12)',
-                border: '1px solid rgba(6, 182, 212, 0.3)',
-                borderRadius: 'var(--radius-sm)',
-                color: 'rgb(34, 211, 238)',
-                fontSize: 'var(--text-xs)',
-                fontWeight: 600,
-                textDecoration: 'none',
-              }}
-            >
-              <Settings size={14} />
-              <span>Fleet Onboarding</span>
-            </Link>
+            {canOnboard && (
+              <Link
+                href="/admin"
+                id="fleet-onboarding-link"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 'var(--space-2)',
+                  padding: 'var(--space-2) var(--space-3)',
+                  backgroundColor: 'rgba(6, 182, 212, 0.12)',
+                  border: '1px solid rgba(6, 182, 212, 0.3)',
+                  borderRadius: 'var(--radius-sm)',
+                  color: 'rgb(34, 211, 238)',
+                  fontSize: 'var(--text-xs)',
+                  fontWeight: 600,
+                  textDecoration: 'none',
+                }}
+              >
+                <Settings size={14} />
+                <span>Fleet Onboarding</span>
+              </Link>
+            )}
 
             <Link
               href="/map"
@@ -182,8 +203,9 @@ export default function CameraRegistryPage() {
             </Link>
 
             <button
+              id="refresh-registry-btn"
               onClick={fetchRegistryData}
-              disabled={isLoading}
+              disabled={isLoading || isRefreshing}
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
@@ -192,14 +214,22 @@ export default function CameraRegistryPage() {
                 backgroundColor: 'var(--bg-surface)',
                 border: '1px solid var(--border-default)',
                 borderRadius: 'var(--radius-sm)',
-                color: 'var(--text-secondary)',
+                color: isRefreshing ? 'var(--accent-primary)' : 'var(--text-secondary)',
                 fontSize: 'var(--text-xs)',
                 fontWeight: 600,
-                cursor: 'pointer',
+                cursor: isLoading || isRefreshing ? 'not-allowed' : 'pointer',
+                opacity: isLoading || isRefreshing ? 0.75 : 1,
+                transition: 'all 0.15s ease',
               }}
             >
-              <RefreshCw size={13} style={{ animation: isLoading ? 'spin 1s linear infinite' : 'none' }} />
-              <span>Refresh</span>
+              <RefreshCw
+                size={13}
+                className={isRefreshing ? 'animate-spin' : ''}
+                style={{
+                  color: isRefreshing ? 'var(--accent-primary)' : 'currentColor',
+                }}
+              />
+              <span>{isRefreshing ? 'Refreshing...' : 'Refresh'}</span>
             </button>
           </div>
         </div>
@@ -210,6 +240,8 @@ export default function CameraRegistryPage() {
             display: 'grid',
             gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
             gap: 'var(--space-3)',
+            opacity: isRefreshing ? 0.65 : 1,
+            transition: 'opacity 0.2s ease',
           }}
         >
           {/* Total Registered */}
@@ -477,6 +509,8 @@ export default function CameraRegistryPage() {
               border: '1px solid var(--border-default)',
               borderRadius: 'var(--radius-md)',
               overflowX: 'auto',
+              opacity: isRefreshing ? 0.65 : 1,
+              transition: 'opacity 0.2s ease',
             }}
           >
             <table

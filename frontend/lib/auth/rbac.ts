@@ -56,7 +56,7 @@ export const NAV_ITEMS: NavItemConfig[] = [
     label: 'Vehicle Tracking',
     path: '/vehicles',
     iconName: 'Car',
-    allowedRoles: ['SUPER_ADMIN', 'DEPARTMENT_ADMIN', 'INVESTIGATOR', 'OPERATOR'],
+    allowedRoles: ['SUPER_ADMIN', 'DEPARTMENT_ADMIN', 'INVESTIGATOR'],
     phase: 'Phase 4D',
   },
   {

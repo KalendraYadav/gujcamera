@@ -32,31 +32,27 @@ import {
   AttributionControl,
 } from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
-
-// Dark Tactical Map Style (Carto Dark Matter raster tiles - Free & Open OSM-based)
-const TACTICAL_DARK_STYLE: any = {
+// Stable, openly accessible basemap style for MapLibre (OpenStreetMap standard raster tiles - No API key required)
+const TACTICAL_DARK_STYLE: any = process.env.NEXT_PUBLIC_MAP_STYLE || {
   version: 8,
   sources: {
-    'carto-dark': {
+    'osm-tiles': {
       type: 'raster',
       tiles: [
-        'https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
-        'https://b.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
-        'https://c.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
-        'https://d.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
+        'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
       ],
       tileSize: 256,
       attribution:
-        '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+        '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors',
     },
   },
   layers: [
     {
-      id: 'carto-dark-tiles',
+      id: 'osm-tiles',
       type: 'raster',
-      source: 'carto-dark',
+      source: 'osm-tiles',
       minzoom: 0,
-      maxzoom: 20,
+      maxzoom: 19,
     },
   ],
 };
@@ -201,6 +197,7 @@ export function GisCameraMap() {
   // Initialize MapLibre GL
   useEffect(() => {
     let isMounted = true;
+    let fallbackTimer: NodeJS.Timeout | null = null;
 
     function initMap() {
       if (!mapContainerRef.current) return;
@@ -223,12 +220,29 @@ export function GisCameraMap() {
         map.addControl(
           new AttributionControl({
             compact: true,
-            customAttribution: 'Gujarat Police Unified CCTV Platform | MapLibre Open GIS',
+            customAttribution: 'Gujarat Police Unified CCTV Platform | MapLibre Open GIS | OpenStreetMap contributors',
           }),
           'bottom-left'
         );
 
+        // Fallback: Ensure cameras are queried even if map style loading is delayed
+        fallbackTimer = setTimeout(() => {
+          if (!isMounted) return;
+          if (!mapInstanceRef.current && mapContainerRef.current) {
+            mapInstanceRef.current = map;
+            try {
+              const bounds = map.getBounds();
+              if (bounds) {
+                loadCamerasForBounds(bounds.getWest(), bounds.getSouth(), bounds.getEast(), bounds.getNorth());
+              }
+            } catch {
+              loadCamerasForBounds(72.45, 22.95, 72.75, 23.25);
+            }
+          }
+        }, 1200);
+
         map.on('load', () => {
+          if (fallbackTimer) clearTimeout(fallbackTimer);
           if (!isMounted) return;
           mapInstanceRef.current = map;
 
@@ -263,6 +277,7 @@ export function GisCameraMap() {
 
     return () => {
       isMounted = false;
+      if (fallbackTimer) clearTimeout(fallbackTimer);
       if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
       markersRef.current.forEach((marker) => marker.remove());
       markersRef.current.clear();

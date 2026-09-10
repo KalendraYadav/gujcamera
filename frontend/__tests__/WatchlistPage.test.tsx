@@ -45,11 +45,19 @@ vi.mock('next/navigation', () => ({
 const MOCK_WATCHLISTS: Watchlist[] = [
   {
     id: 'wl-1',
-    name: 'STOLEN VEHICLES AHMEDABAD',
+    name: 'Ahmedabad Stolen Vehicles Watchlist (DEMO)',
     owner: 'Crime Branch',
     department_id: 'dept-ahm',
     created_at: '2026-09-08T00:00:00.000Z',
-    entry_count: 2,
+    entries_count: 2,
+  },
+  {
+    id: 'wl-2',
+    name: 'High-Priority Inter-District Suspects (DEMO)',
+    owner: 'State Intelligence Bureau',
+    department_id: 'dept-sib',
+    created_at: '2026-09-08T00:00:00.000Z',
+    entries_count: 1,
   },
 ];
 
@@ -80,12 +88,30 @@ const MOCK_ENTRIES: WatchlistEntry[] = [
   },
 ];
 
+const MOCK_ENTRIES_WL2: WatchlistEntry[] = [
+  {
+    id: 'ent-3',
+    watchlist_id: 'wl-2',
+    plate_normalized: 'GJ27EF9012',
+    priority: 'CRITICAL',
+    category: 'SUSPECT',
+    reason: 'Inter-district armed robbery suspect',
+    added_by: 'usr-admin-1',
+    expires_at: null,
+    active: true,
+    created_at: '2026-09-08T00:00:00.000Z',
+  },
+];
+
 describe('Watchlist Management Page (Phase 4E)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockUserRole = 'SUPER_ADMIN';
     vi.mocked(watchlistsApi.listWatchlists).mockResolvedValue(MOCK_WATCHLISTS);
-    vi.mocked(watchlistsApi.listEntries).mockResolvedValue(MOCK_ENTRIES);
+    vi.mocked(watchlistsApi.listEntries).mockImplementation(async (watchlistId) => {
+      if (watchlistId === 'wl-2') return MOCK_ENTRIES_WL2;
+      return MOCK_ENTRIES;
+    });
   });
 
   it('renders watchlist catalog and handles selection of a watchlist', async () => {
@@ -102,7 +128,7 @@ describe('Watchlist Management Page (Phase 4E)', () => {
     });
 
     // Check what is rendered now
-    expect(screen.getAllByText('STOLEN VEHICLES AHMEDABAD').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('Ahmedabad Stolen Vehicles Watchlist (DEMO)').length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText('2 plates')).toBeInTheDocument();
 
     // Verify entries rendered in details panel
@@ -110,6 +136,79 @@ describe('Watchlist Management Page (Phase 4E)', () => {
       expect(screen.getByText('GJ01AB1234')).toBeInTheDocument();
       expect(screen.getByText('FIR 104/2026 Vastrapur PS')).toBeInTheDocument();
       expect(screen.getByText('GJ05CD5678')).toBeInTheDocument();
+    });
+  });
+
+  it('derives accurate plate counts with singular and plural formatting from authoritative data', async () => {
+    render(<WatchlistPage />);
+
+    await waitFor(() => {
+      expect(screen.queryByText('Loading watchlists...')).not.toBeInTheDocument();
+    });
+
+    // Verify 2 plates for Ahmedabad Stolen Vehicles Watchlist (DEMO)
+    expect(screen.getByText('2 plates')).toBeInTheDocument();
+    // Verify 1 plate for High-Priority Inter-District Suspects (DEMO)
+    expect(screen.getByText('1 plate')).toBeInTheDocument();
+  });
+
+  it('filters watchlists by search term and restores all watchlists when cleared', async () => {
+    render(<WatchlistPage />);
+
+    await waitFor(() => {
+      expect(screen.getAllByText('Ahmedabad Stolen Vehicles Watchlist (DEMO)').length).toBeGreaterThanOrEqual(1);
+      expect(screen.getByText('High-Priority Inter-District Suspects (DEMO)')).toBeInTheDocument();
+    });
+
+    const searchInput = screen.getByPlaceholderText('Search watchlists...');
+
+    // Type "Ahmedabad" into search input
+    fireEvent.change(searchInput, { target: { value: 'Ahmedabad' } });
+
+    expect(screen.getAllByText('Ahmedabad Stolen Vehicles Watchlist (DEMO)').length).toBeGreaterThanOrEqual(1);
+    expect(screen.queryByText('High-Priority Inter-District Suspects (DEMO)')).not.toBeInTheDocument();
+
+    // Clear search input
+    fireEvent.change(searchInput, { target: { value: '' } });
+
+    expect(screen.getAllByText('Ahmedabad Stolen Vehicles Watchlist (DEMO)').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText('High-Priority Inter-District Suspects (DEMO)')).toBeInTheDocument();
+  });
+
+  it('re-fetches authoritative data and maintains counts on refresh', async () => {
+    render(<WatchlistPage />);
+
+    await waitFor(() => {
+      expect(screen.getAllByText('Ahmedabad Stolen Vehicles Watchlist (DEMO)').length).toBeGreaterThanOrEqual(1);
+    });
+
+    expect(watchlistsApi.listWatchlists).toHaveBeenCalledTimes(1);
+
+    const refreshButton = screen.getByTitle('Refresh watchlists');
+    fireEvent.click(refreshButton);
+
+    await waitFor(() => {
+      expect(watchlistsApi.listWatchlists).toHaveBeenCalledTimes(2);
+    });
+
+    expect(screen.getByText('2 plates')).toBeInTheDocument();
+    expect(screen.getByText('1 plate')).toBeInTheDocument();
+  });
+
+  it('allows switching selection between watchlists and updating the detail table', async () => {
+    render(<WatchlistPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText('GJ01AB1234')).toBeInTheDocument();
+    });
+
+    // Select the second watchlist
+    const secondWatchlist = screen.getByText('High-Priority Inter-District Suspects (DEMO)');
+    fireEvent.click(secondWatchlist);
+
+    await waitFor(() => {
+      expect(screen.getByText('GJ27EF9012')).toBeInTheDocument();
+      expect(screen.getByText('Inter-district armed robbery suspect')).toBeInTheDocument();
     });
   });
 
@@ -128,7 +227,7 @@ describe('Watchlist Management Page (Phase 4E)', () => {
     render(<WatchlistPage />);
 
     await waitFor(() => {
-      expect(screen.getAllByText('STOLEN VEHICLES AHMEDABAD').length).toBeGreaterThanOrEqual(1);
+      expect(screen.getAllByText('Ahmedabad Stolen Vehicles Watchlist (DEMO)').length).toBeGreaterThanOrEqual(1);
     });
 
     expect(screen.queryByText('New Watchlist')).not.toBeInTheDocument();

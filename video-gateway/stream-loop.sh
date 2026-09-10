@@ -61,6 +61,10 @@ stream_channel "cam-ahm-01" "${FIXTURES_DIR}/cam-ahm-01.mp4" &
 stream_channel "cam-ahm-02" "${FIXTURES_DIR}/cam-ahm-02.mp4" &
 stream_channel "live/cam-ahm-01" "${FIXTURES_DIR}/cam-ahm-01.mp4" &
 stream_channel "live/cam-ahm-02" "${FIXTURES_DIR}/cam-ahm-02.mp4" &
+stream_channel "cam-gnd-02" "${FIXTURES_DIR}/cam-ahm-02.mp4" &
+stream_channel "live/cam-gnd-02" "${FIXTURES_DIR}/cam-ahm-02.mp4" &
+stream_channel "cam-ahm-03" "${FIXTURES_DIR}/cam-ahm-01.mp4" &
+stream_channel "live/cam-ahm-03" "${FIXTURES_DIR}/cam-ahm-01.mp4" &
 
 # Keep foreground container alive
 wait

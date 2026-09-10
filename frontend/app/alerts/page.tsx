@@ -200,6 +200,7 @@ export default function AlertsPage() {
             {/* Audio Toggle */}
             <button
               onClick={toggleAudio}
+              id="alert-sound-toggle-btn"
               title={isAudioMuted ? 'Unmute Critical Alert Sound' : 'Mute Critical Alert Sound'}
               style={{
                 display: 'flex',
@@ -221,6 +222,7 @@ export default function AlertsPage() {
             {/* Refresh */}
             <button
               onClick={loadInitialAlerts}
+              id="refresh-alerts-btn"
               disabled={isLoading}
               style={{
                 display: 'flex',

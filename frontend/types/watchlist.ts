@@ -27,8 +27,10 @@ export interface Watchlist {
     id: string;
     name: string;
   } | null;
+  department_name?: string;
   owner: string;
   created_at: string;
+  entries_count?: number;
   entry_count?: number;
   entries?: WatchlistEntry[];
 }

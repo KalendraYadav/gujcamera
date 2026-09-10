@@ -4,7 +4,7 @@ import '@/styles/globals.css';
 import { AuthProvider } from '@/lib/auth/context';
 
 export const metadata: Metadata = {
-  title: 'Gujarat Police Unified CCTV Intelligence Platform',
+  title: 'NETRAVA Unified CCTV Intelligence Platform',
   description: 'Mission-critical CCTV Federation, ANPR, Vehicle Intelligence, and Real-Time Alert Command Center',
 };
 

@@ -10,15 +10,32 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   // 1. Security Headers (Helmet)
-  app.use(helmet());
+  app.use(
+    helmet({
+      crossOriginResourcePolicy: { policy: 'cross-origin' },
+    }),
+  );
 
   // 2. Cross-Origin Resource Sharing (CORS)
-  const allowedOrigins = process.env.CORS_ORIGINS
-    ? process.env.CORS_ORIGINS.split(',')
-    : ['http://localhost:3000', 'http://127.0.0.1:3000'];
+  const configuredOrigins = process.env.CORS_ORIGINS
+    ? process.env.CORS_ORIGINS.split(',').map((o) => o.trim())
+    : [];
 
   app.enableCors({
-    origin: allowedOrigins,
+    origin: (origin, callback) => {
+      // Allow requests with no origin (e.g. server-to-server, curl, Next.js rewrites)
+      if (!origin) return callback(null, true);
+
+      const isLocalhost = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin);
+      const isCloudflare = /^https:\/\/[a-zA-Z0-9-]+\.trycloudflare\.com$/.test(origin);
+      const isConfigured = configuredOrigins.includes(origin);
+
+      if (isLocalhost || isCloudflare || isConfigured) {
+        callback(null, true);
+      } else {
+        callback(null, false);
+      }
+    },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Request-Id'],

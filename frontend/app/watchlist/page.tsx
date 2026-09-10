@@ -69,20 +69,21 @@ export default function WatchlistPage() {
     setIsLoadingWatchlists(true);
     setError(null);
     try {
-      const data = await watchlistsApi.listWatchlists({ search: searchTerm || undefined });
+      const data = await watchlistsApi.listWatchlists();
       setWatchlists(data);
-      if (data.length > 0 && !selectedWatchlist) {
-        setSelectedWatchlist(data[0]);
-      } else if (selectedWatchlist) {
-        const found = data.find((w) => w.id === selectedWatchlist.id);
-        if (found) setSelectedWatchlist(found);
+      if (data.length > 0) {
+        setSelectedWatchlist((prev) => {
+          if (!prev) return data[0];
+          const found = data.find((w) => w.id === prev.id);
+          return found || data[0];
+        });
       }
     } catch (err: any) {
       setError(err.message || 'Failed to load police watchlists');
     } finally {
       setIsLoadingWatchlists(false);
     }
-  }, [searchTerm, selectedWatchlist]);
+  }, []);
 
   const loadEntries = useCallback(async (watchlistId: string) => {
     setIsLoadingEntries(true);
@@ -200,6 +201,8 @@ export default function WatchlistPage() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
             <button
               onClick={loadWatchlists}
+              id="refresh-watchlists-btn"
+              title="Refresh watchlists"
               disabled={isLoadingWatchlists}
               style={{
                 display: 'flex',
@@ -280,6 +283,7 @@ export default function WatchlistPage() {
             <div style={{ marginBottom: 'var(--space-3)' }}>
               <input
                 type="text"
+                id="search-watchlists-input"
                 placeholder="Search watchlists..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -299,39 +303,56 @@ export default function WatchlistPage() {
               <div style={{ padding: 'var(--space-6)', textAlign: 'center', color: 'var(--text-muted)', fontSize: 'var(--text-xs)' }}>
                 Loading watchlists...
               </div>
-            ) : watchlists.length === 0 ? (
-              <div style={{ padding: 'var(--space-6)', textAlign: 'center', color: 'var(--text-muted)', fontSize: 'var(--text-xs)' }}>
-                No watchlists found.
-              </div>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
-                {watchlists.map((w) => {
-                  const isSelected = selectedWatchlist?.id === w.id;
-                  return (
-                    <div
-                      key={w.id}
-                      onClick={() => setSelectedWatchlist(w)}
-                      style={{
-                        padding: 'var(--space-3)',
-                        borderRadius: 'var(--radius-md)',
-                        border: isSelected ? '1px solid var(--accent-primary)' : '1px solid var(--border-subtle)',
-                        backgroundColor: isSelected ? 'var(--accent-glow)' : 'var(--bg-primary)',
-                        cursor: 'pointer',
-                        transition: 'all 0.15s ease',
-                      }}
-                    >
-                      <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '4px' }}>
-                        {w.name}
+            ) : (() => {
+              const filteredWatchlists = watchlists.filter((w) => {
+                if (!searchTerm.trim()) return true;
+                const term = searchTerm.toLowerCase().trim();
+                return (
+                  w.name.toLowerCase().includes(term) ||
+                  (w.owner && w.owner.toLowerCase().includes(term))
+                );
+              });
+
+              if (filteredWatchlists.length === 0) {
+                return (
+                  <div style={{ padding: 'var(--space-6)', textAlign: 'center', color: 'var(--text-muted)', fontSize: 'var(--text-xs)' }}>
+                    No watchlists found.
+                  </div>
+                );
+              }
+
+              return (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
+                  {filteredWatchlists.map((w) => {
+                    const isSelected = selectedWatchlist?.id === w.id;
+                    const plateCount = w.entries_count ?? w.entry_count ?? w.entries?.length ?? 0;
+                    return (
+                      <div
+                        key={w.id}
+                        id={`watchlist-item-${w.id}`}
+                        onClick={() => setSelectedWatchlist(w)}
+                        style={{
+                          padding: 'var(--space-3)',
+                          borderRadius: 'var(--radius-md)',
+                          border: isSelected ? '1px solid var(--accent-primary)' : '1px solid var(--border-subtle)',
+                          backgroundColor: isSelected ? 'var(--accent-glow)' : 'var(--bg-primary)',
+                          cursor: 'pointer',
+                          transition: 'all 0.15s ease',
+                        }}
+                      >
+                        <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '4px' }}>
+                          {w.name}
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>
+                          <span>{w.owner}</span>
+                          <span id={`watchlist-count-${w.id}`}>{plateCount} {plateCount === 1 ? 'plate' : 'plates'}</span>
+                        </div>
                       </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>
-                        <span>{w.owner}</span>
-                        <span>{w.entry_count ?? w.entries?.length ?? 0} plates</span>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
+                    );
+                  })}
+                </div>
+              );
+            })()}
           </div>
 
           {/* Right Column: Selected Watchlist Entries */}

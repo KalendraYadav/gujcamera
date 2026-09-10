@@ -45,6 +45,8 @@ import { ErrorState } from '@/components/ui/ErrorState';
 import { LoadingState } from '@/components/ui/LoadingState';
 import { vehiclesApi } from '@/lib/api/vehicles';
 import { VehicleDetail, VehicleTimelineResponse } from '@/types/vehicle';
+import { useAuth } from '@/lib/auth/context';
+import { hasRoleAccess } from '@/lib/auth/rbac';
 
 type PageState = 'loading' | 'error' | 'loaded';
 type ActiveTab = 'overview' | 'timeline' | 'map';
@@ -108,6 +110,9 @@ function DetailField({ label, value, mono }: DetailFieldProps) {
 }
 
 export default function VehicleDetailPage() {
+  const { user, isLoading: authLoading } = useAuth();
+  const isAuthorized = hasRoleAccess(user?.role, ['SUPER_ADMIN', 'DEPARTMENT_ADMIN', 'INVESTIGATOR']);
+
   const params = useParams();
   const router = useRouter();
   const rawPlate = Array.isArray(params.plate) ? params.plate[0] : params.plate || '';
@@ -121,7 +126,7 @@ export default function VehicleDetailPage() {
   const [evidenceSightingId, setEvidenceSightingId] = useState<string | null>(null);
 
   const loadData = async () => {
-    if (!plate) return;
+    if (!plate || authLoading || !isAuthorized) return;
 
     setPageState('loading');
     setErrorMessage('');
@@ -151,9 +156,39 @@ export default function VehicleDetailPage() {
   };
 
   useEffect(() => {
-    loadData();
+    if (!authLoading && isAuthorized) {
+      loadData();
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [plate]);
+  }, [plate, authLoading, isAuthorized]);
+
+  if (authLoading) {
+    return (
+      <AppShell>
+        <div style={{ maxWidth: '960px', margin: '0 auto', padding: 'var(--space-6)' }}>
+          <LoadingState
+            message="Verifying investigation credentials..."
+            subtext="Checking cryptographic session and officer RBAC role"
+          />
+        </div>
+      </AppShell>
+    );
+  }
+
+  if (!isAuthorized) {
+    return (
+      <AppShell>
+        <div style={{ maxWidth: '960px', margin: '0 auto', padding: 'var(--space-6)' }}>
+          <ErrorState
+            title="Investigation Access Restricted"
+            message="Vehicle intelligence search and cross-camera tracking are restricted to Investigator, Department Admin, and Super Admin personnel."
+            errorCode="403_FORBIDDEN"
+            onRetry={() => router.push('/')}
+          />
+        </div>
+      </AppShell>
+    );
+  }
 
   const tabs = [
     { id: 'overview' as ActiveTab, label: 'Overview', icon: Info },

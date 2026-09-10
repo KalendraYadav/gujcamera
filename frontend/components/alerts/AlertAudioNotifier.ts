@@ -21,6 +21,22 @@ class AlertAudioNotifier {
     this.isMuted = !this.isMuted;
     if (typeof window !== 'undefined') {
       localStorage.setItem('gujcamera_alert_audio_muted', String(this.isMuted));
+      if (!this.isMuted) {
+        // User gesture: unlock Web Audio context if browser suspended autoplay
+        try {
+          const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+          if (AudioContextClass) {
+            if (!this.audioCtx) {
+              this.audioCtx = new AudioContextClass();
+            }
+            if (this.audioCtx.state === 'suspended') {
+              this.audioCtx.resume().catch(() => {});
+            }
+          }
+        } catch {
+          // Gracefully ignore if browser policies restrict context creation
+        }
+      }
     }
     return this.isMuted;
   }

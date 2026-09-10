@@ -221,7 +221,30 @@ describe('Alerts Live Console Page (Phase 4E)', () => {
     });
   });
 
-  it('navigates to vehicle investigation route /vehicles/[plate]', async () => {
+  it('restricts OPERATOR from seeing "Investigate Vehicle" CTA', async () => {
+    mockUserRole = 'OPERATOR';
+    render(<AlertsPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText('GJ01AB1234')).toBeInTheDocument();
+    });
+
+    expect(screen.queryByText('Investigate Vehicle')).not.toBeInTheDocument();
+  });
+
+  it('restricts SYSTEM_AUDITOR from seeing "Investigate Vehicle" CTA', async () => {
+    mockUserRole = 'SYSTEM_AUDITOR';
+    render(<AlertsPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText('GJ01AB1234')).toBeInTheDocument();
+    });
+
+    expect(screen.queryByText('Investigate Vehicle')).not.toBeInTheDocument();
+  });
+
+  it('allows INVESTIGATOR to see "Investigate Vehicle" with route /vehicles/[plate]', async () => {
+    mockUserRole = 'INVESTIGATOR';
     render(<AlertsPage />);
 
     await waitFor(() => {
@@ -232,6 +255,66 @@ describe('Alerts Live Console Page (Phase 4E)', () => {
     expect(investigateLinks.length).toBeGreaterThanOrEqual(1);
     const link = investigateLinks[0].closest('a');
     expect(link).toHaveAttribute('href', '/vehicles/GJ01AB1234');
+  });
+
+  it('allows DEPARTMENT_ADMIN to see "Investigate Vehicle"', async () => {
+    mockUserRole = 'DEPARTMENT_ADMIN';
+    render(<AlertsPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText('GJ01AB1234')).toBeInTheDocument();
+    });
+
+    const investigateLinks = screen.getAllByText('Investigate Vehicle');
+    expect(investigateLinks.length).toBeGreaterThanOrEqual(1);
+    const link = investigateLinks[0].closest('a');
+    expect(link).toHaveAttribute('href', '/vehicles/GJ01AB1234');
+  });
+
+  it('allows SUPER_ADMIN to see "Investigate Vehicle"', async () => {
+    mockUserRole = 'SUPER_ADMIN';
+    render(<AlertsPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText('GJ01AB1234')).toBeInTheDocument();
+    });
+
+    const investigateLinks = screen.getAllByText('Investigate Vehicle');
+    expect(investigateLinks.length).toBeGreaterThanOrEqual(1);
+    const link = investigateLinks[0].closest('a');
+    expect(link).toHaveAttribute('href', '/vehicles/GJ01AB1234');
+  });
+
+  it('expands alert audit details without vehicle API invocation', async () => {
+    mockUserRole = 'OPERATOR';
+    render(<AlertsPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText('GJ01AB1234')).toBeInTheDocument();
+    });
+
+    const toggleBtn = screen.getAllByTitle('Toggle Audit & Evidence Details')[0];
+    fireEvent.click(toggleBtn);
+
+    expect(screen.getByText(/Alert ID:/i)).toBeInTheDocument();
+    expect(screen.getByText(/Sighting ID:/i)).toBeInTheDocument();
+    expect(screen.getByText(/Disclaimer:/i)).toBeInTheDocument();
+  });
+
+  it('toggles sound control on click', async () => {
+    render(<AlertsPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText('GJ01AB1234')).toBeInTheDocument();
+    });
+
+    const soundBtn = screen.getByRole('button', { name: /Sound/i });
+    expect(soundBtn).toBeInTheDocument();
+    fireEvent.click(soundBtn);
+
+    // Verify toggleMute was called
+    const { alertAudioNotifier } = await import('@/components/alerts/AlertAudioNotifier');
+    expect(alertAudioNotifier.toggleMute).toHaveBeenCalled();
   });
 
   it('prepends new real-time WebSocket alert without duplication', async () => {

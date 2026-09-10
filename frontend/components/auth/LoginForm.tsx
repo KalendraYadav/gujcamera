@@ -81,7 +81,7 @@ export function LoginForm() {
         </div>
 
         <h1 style={{ fontSize: 'var(--text-xl)', fontWeight: 700, color: 'var(--text-primary)', marginBottom: 'var(--space-1)' }}>
-          GUJARAT POLICE
+          NETRAVA
         </h1>
         <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
           Unified CCTV Intelligence Platform

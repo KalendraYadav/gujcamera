@@ -40,8 +40,12 @@ export class AlertWebSocketClient {
     const envWs = process.env.NEXT_PUBLIC_WS_URL;
     let wsUrl = envWs;
     if (!wsUrl) {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
-      wsUrl = apiUrl.replace(/^http/, 'ws').replace(/\/api\/v1\/?$/, '') + '/ws/alerts';
+      if (typeof window !== 'undefined' && window.location.protocol === 'https:') {
+        wsUrl = `wss://${window.location.host}/ws/alerts`;
+      } else {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
+        wsUrl = apiUrl.replace(/^http/, 'ws').replace(/\/api\/v1\/?$/, '') + '/ws/alerts';
+      }
     }
 
     const token = tokenStorage.getAccessToken();

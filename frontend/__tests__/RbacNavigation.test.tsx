@@ -17,8 +17,22 @@ describe('RBAC Navigation Policy', () => {
     expect(itemIds).toContain('admin');
   });
 
-  it('restricts OPERATOR from viewing Fleet Admin and Audit Trail', () => {
+  it('restricts OPERATOR from viewing Fleet Admin, Audit Trail, and Vehicle Tracking', () => {
     const items = getAuthorizedNavItems('OPERATOR');
+    const itemIds = items.map((i) => i.id);
+    expect(itemIds).toContain('dashboard');
+    expect(itemIds).toContain('live');
+    expect(itemIds).toContain('map');
+    expect(itemIds).toContain('cameras');
+    expect(itemIds).not.toContain('vehicles');
+    expect(itemIds).toContain('alerts');
+    expect(itemIds).toContain('watchlist');
+    expect(itemIds).not.toContain('audit');
+    expect(itemIds).not.toContain('admin');
+  });
+
+  it('grants INVESTIGATOR access to Vehicle Tracking and restricts Fleet Admin / Audit Trail', () => {
+    const items = getAuthorizedNavItems('INVESTIGATOR');
     const itemIds = items.map((i) => i.id);
     expect(itemIds).toContain('dashboard');
     expect(itemIds).toContain('live');
@@ -43,9 +57,10 @@ describe('RBAC Navigation Policy', () => {
     expect(itemIds).not.toContain('admin');
   });
 
-  it('grants DEPARTMENT_ADMIN access to Fleet Admin but restricts Audit Trail', () => {
+  it('grants DEPARTMENT_ADMIN access to Vehicle Tracking and Fleet Admin but restricts Audit Trail', () => {
     const items = getAuthorizedNavItems('DEPARTMENT_ADMIN');
     const itemIds = items.map((i) => i.id);
+    expect(itemIds).toContain('vehicles');
     expect(itemIds).toContain('admin');
     expect(itemIds).not.toContain('audit');
   });

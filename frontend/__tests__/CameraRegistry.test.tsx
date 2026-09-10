@@ -261,4 +261,44 @@ describe('Camera Registry UI Component (Phase 4B)', () => {
     // Ensure no fake cameras are displayed
     expect(screen.queryByText('CAM-AHM-01: SG Highway - Pakwan Crossroad')).not.toBeInTheDocument();
   });
+
+  it('re-fetches authoritative camera data when Refresh button is clicked', async () => {
+    (camerasApi.getCameras as any).mockResolvedValue({
+      data: MOCK_CAMERAS,
+      pagination: { limit: 100, total: 2, next_cursor: null },
+    });
+    (camerasApi.getCameraHealthSummary as any).mockResolvedValue(MOCK_SUMMARY);
+
+    render(<CameraRegistryPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText('CAM-AHM-01: SG Highway - Pakwan Crossroad')).toBeInTheDocument();
+    });
+
+    const refreshBtn = screen.getByRole('button', { name: /Refresh/i });
+    expect(refreshBtn).toBeInTheDocument();
+
+    fireEvent.click(refreshBtn);
+
+    await waitFor(() => {
+      // getCameras should have been called twice: initial mount + refresh click
+      expect(camerasApi.getCameras).toHaveBeenCalledTimes(2);
+      expect(camerasApi.getCameraHealthSummary).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  it('renders Fleet Onboarding button for authorized SUPER_ADMIN role', async () => {
+    (camerasApi.getCameras as any).mockResolvedValueOnce({
+      data: MOCK_CAMERAS,
+      pagination: { limit: 100, total: 2, next_cursor: null },
+    });
+    (camerasApi.getCameraHealthSummary as any).mockResolvedValueOnce(MOCK_SUMMARY);
+
+    render(<CameraRegistryPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Fleet Onboarding')).toBeInTheDocument();
+    });
+  });
 });
+

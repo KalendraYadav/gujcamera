@@ -7,7 +7,23 @@
 import { ApiError, ApiErrorPayload, RequestOptions } from '@/types/api';
 import { tokenStorage } from '@/lib/auth/session';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
+export function getApiBaseUrl(): string {
+  if (process.env.NEXT_PUBLIC_API_URL) {
+    return process.env.NEXT_PUBLIC_API_URL;
+  }
+  // When running in the browser on HTTPS or external domains (e.g. Cloudflare tunnels),
+  // return relative '/api/v1' so requests are same-origin and proxied via Next.js rewrites.
+  // This completely eliminates browser Mixed Content (HTTPS -> HTTP) and CORS blocks.
+  if (typeof window !== 'undefined') {
+    if (
+      window.location.protocol === 'https:' ||
+      (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1')
+    ) {
+      return '/api/v1';
+    }
+  }
+  return 'http://localhost:4000/api/v1';
+}
 
 // Generate lightweight client-side correlation UUID if none provided
 function generateRequestId(): string {
@@ -30,7 +46,8 @@ function addRefreshSubscriber(callback: (token: string) => void) {
 }
 
 async function request<T = any>(endpoint: string, options: RequestOptions = {}): Promise<T> {
-  const url = endpoint.startsWith('http') ? endpoint : `${API_BASE_URL}${endpoint.startsWith('/') ? '' : '/'}${endpoint}`;
+  const baseUrl = getApiBaseUrl();
+  const url = endpoint.startsWith('http') ? endpoint : `${baseUrl}${endpoint.startsWith('/') ? '' : '/'}${endpoint}`;
   const requiresAuth = options.requiresAuth !== false;
   const requestId = options.requestId || generateRequestId();
 
@@ -66,7 +83,7 @@ async function request<T = any>(endpoint: string, options: RequestOptions = {}):
           isRefreshing = true;
 
           try {
-            const refreshRes = await fetch(`${API_BASE_URL}/auth/refresh`, {
+            const refreshRes = await fetch(`${getApiBaseUrl()}/auth/refresh`, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',

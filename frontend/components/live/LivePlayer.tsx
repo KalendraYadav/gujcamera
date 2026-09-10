@@ -51,12 +51,14 @@ export const LivePlayer: React.FC<LivePlayerProps> = ({
   const containerRef = useRef<HTMLDivElement | null>(null);
   const hlsRef = useRef<Hls | null>(null);
   const retryTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const connectionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const [playbackStatus, setPlaybackStatus] = useState<PlaybackStatus>('IDLE');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [retryAttempt, setRetryAttempt] = useState<number>(0);
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
   const [isMuted, setIsMuted] = useState<boolean>(true);
+  const [hasAudio, setHasAudio] = useState<boolean>(false);
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
   const [videoStats, setVideoStats] = useState<{
     width?: number;
@@ -64,16 +66,16 @@ export const LivePlayer: React.FC<LivePlayerProps> = ({
     fps?: number;
   }>({});
 
-  // Propagate status changes to parent
-  const updateStatus = useCallback(
-    (newStatus: PlaybackStatus) => {
-      setPlaybackStatus(newStatus);
-      if (onStatusChange) {
-        onStatusChange(newStatus);
-      }
-    },
-    [onStatusChange]
-  );
+  const onStatusChangeRef = useRef(onStatusChange);
+  useEffect(() => {
+    onStatusChangeRef.current = onStatusChange;
+  }, [onStatusChange]);
+
+  // Propagate status changes to parent via stable callback
+  const updateStatus = useCallback((newStatus: PlaybackStatus) => {
+    setPlaybackStatus(newStatus);
+    onStatusChangeRef.current?.(newStatus);
+  }, []);
 
   // Clear pending timers
   const clearRetryTimer = useCallback(() => {
@@ -83,9 +85,18 @@ export const LivePlayer: React.FC<LivePlayerProps> = ({
     }
   }, []);
 
+  const clearConnectionTimer = useCallback(() => {
+    if (connectionTimeoutRef.current) {
+      clearTimeout(connectionTimeoutRef.current);
+      connectionTimeoutRef.current = null;
+    }
+  }, []);
+
   // Cleanly tear down HLS and video element
   const cleanupPlayer = useCallback(() => {
     clearRetryTimer();
+    clearConnectionTimer();
+    setHasAudio(false);
 
     if (hlsRef.current) {
       try {
@@ -102,7 +113,7 @@ export const LivePlayer: React.FC<LivePlayerProps> = ({
       videoRef.current.removeAttribute('src');
       videoRef.current.load();
     }
-  }, [clearRetryTimer]);
+  }, [clearRetryTimer, clearConnectionTimer]);
 
   // Main stream initialization
   const initializeStream = useCallback(() => {
@@ -112,23 +123,40 @@ export const LivePlayer: React.FC<LivePlayerProps> = ({
       return;
     }
 
+    // Explicitly enforce DOM muted property to comply with browser autoplay security policies
+    video.muted = true;
+    video.defaultMuted = true;
+
     cleanupPlayer();
     setErrorMessage(null);
     updateStatus('CONNECTING');
+
+    // Connection watchdog: ensure the player never remains stuck indefinitely in CONNECTING
+    connectionTimeoutRef.current = setTimeout(() => {
+      setPlaybackStatus((curr) => {
+        if (curr === 'CONNECTING') {
+          updateStatus('OFFLINE');
+          setErrorMessage(
+            `Stream connection timed out reaching ${streamUrl}. Stream gateway or camera feed may be unreachable.`
+          );
+          cleanupPlayer();
+          return 'OFFLINE';
+        }
+        return curr;
+      });
+    }, 12000);
 
     // 1. Check MSE / HLS.js support (Chrome, Edge, Firefox, modern browsers)
     if (Hls.isSupported()) {
       const hls = new Hls({
         enableWorker: true,
-        lowLatencyMode: true,
-        backBufferLength: 15,
-        maxBufferLength: 10,
-        maxMaxBufferLength: 20,
-        liveSyncDurationCount: 2,
-        liveMaxLatencyDurationCount: 4,
-        manifestLoadingTimeOut: 8000,
+        lowLatencyMode: false,
+        backBufferLength: 30,
+        maxBufferLength: 30,
+        maxMaxBufferLength: 60,
+        manifestLoadingTimeOut: 5000,
         manifestLoadingMaxRetry: 2,
-        levelLoadingTimeOut: 8000,
+        levelLoadingTimeOut: 5000,
       });
 
       hlsRef.current = hls;
@@ -136,19 +164,41 @@ export const LivePlayer: React.FC<LivePlayerProps> = ({
       hls.loadSource(streamUrl);
       hls.attachMedia(video);
 
-      hls.on(Hls.Events.MANIFEST_PARSED, () => {
+      hls.on(Hls.Events.MANIFEST_PARSED, (_event, data) => {
+        clearConnectionTimer();
+
+        // Detect if HLS stream contains any audio tracks or audio codecs
+        const detectedAudio = Boolean(
+          (data?.audioTracks && data.audioTracks.length > 0) ||
+          (data?.levels && data.levels.some((lvl: any) => Boolean(lvl.audioCodec))) ||
+          (hls.audioTracks && hls.audioTracks.length > 0)
+        );
+        setHasAudio(detectedAudio);
+
         if (autoPlay) {
-          video
-            .play()
-            .then(() => {
-              setIsPlaying(true);
-            })
-            .catch(() => {
-              // Browser autoplay policy might require explicit interaction or muting
-              setIsPlaying(false);
-            });
+          video.muted = true;
+          video.defaultMuted = true;
+          const playPromise = video.play();
+          if (playPromise !== undefined) {
+            playPromise
+              .then(() => {
+                setIsPlaying(true);
+              })
+              .catch((err) => {
+                console.warn('[LivePlayer] Autoplay deferred:', err);
+                setIsPlaying(false);
+              });
+          }
         }
       });
+
+      if (Hls.Events?.AUDIO_TRACKS_UPDATED) {
+        hls.on(Hls.Events.AUDIO_TRACKS_UPDATED, (_event, data) => {
+          if (data?.audioTracks && data.audioTracks.length > 0) {
+            setHasAudio(true);
+          }
+        });
+      }
 
       hls.on(Hls.Events.LEVEL_LOADED, (_event, data) => {
         const streamDetails = camera.streams?.[0];
@@ -160,6 +210,7 @@ export const LivePlayer: React.FC<LivePlayerProps> = ({
 
       hls.on(Hls.Events.ERROR, (_event, data) => {
         if (data.fatal) {
+          clearConnectionTimer();
           switch (data.type) {
             case Hls.ErrorTypes.NETWORK_ERROR:
               // Network error: attempt bounded exponential backoff retry
@@ -168,12 +219,20 @@ export const LivePlayer: React.FC<LivePlayerProps> = ({
                 if (nextAttempt <= MAX_RECONNECT_ATTEMPTS) {
                   updateStatus('RECONNECTING');
                   const delay = nextAttempt * RECONNECT_BASE_DELAY_MS;
+                  const isManifestError =
+                    data.details === (Hls.ErrorDetails?.MANIFEST_LOAD_ERROR || 'manifestLoadError') ||
+                    String(data.details).toLowerCase().includes('manifest');
                   setErrorMessage(
-                    `Stream connection interrupted. Reconnecting (attempt ${nextAttempt}/${MAX_RECONNECT_ATTEMPTS}) in ${delay / 1000}s...`
+                    isManifestError
+                      ? `Stream manifest not found or unreachable. Reconnecting (attempt ${nextAttempt}/${MAX_RECONNECT_ATTEMPTS}) in ${delay / 1000}s...`
+                      : `Stream connection interrupted. Reconnecting (attempt ${nextAttempt}/${MAX_RECONNECT_ATTEMPTS}) in ${delay / 1000}s...`
                   );
 
                   retryTimeoutRef.current = setTimeout(() => {
                     if (hlsRef.current) {
+                      if (isManifestError) {
+                        hlsRef.current.loadSource(streamUrl);
+                      }
                       hlsRef.current.startLoad();
                     }
                   }, delay);
@@ -204,17 +263,24 @@ export const LivePlayer: React.FC<LivePlayerProps> = ({
     } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
       // 2. Native HLS support (Safari)
       video.src = streamUrl;
+      const handleNativeError = () => {
+        clearConnectionTimer();
+        updateStatus('OFFLINE');
+        setErrorMessage(`Native HLS stream playback failed for ${streamUrl}. Stream may be offline.`);
+      };
+      video.addEventListener('error', handleNativeError, { once: true });
       if (autoPlay) {
         video.play().catch(() => setIsPlaying(false));
       }
     } else {
       // 3. Neither supported
+      clearConnectionTimer();
       updateStatus('ERROR');
       setErrorMessage(
         'Your browser does not support HLS stream playback. Please use a modern browser.'
       );
     }
-  }, [streamUrl, autoPlay, camera, cleanupPlayer, updateStatus]);
+  }, [streamUrl, autoPlay, camera, cleanupPlayer, updateStatus, clearConnectionTimer]);
 
   // Handle streamUrl changes
   useEffect(() => {
@@ -232,10 +298,19 @@ export const LivePlayer: React.FC<LivePlayerProps> = ({
     if (!video) return;
 
     const handlePlaying = () => {
+      clearConnectionTimer();
       updateStatus('PLAYING');
       setIsPlaying(true);
       setRetryAttempt(0);
       setErrorMessage(null);
+    };
+
+    const handleCanPlay = () => {
+      if (autoPlay && video.paused) {
+        video.muted = true;
+        video.defaultMuted = true;
+        video.play().catch(() => {});
+      }
     };
 
     const handleWaiting = () => {
@@ -256,20 +331,32 @@ export const LivePlayer: React.FC<LivePlayerProps> = ({
           height: video.videoHeight,
         }));
       }
+
+      // Check for native video element audio track capability
+      const audioAvailable = Boolean(
+        (video as any).mozHasAudio ||
+        (video as any).webkitAudioDecodedByteCount > 0 ||
+        ((video as any).audioTracks && (video as any).audioTracks.length > 0)
+      );
+      if (audioAvailable) {
+        setHasAudio(true);
+      }
     };
 
     video.addEventListener('playing', handlePlaying);
+    video.addEventListener('canplay', handleCanPlay);
     video.addEventListener('waiting', handleWaiting);
     video.addEventListener('pause', handlePause);
     video.addEventListener('loadedmetadata', handleLoadedMetadata);
 
     return () => {
       video.removeEventListener('playing', handlePlaying);
+      video.removeEventListener('canplay', handleCanPlay);
       video.removeEventListener('waiting', handleWaiting);
       video.removeEventListener('pause', handlePause);
       video.removeEventListener('loadedmetadata', handleLoadedMetadata);
     };
-  }, [playbackStatus, updateStatus]);
+  }, [playbackStatus, updateStatus, autoPlay]);
 
   // Fullscreen change listener
   useEffect(() => {
@@ -289,8 +376,11 @@ export const LivePlayer: React.FC<LivePlayerProps> = ({
     if (!video) return;
 
     if (video.paused) {
-      video.play().catch(() => {});
-      setIsPlaying(true);
+      video.muted = isMuted;
+      video.play().then(() => {
+        setIsPlaying(true);
+        updateStatus('PLAYING');
+      }).catch(() => {});
     } else {
       video.pause();
       setIsPlaying(false);
@@ -409,11 +499,13 @@ export const LivePlayer: React.FC<LivePlayerProps> = ({
         autoPlay={autoPlay}
         muted={isMuted}
         playsInline
+        onClick={togglePlay}
         style={{
           width: '100%',
           height: '100%',
           objectFit: 'contain',
           backgroundColor: '#000000',
+          cursor: 'pointer',
         }}
       />
 
@@ -501,7 +593,22 @@ export const LivePlayer: React.FC<LivePlayerProps> = ({
           }}
         >
           {playbackStatus === 'CONNECTING' && (
-            <>
+            <div
+              onClick={() => {
+                const video = videoRef.current;
+                if (video) {
+                  video.muted = true;
+                  video.play().catch(() => {});
+                }
+              }}
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+              }}
+            >
               <div
                 style={{
                   width: '40px',
@@ -519,7 +626,7 @@ export const LivePlayer: React.FC<LivePlayerProps> = ({
               <div style={{ fontSize: '12px', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
                 {streamUrl}
               </div>
-            </>
+            </div>
           )}
 
           {playbackStatus === 'BUFFERING' && (
@@ -679,25 +786,27 @@ export const LivePlayer: React.FC<LivePlayerProps> = ({
             {isPlaying ? <Pause size={18} /> : <Play size={18} />}
           </button>
 
-          <button
-            type="button"
-            aria-label={isMuted ? 'Unmute stream' : 'Mute stream'}
-            data-testid="player-mute-button"
-            onClick={toggleMute}
-            style={{
-              background: 'none',
-              border: 'none',
-              color: '#ffffff',
-              cursor: 'pointer',
-              padding: '6px',
-              borderRadius: '4px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            {isMuted ? <VolumeX size={18} /> : <Volume2 size={18} />}
-          </button>
+          {hasAudio && (
+            <button
+              type="button"
+              aria-label={isMuted ? 'Unmute stream' : 'Mute stream'}
+              data-testid="player-mute-button"
+              onClick={toggleMute}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: '#ffffff',
+                cursor: 'pointer',
+                padding: '6px',
+                borderRadius: '4px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              {isMuted ? <VolumeX size={18} /> : <Volume2 size={18} />}
+            </button>
+          )}
 
           <button
             type="button"

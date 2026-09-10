@@ -30,10 +30,17 @@ import { ErrorState } from '@/components/ui/ErrorState';
 import { LoadingState } from '@/components/ui/LoadingState';
 import { vehiclesApi } from '@/lib/api/vehicles';
 import { VehicleSearchResult, VehicleSearchResponse } from '@/types/vehicle';
+import { useAuth } from '@/lib/auth/context';
+import { hasRoleAccess } from '@/lib/auth/rbac';
+import { useRouter } from 'next/navigation';
 
 type SearchState = 'idle' | 'loading' | 'error' | 'results';
 
 export default function VehiclesPage() {
+  const { user, isLoading: authLoading } = useAuth();
+  const router = useRouter();
+  const isAuthorized = hasRoleAccess(user?.role, ['SUPER_ADMIN', 'DEPARTMENT_ADMIN', 'INVESTIGATOR']);
+
   const [searchState, setSearchState] = useState<SearchState>('idle');
   const [searchedPlate, setSearchedPlate] = useState<string>('');
   const [results, setResults] = useState<VehicleSearchResult[]>([]);
@@ -80,6 +87,34 @@ export default function VehiclesPage() {
   };
 
   const watchlistedCount = results.filter((v) => v.is_watchlisted).length;
+
+  if (authLoading) {
+    return (
+      <AppShell>
+        <div style={{ maxWidth: '960px', margin: '0 auto', padding: 'var(--space-6)' }}>
+          <LoadingState
+            message="Verifying investigation credentials..."
+            subtext="Checking cryptographic session and officer RBAC role"
+          />
+        </div>
+      </AppShell>
+    );
+  }
+
+  if (!isAuthorized) {
+    return (
+      <AppShell>
+        <div style={{ maxWidth: '960px', margin: '0 auto', padding: 'var(--space-6)' }}>
+          <ErrorState
+            title="Investigation Access Restricted"
+            message="Vehicle intelligence search and cross-camera tracking are restricted to Investigator, Department Admin, and Super Admin personnel."
+            errorCode="403_FORBIDDEN"
+            onRetry={() => router.push('/')}
+          />
+        </div>
+      </AppShell>
+    );
+  }
 
   return (
     <AppShell>

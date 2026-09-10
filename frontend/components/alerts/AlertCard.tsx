@@ -24,6 +24,7 @@ import { AlertItem, AlertSeverity, AlertStatus } from '@/types/alert';
 import { alertsApi } from '@/lib/api/alerts';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { useAuth } from '@/lib/auth/context';
+import { hasRoleAccess } from '@/lib/auth/rbac';
 
 interface AlertCardProps {
   alert: AlertItem;
@@ -43,6 +44,9 @@ export function AlertCard({ alert, onStatusUpdated }: AlertCardProps) {
   const isInvestigator = role === 'INVESTIGATOR';
   const isAdmin = role === 'SUPER_ADMIN' || role === 'DEPARTMENT_ADMIN';
   const isSuperAdmin = role === 'SUPER_ADMIN';
+
+  // Vehicle investigation authorization: INVESTIGATOR, DEPARTMENT_ADMIN, SUPER_ADMIN
+  const canInvestigateVehicle = hasRoleAccess(user?.role, ['SUPER_ADMIN', 'DEPARTMENT_ADMIN', 'INVESTIGATOR']);
 
   // State machine role permissions
   const canAcknowledge =
@@ -388,25 +392,29 @@ export function AlertCard({ alert, onStatusUpdated }: AlertCardProps) {
 
         {/* Right: Link to Vehicle Investigation & Detail Toggle */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
-          <Link
-            href={`/vehicles/${plate}`}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 'var(--space-1)',
-              fontSize: 'var(--text-xs)',
-              color: 'var(--accent-primary)',
-              textDecoration: 'none',
-              fontWeight: 600,
-            }}
-          >
-            <Search size={13} />
-            <span>Investigate Vehicle</span>
-            <ArrowRight size={13} />
-          </Link>
+          {canInvestigateVehicle && (
+            <Link
+              href={`/vehicles/${plate}`}
+              id={`investigate-vehicle-${alert.id}`}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 'var(--space-1)',
+                fontSize: 'var(--text-xs)',
+                color: 'var(--accent-primary)',
+                textDecoration: 'none',
+                fontWeight: 600,
+              }}
+            >
+              <Search size={13} />
+              <span>Investigate Vehicle</span>
+              <ArrowRight size={13} />
+            </Link>
+          )}
 
           <button
             onClick={() => setIsExpanded(!isExpanded)}
+            id={`toggle-alert-detail-${alert.id}`}
             style={{
               background: 'none',
               border: 'none',

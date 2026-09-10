@@ -84,7 +84,7 @@ export function Sidebar() {
         </div>
         <div>
           <div style={{ fontSize: 'var(--text-sm)', fontWeight: 700, letterSpacing: '0.05em', color: 'var(--text-primary)' }}>
-            GUJARAT POLICE
+            NETRAVA
           </div>
           <div style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
             CCTV Intelligence

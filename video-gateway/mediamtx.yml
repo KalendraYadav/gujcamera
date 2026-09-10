@@ -34,4 +34,12 @@ paths:
     source: publisher
   live/cam-ahm-02:
     source: publisher
+  cam-gnd-02:
+    source: publisher
+  live/cam-gnd-02:
+    source: publisher
+  cam-ahm-03:
+    source: publisher
+  live/cam-ahm-03:
+    source: publisher
   all_others:

@@ -56,7 +56,7 @@ describe('AppShell Component', () => {
       </AppShell>,
     );
 
-    expect(screen.getByText('GUJARAT POLICE')).toBeInTheDocument();
+    expect(screen.getByText('NETRAVA')).toBeInTheDocument();
     expect(screen.getByText('Command Center Content')).toBeInTheDocument();
     expect(screen.getByText('operator.demo@gujcamera.local')).toBeInTheDocument();
     expect(screen.getByText('OPERATOR')).toBeInTheDocument();

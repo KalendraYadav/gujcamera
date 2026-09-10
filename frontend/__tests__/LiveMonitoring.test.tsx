@@ -62,6 +62,7 @@ vi.mock('hls.js', () => {
   (MockClass as any).Events = {
     MANIFEST_PARSED: 'hlsManifestParsed',
     LEVEL_LOADED: 'hlsLevelLoaded',
+    AUDIO_TRACKS_UPDATED: 'hlsAudioTracksUpdated',
     ERROR: 'hlsError',
   };
   (MockClass as any).ErrorTypes = {
@@ -290,7 +291,7 @@ describe('Live CCTV Monitoring Page & Components', () => {
     expect(screen.queryByTestId('camera-item-CAM-AHM-02')).not.toBeInTheDocument();
   });
 
-  it('provides manual retry button when stream encounters failure', async () => {
+  it('provides manual retry button when stream encounters failure and hides audio button when no audio track', async () => {
     render(
       <LivePlayer
         streamUrl="http://localhost:8888/live/cam-ahm-01/index.m3u8"
@@ -302,7 +303,21 @@ describe('Live CCTV Monitoring Page & Components', () => {
     expect(screen.getByTestId('live-player-container')).toBeInTheDocument();
     expect(screen.getByTestId('player-control-bar')).toBeInTheDocument();
     expect(screen.getByTestId('player-play-pause-button')).toBeInTheDocument();
-    expect(screen.getByTestId('player-mute-button')).toBeInTheDocument();
+    expect(screen.getByTestId('player-reload-button')).toBeInTheDocument();
+    // Audio control must be hidden for demo CCTV streams without audio tracks
+    expect(screen.queryByTestId('player-mute-button')).not.toBeInTheDocument();
+  });
+
+  it('does not render speaker/mute control when stream has no audio track', () => {
+    render(
+      <LivePlayer
+        streamUrl="http://localhost:8888/live/cam-gnd-02/index.m3u8"
+        camera={MOCK_CAMERAS[0]}
+      />
+    );
+
+    // Speaker/mute control should not be rendered when audio is unavailable
+    expect(screen.queryByTestId('player-mute-button')).not.toBeInTheDocument();
   });
 
   it('selects camera via URL search query parameter', async () => {
@@ -344,5 +359,34 @@ describe('Live CCTV Monitoring Page & Components', () => {
 
     unmount();
     expect(mockHlsInstance.destroy).toHaveBeenCalled();
+  });
+
+  it('correctly displays packet loss as bounded percentage without multiplying by 100', async () => {
+    const cameraWithPacketLoss: Camera = {
+      ...MOCK_CAMERAS[0],
+      id: 'cam-degraded',
+      name: 'CAM-GND-02',
+      operational_status: 'DEGRADED',
+      health: {
+        status: 'DEGRADED',
+        last_heartbeat: '2026-09-10T06:00:00Z',
+        fps_actual: 15.0,
+        packet_loss: 4.5,
+      },
+    };
+
+    (camerasApi.getCameras as any).mockResolvedValueOnce({
+      data: [cameraWithPacketLoss],
+      pagination: { limit: 50, total: 1, next_cursor: null },
+    });
+
+    render(<LiveMonitoringPage />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('camera-telemetry-card')).toBeInTheDocument();
+      // Should display 4.50% and definitely NOT 450.00%
+      expect(screen.getByText('4.50%')).toBeInTheDocument();
+      expect(screen.queryByText('450.00%')).not.toBeInTheDocument();
+    });
   });
 });

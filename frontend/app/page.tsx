@@ -77,7 +77,7 @@ export default function CommandCenterPage() {
           </div>
         </div>
 
-        {/* Subsystem Pipeline Readiness Grid (Verified Phases 0-3G) */}
+        {/* Subsystem Pipeline Readiness Grid */}
         <div style={{ marginBottom: 'var(--space-6)' }}>
           <h2
             style={{
@@ -108,7 +108,7 @@ export default function CommandCenterPage() {
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'var(--space-2)' }}>
-                <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>Vision Engine (Phase 3)</span>
+                <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>Vision Engine</span>
                 <StatusBadge label="11.7 FPS CPU" variant="success" />
               </div>
               <div style={{ fontSize: 'var(--text-md)', fontWeight: 700, color: 'var(--text-primary)', marginBottom: 'var(--space-1)' }}>
@@ -128,7 +128,7 @@ export default function CommandCenterPage() {
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'var(--space-2)' }}>
-                <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>Event Ingestion (Phase 3F)</span>
+                <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>Event Ingestion</span>
                 <StatusBadge label="Redis Streams" variant="info" />
               </div>
               <div style={{ fontSize: 'var(--text-md)', fontWeight: 700, color: 'var(--text-primary)', marginBottom: 'var(--space-1)' }}>
@@ -148,7 +148,7 @@ export default function CommandCenterPage() {
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'var(--space-2)' }}>
-                <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>Spatial DB (Phase 1-2)</span>
+                <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>Spatial DB</span>
                 <StatusBadge label="PostGIS 3.4" variant="success" />
               </div>
               <div style={{ fontSize: 'var(--text-md)', fontWeight: 700, color: 'var(--text-primary)', marginBottom: 'var(--space-1)' }}>
@@ -168,7 +168,7 @@ export default function CommandCenterPage() {
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'var(--space-2)' }}>
-                <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>Frontend UI (Phase 4A)</span>
+                <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>Frontend UI</span>
                 <StatusBadge label="Active" variant="warning" />
               </div>
               <div style={{ fontSize: 'var(--text-md)', fontWeight: 700, color: 'var(--text-primary)', marginBottom: 'var(--space-1)' }}>
@@ -193,7 +193,7 @@ export default function CommandCenterPage() {
               marginBottom: 'var(--space-3)',
             }}
           >
-            Tactical Operations Navigation (Phase 4 Rollout Plan)
+            Tactical Operations Navigation
           </h2>
 
           <div
@@ -217,7 +217,7 @@ export default function CommandCenterPage() {
             >
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'var(--space-2)' }}>
                 <Video size={20} color="var(--accent-primary)" />
-                <StatusBadge label="Phase 4C (Live)" variant="success" />
+                <StatusBadge label="Live" variant="success" />
               </div>
               <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--text-primary)', marginBottom: 'var(--space-1)' }}>
                 Live Video Monitoring
@@ -241,7 +241,7 @@ export default function CommandCenterPage() {
             >
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'var(--space-2)' }}>
                 <MapPin size={20} color="var(--status-info)" />
-                <StatusBadge label="Phase 4B (Live)" variant="success" />
+                <StatusBadge label="Live" variant="success" />
               </div>
               <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--text-primary)', marginBottom: 'var(--space-1)' }}>
                 GIS Camera Command Map
@@ -265,7 +265,7 @@ export default function CommandCenterPage() {
             >
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'var(--space-2)' }}>
                 <Activity size={20} color="var(--accent-primary)" />
-                <StatusBadge label="Phase 4B (Live)" variant="success" />
+                <StatusBadge label="Live" variant="success" />
               </div>
               <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--text-primary)', marginBottom: 'var(--space-1)' }}>
                 CCTV Camera Registry
@@ -289,7 +289,7 @@ export default function CommandCenterPage() {
             >
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'var(--space-2)' }}>
                 <Car size={20} color="var(--accent-primary)" />
-                <StatusBadge label="Phase 4D (Live)" variant="success" />
+                <StatusBadge label="Live" variant="success" />
               </div>
               <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--text-primary)', marginBottom: 'var(--space-1)' }}>
                 Vehicle Investigation
@@ -313,7 +313,7 @@ export default function CommandCenterPage() {
             >
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'var(--space-2)' }}>
                 <BellRing size={20} color="var(--status-critical)" />
-                <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>Phase 4E</span>
+                <StatusBadge label="Live" variant="success" />
               </div>
               <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--text-primary)', marginBottom: 'var(--space-1)' }}>
                 Real-Time Alert Feed
