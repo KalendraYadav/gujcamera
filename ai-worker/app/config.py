@@ -90,6 +90,14 @@ class Settings(BaseSettings):
     MINIO_BUCKET_NAME: str = "police-evidence-vault"
     MINIO_SECURE: bool = False
 
+    # Redis Streams Event Boundary (Phase 3F)
+    REDIS_HOST: str = "localhost"
+    REDIS_PORT: int = Field(default=6379, ge=1, le=65535)
+    REDIS_PASSWORD: str = ""
+    REDIS_STREAM_VEHICLE_SIGHTINGS: str = "gujcamera:events:vehicle-sightings"
+    REDIS_PUBLISH_ENABLED: bool = True
+    REDIS_CONNECT_TIMEOUT_SECONDS: float = Field(default=3.0, ge=0.5, le=30.0)
+
     def get_camera_configs(self) -> List[CameraConfig]:
         """Resolve and parse the list of active camera streams"""
         cameras: List[CameraConfig] = []

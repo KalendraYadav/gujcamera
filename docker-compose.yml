@@ -140,6 +140,9 @@ services:
       PLATE_MODEL_PATH: ${PLATE_MODEL_PATH:-}
       VEHICLE_CONFIDENCE_THRESHOLD: ${VEHICLE_CONFIDENCE_THRESHOLD:-0.40}
       PLATE_CONFIDENCE_THRESHOLD: ${PLATE_CONFIDENCE_THRESHOLD:-0.35}
+      REDIS_HOST: ${AI_WORKER_REDIS_HOST:-redis}
+      REDIS_PORT: ${REDIS_PORT:-6379}
+      REDIS_STREAM_VEHICLE_SIGHTINGS: ${REDIS_STREAM_VEHICLE_SIGHTINGS:-gujcamera:events:vehicle-sightings}
     volumes:
       - ./ai-worker/models:/app/models:ro
       - ./video-gateway/fixtures:/fixtures:ro
@@ -147,6 +150,7 @@ services:
       - gujcamera_network
     depends_on:
       - video-gateway
+      - redis
 
 # ------------------------------------------------------------------------------
 # Persistent Storage Volumes

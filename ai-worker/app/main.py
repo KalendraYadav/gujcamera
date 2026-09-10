@@ -13,6 +13,7 @@ from app.config import settings
 from app.consensus import MultiFrameConsensusAggregator
 from app.detector import InferencePipeline, PlateLocalizer, YoloVehicleDetector
 from app.domain import InMemoryDomainRepository
+from app.events import RedisEventPublisher
 from app.evidence import EvidenceSnapshotGenerator, MinioEvidenceVault
 from app.health import worker_health
 from app.logging_config import setup_logging
@@ -76,6 +77,17 @@ class WorkerApp:
 
         domain_repository = InMemoryDomainRepository()
 
+        # Initialize Phase 3F Redis Streams Event Publisher
+        event_publisher = RedisEventPublisher(
+            host=self.settings.REDIS_HOST,
+            port=self.settings.REDIS_PORT,
+            password=self.settings.REDIS_PASSWORD,
+            stream_name=self.settings.REDIS_STREAM_VEHICLE_SIGHTINGS,
+            enabled=self.settings.REDIS_PUBLISH_ENABLED,
+            connect_timeout=self.settings.REDIS_CONNECT_TIMEOUT_SECONDS,
+        )
+        self.event_publisher = event_publisher
+
         self.pipeline = InferencePipeline(
             vehicle_detector=vehicle_detector,
             plate_detector=plate_detector,
@@ -86,6 +98,7 @@ class WorkerApp:
             snapshot_generator=snapshot_generator,
             evidence_vault=evidence_vault,
             domain_repository=domain_repository,
+            event_publisher=event_publisher,
         )
 
     def setup_signals(self) -> None:
@@ -212,6 +225,13 @@ class WorkerApp:
             inf.get("total_consensus_accepted", 0),
             inf.get("total_evidence_stored", 0),
         )
+        logger.info(
+            "  -> [EVENTS] Stream: %s | Published: %d | Errors: %d | Connected: %s",
+            self.settings.REDIS_STREAM_VEHICLE_SIGHTINGS,
+            inf.get("total_events_published", 0),
+            inf.get("total_event_publish_errors", 0),
+            self.event_publisher.is_connected(),
+        )
 
     def stop(self) -> None:
         """Stop all stream consumers and terminate cleanly"""
@@ -223,6 +243,9 @@ class WorkerApp:
 
         for consumer in self.consumers:
             consumer.stop(timeout=3.0)
+
+        if hasattr(self, "event_publisher") and self.event_publisher is not None:
+            self.event_publisher.close()
 
         worker_health.worker_status = "STOPPED"
         logger.info("Final Health Summary before shutdown:")

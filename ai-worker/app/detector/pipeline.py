@@ -29,6 +29,7 @@ from app.evidence import (
     EvidenceStorageResult,
     MinioEvidenceVault,
 )
+from app.events import RedisEventPublisher, VehicleSightingCreatedEvent
 from app.frame_contract import FramePayload
 from app.ocr import (
     BaseOCREngine,
@@ -59,6 +60,7 @@ class InferencePipeline:
         snapshot_generator: Optional[EvidenceSnapshotGenerator] = None,
         evidence_vault: Optional[MinioEvidenceVault] = None,
         domain_repository: Optional[BaseDomainRepository] = None,
+        event_publisher: Optional[RedisEventPublisher] = None,
         on_detection: Optional[Callable[[DetectionResult], None]] = None,
         on_consensus: Optional[Callable[[ConsensusResult, Optional[EvidenceArtifact], Optional[EvidenceStorageResult]], None]] = None,
     ):
@@ -71,6 +73,7 @@ class InferencePipeline:
         self.snapshot_generator = snapshot_generator
         self.evidence_vault = evidence_vault
         self.domain_repository = domain_repository
+        self.event_publisher = event_publisher
         self.on_detection = on_detection
         self.on_consensus = on_consensus
 
@@ -84,6 +87,8 @@ class InferencePipeline:
         self.total_consensus_evaluated: int = 0
         self.total_consensus_accepted: int = 0
         self.total_evidence_stored: int = 0
+        self.total_events_published: int = 0
+        self.total_event_publish_errors: int = 0
         self.total_latency_ms: float = 0.0
         self.min_latency_ms: float = float("inf")
         self.max_latency_ms: float = 0.0
@@ -263,6 +268,35 @@ class InferencePipeline:
                                 if self.domain_repository is not None and sighting is not None:
                                     self.domain_repository.save_sighting(sighting, evidence_rec)
 
+                                # Phase 3F: Publish vehicle.sighting_created domain event
+                                # Invariant: Sighting AND Evidence must exist, MinIO storage MUST have succeeded
+                                if (
+                                    self.event_publisher is not None
+                                    and sighting is not None
+                                    and evidence_rec is not None
+                                    and storage_result is not None
+                                    and storage_result.success
+                                    and evidence_artifact is not None
+                                ):
+                                    event = VehicleSightingCreatedEvent.create(
+                                        sighting_id=sighting.id,
+                                        evidence_id=evidence_rec.id,
+                                        camera_id=sighting.camera_id,
+                                        plate_normalized=sighting.plate_normalized,
+                                        confidence=sighting.confidence,
+                                        consensus_of=sighting.consensus_of,
+                                        total_observations=c_res.total_window_observations,
+                                        storage_ref=evidence_rec.storage_ref,
+                                        evidence_hash=evidence_rec.hash,
+                                        captured_at_ts=evidence_artifact.captured_at,
+                                    )
+                                    msg_id = self.event_publisher.publish_sighting(event)
+                                    with self._lock:
+                                        if msg_id:
+                                            self.total_events_published += 1
+                                        else:
+                                            self.total_event_publish_errors += 1
+
                                 with self._lock:
                                     self.total_consensus_evaluated += 1
                                     self.total_consensus_accepted += 1
@@ -395,6 +429,8 @@ class InferencePipeline:
                 "total_consensus_evaluated": self.total_consensus_evaluated,
                 "total_consensus_accepted": self.total_consensus_accepted,
                 "total_evidence_stored": self.total_evidence_stored,
+                "total_events_published": self.total_events_published,
+                "total_event_publish_errors": self.total_event_publish_errors,
                 "plate_localizer_mode": self.plate_detector.mode_name,
                 "ocr_engine": self.ocr_engine.engine_name if self.ocr_engine else "NONE",
                 "avg_latency_ms": round(avg_latency, 2),
