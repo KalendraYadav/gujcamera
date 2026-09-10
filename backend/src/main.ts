@@ -1,6 +1,7 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe, Logger } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { WsAdapter } from '@nestjs/platform-ws';
 import helmet from 'helmet';
 import { AppModule } from './app.module';
 
@@ -22,6 +23,9 @@ async function bootstrap() {
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Request-Id'],
   });
+
+  // 3. Native WebSocket Adapter (master_architecture.md WS /ws/alerts)
+  app.useWebSocketAdapter(new WsAdapter(app));
 
   // 3. Global API Routing Prefix
   app.setGlobalPrefix('api/v1');

@@ -5,6 +5,7 @@ import {
   ForbiddenException,
   ConflictException,
   Logger,
+  Optional,
 } from '@nestjs/common';
 import { Prisma, AlertStatus } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -12,12 +13,17 @@ import { AuthenticatedUser } from '../../common/decorators/current-user.decorato
 import { AlertQueryDto } from './dto/alert-query.dto';
 import { AlertTransitionDto } from './dto/alert-transition.dto';
 import { normalizeLicensePlate } from '../vehicles/utils/plate-normalizer';
+import { AlertsGateway } from './alerts.gateway';
 
 @Injectable()
 export class AlertsService {
   private readonly logger = new Logger(AlertsService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @Optional()
+    private readonly alertsGateway?: AlertsGateway,
+  ) {}
 
   /**
    * Process a vehicle sighting against active watchlist entries and generate alerts
@@ -148,7 +154,13 @@ export class AlertsService {
         correlationId,
       );
 
-      generatedAlerts.push(this.formatAlertResponse(alert));
+      const formatted = this.formatAlertResponse(alert);
+      generatedAlerts.push(formatted);
+
+      // Real-time WebSocket broadcast to connected authorized operators & investigators
+      if (this.alertsGateway) {
+        this.alertsGateway.broadcastAlert(formatted);
+      }
     }
 
     return {
@@ -443,7 +455,14 @@ export class AlertsService {
       requestId,
     );
 
-    return this.formatAlertResponse(updated);
+    const formattedUpdated = this.formatAlertResponse(updated);
+
+    // Real-time WebSocket broadcast for alert status transitions
+    if (this.alertsGateway) {
+      this.alertsGateway.broadcastAlertUpdate(formattedUpdated);
+    }
+
+    return formattedUpdated;
   }
 
   /**

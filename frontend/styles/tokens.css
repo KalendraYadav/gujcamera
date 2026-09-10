@@ -1,0 +1,110 @@
+/* ==============================================================================
+   Unified CCTV Intelligence Platform — Design Tokens
+   Gujarat Police Innovation Challenge 2026
+   Source of Truth: master_architecture.md (Section 15: Design System Requirements)
+   Aesthetic: Dark-first, high-density, mission-critical police command & control
+   ============================================================================== */
+
+:root {
+  /* Surfaces & Backgrounds */
+  --bg-base: #06090f;
+  --bg-primary: #0b0f19;
+  --bg-secondary: #111726;
+  --bg-surface: #161f33;
+  --bg-surface-hover: #1c2740;
+  --bg-surface-active: #22304f;
+  --bg-elevated: #1f2b45;
+  --bg-card: #131b2e;
+  --bg-overlay: rgba(6, 9, 15, 0.85);
+
+  /* Borders & Dividers */
+  --border-subtle: #1c2638;
+  --border-default: #25334d;
+  --border-strong: #334466;
+  --border-focus: #3b82f6;
+
+  /* Typography Colors (High Contrast WCAG AA Compliant) */
+  --text-primary: #f8fafc;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
+  --text-disabled: #475569;
+  --text-inverse: #0b0f19;
+
+  /* Primary Police Brand Accent (Gujarat Police Deep Blue) */
+  --accent-primary: #2563eb;
+  --accent-hover: #1d4ed8;
+  --accent-active: #1e40af;
+  --accent-subtle: rgba(37, 99, 235, 0.12);
+  --accent-border: rgba(37, 99, 235, 0.35);
+  --accent-glow: 0 0 12px rgba(37, 99, 235, 0.3);
+
+  /* Status & Severity Colors (Reserved strictly for operational state) */
+  --status-critical: #ef4444;
+  --status-critical-bg: rgba(239, 68, 68, 0.12);
+  --status-critical-border: rgba(239, 68, 68, 0.35);
+
+  --status-warning: #f59e0b;
+  --status-warning-bg: rgba(245, 158, 11, 0.12);
+  --status-warning-border: rgba(245, 158, 11, 0.35);
+
+  --status-info: #3b82f6;
+  --status-info-bg: rgba(59, 130, 246, 0.12);
+  --status-info-border: rgba(59, 130, 246, 0.35);
+
+  --status-success: #10b981;
+  --status-success-bg: rgba(16, 185, 129, 0.12);
+  --status-success-border: rgba(16, 185, 129, 0.35);
+
+  --status-offline: #64748b;
+  --status-offline-bg: rgba(100, 116, 139, 0.12);
+  --status-offline-border: rgba(100, 116, 139, 0.35);
+
+  /* Simulated Data Demo Flag (Mandatory for Hackathon Governance) */
+  --simulated-bg: rgba(245, 158, 11, 0.12);
+  --simulated-border: rgba(245, 158, 11, 0.4);
+  --simulated-text: #fbbf24;
+
+  /* Typography Scale */
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', 'Courier New', Courier, monospace;
+
+  --text-xs: 0.75rem;    /* 12px */
+  --text-sm: 0.8125rem;  /* 13px */
+  --text-base: 0.875rem;  /* 14px */
+  --text-md: 1rem;       /* 16px */
+  --text-lg: 1.125rem;   /* 18px */
+  --text-xl: 1.25rem;    /* 20px */
+  --text-2xl: 1.5rem;    /* 24px */
+  --text-3xl: 1.875rem;  /* 30px */
+
+  /* Spacing Scale (8px system) */
+  --space-1: 0.25rem;  /* 4px */
+  --space-2: 0.5rem;   /* 8px */
+  --space-3: 0.75rem;  /* 12px */
+  --space-4: 1rem;     /* 16px */
+  --space-5: 1.25rem;  /* 20px */
+  --space-6: 1.5rem;   /* 24px */
+  --space-8: 2rem;     /* 32px */
+  --space-10: 2.5rem;  /* 40px */
+  --space-12: 3rem;    /* 48px */
+
+  /* Component Dimensions */
+  --sidebar-width: 250px;
+  --header-height: 56px;
+
+  /* Radii */
+  --radius-xs: 2px;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-full: 9999px;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.5);
+  --shadow-card: 0 4px 6px -1px rgba(0, 0, 0, 0.4), 0 2px 4px -1px rgba(0, 0, 0, 0.3);
+  --shadow-elevated: 0 10px 15px -3px rgba(0, 0, 0, 0.6), 0 4px 6px -2px rgba(0, 0, 0, 0.4);
+
+  /* Transitions */
+  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-normal: 200ms cubic-bezier(0.4, 0, 0.2, 1);
+}

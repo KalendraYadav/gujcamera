@@ -13,12 +13,19 @@ import { CreateCameraDto } from './dto/create-camera.dto';
 import { UpdateCameraDto } from './dto/update-camera.dto';
 import { CameraQueryDto } from './dto/camera-query.dto';
 import { NearbyCameraQueryDto } from './dto/nearby-camera-query.dto';
+import { ProtocolAdapterRegistry } from './adapters/protocol-adapter.registry';
+import { TestConnectionDto } from './dto/test-connection.dto';
+import { ConnectionProbeResult, AdapterConnectionStatus } from './adapters/camera-protocol-adapter.interface';
 
 @Injectable()
 export class CamerasService {
   private readonly logger = new Logger(CamerasService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly protocolRegistry: ProtocolAdapterRegistry,
+  ) {}
+
 
   /**
    * Onboard a new CCTV camera with location and stream configuration
@@ -754,6 +761,54 @@ export class CamerasService {
             packet_loss: camera.health.packetLoss ? Number(camera.health.packetLoss) : null,
           }
         : null,
+    };
+  }
+
+  /**
+   * Execute live protocol probe test against camera endpoint
+   */
+  async testConnection(dto: TestConnectionDto): Promise<ConnectionProbeResult> {
+    const url = dto.resolvedUrlOrHandle;
+    if (!url) {
+      throw new BadRequestException({
+        error_code: 'BAD_REQUEST',
+        message: 'url_or_handle is required for connection testing',
+      });
+    }
+
+    const adapter = this.protocolRegistry.getAdapter(dto.protocol);
+    return adapter.probeConnection({
+      protocol: dto.protocol,
+      endpointUrl: url,
+      username: dto.username,
+      password: dto.password,
+      timeoutMs: dto.timeoutMs,
+      profileToken: dto.profileToken,
+    });
+  }
+
+  /**
+   * List available camera connectors and supported protocol adapters
+   */
+  async getConnectors() {
+    const connectors = await this.prisma.connector.findMany({
+      select: {
+        id: true,
+        adapterType: true,
+        configRef: true,
+        createdAt: true,
+      },
+      orderBy: { createdAt: 'asc' },
+    });
+
+    return {
+      connectors: connectors.map((c) => ({
+        id: c.id,
+        adapter_type: c.adapterType,
+        config_ref: c.configRef,
+        created_at: c.createdAt,
+      })),
+      supported_protocols: this.protocolRegistry.getSupportedProtocols(),
     };
   }
 

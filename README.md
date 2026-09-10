@@ -34,24 +34,24 @@ All data models, API endpoints, events, and security boundaries strictly follow 
 
 ---
 
-## 4. Implementation Status (Phase 0 Complete)
+## 4. Implementation Status (Phase 4E Complete)
 
 | Capability / Tier | Status | Implementation Details |
 | :--- | :---: | :--- |
 | **Phase 0: Infrastructure Bootstrap** | 🟢 Complete | PostgreSQL 16 + PostGIS, Redis 7, MinIO S3 in Docker |
-| **Phase 1: Database Foundation** | 🟡 Next Up | Entity schema migrations & test seed script |
-| **Phase 2: Backend API Core** | 🔴 Planned | NestJS modular monolith (`/api/v1`) |
-| **Phase 3: Camera Registry & GIS** | 🔴 Planned | Spatial camera indexing & MapLibre GL UI |
-| **Phase 4: Video Feeds & Federation** | 🔴 Planned | RTSP adapter & FFmpeg synthetic stream generator |
-| **Phase 5: AI Vision & ANPR** | 🔴 Planned | Vehicle detection, OCR, and multi-frame consensus |
-| **Phase 6: Watchlists & Alerts** | 🔴 Planned | Cooldown engine & WebSocket instant push |
-| **Phase 7: Investigation & Evidence** | 🔴 Planned | Timeline reconstruction & MinIO frame vault |
-| **Phase 8: Demo Hardening** | 🔴 Planned | Seeded demo scenarios & failover tiers |
+| **Phase 1: Database Foundation** | 🟢 Complete | Entity schema migrations, PostGIS spatial types & seed script |
+| **Phase 2: Backend API Core** | 🟢 Complete | NestJS modular monolith (`/api/v1`), JWT auth, RBAC, audit logging |
+| **Phase 3: AI Vision Pipeline & Benchmarks** | 🟢 Complete | YOLO vehicle detection, plate localization, consensus OCR, E2E benchmarks |
+| **Phase 4A: Frontend Foundation & Shell** | 🟢 Complete | Next.js 14, Dark command-center design system, JWT auth shell |
+| **Phase 4B: Camera Registry & GIS Map** | 🟢 Complete | Spatial camera indexing, MapLibre GL map, health telemetry |
+| **Phase 4C: Live CCTV Streaming** | 🟢 Complete | MediaMTX HLS playback, camera switching, health visibility |
+| **Phase 4D: Vehicle Investigation** | 🟢 Complete | Cross-camera sighting timeline, route reconstruction on GIS map |
+| **Phase 4E: Watchlist & Alert Delivery** | 🟢 Complete | Native WebSocket (`/ws/alerts`), live triage console, polling fallback |
 
 ### Build vs. Simulate vs. Future Scope
-* **Implemented (Current PoC)**: Dockerized storage layer (PostgreSQL 16 + PostGIS, Redis 7, MinIO).
-* **Simulated (For Demo)**: Synthetic RTSP camera feeds via FFmpeg and mock vendor adapter.
-* **Future Production**: Multi-region Kubernetes deployment, Kafka event streaming, and edge GPU pre-filtering.
+* **Implemented (Current PoC)**: Dockerized storage layer, NestJS modular monolith, native WebSocket alert gateway, Next.js command console (Cameras, Live CCTV, Vehicle Investigation, Watchlists, Real-Time Alerts), Python AI worker.
+* **Simulated (For Demo)**: Synthetic RTSP camera feeds via FFmpeg and deterministic video loops.
+* **Future Production**: Multi-region Kubernetes deployment, Kafka event streaming, ONVIF/PSIA vendor protocol adapters, and edge GPU pre-filtering.
 
 ---
 

@@ -22,8 +22,10 @@ import { CreateCameraDto } from './dto/create-camera.dto';
 import { UpdateCameraDto } from './dto/update-camera.dto';
 import { CameraQueryDto } from './dto/camera-query.dto';
 import { NearbyCameraQueryDto } from './dto/nearby-camera-query.dto';
+import { TestConnectionDto } from './dto/test-connection.dto';
 import { CurrentUser, AuthenticatedUser } from '../../common/decorators/current-user.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
+
 
 @ApiTags('Cameras')
 @ApiBearerAuth()
@@ -64,6 +66,40 @@ export class CamerasController {
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async getHealthSummary() {
     return this.camerasService.getCameraHealthSummary();
+  }
+
+  @Post('test-connection')
+  @Roles('SUPER_ADMIN', 'DEPARTMENT_ADMIN', 'OPERATOR')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Probe camera stream connectivity via protocol adapter',
+    description: 'Executes a genuine protocol probe (RTSP RFC 2326 TCP negotiation or ONVIF Profile S SOAP 1.2 probe). Returns latency, connection status, and stream metadata without returning credentials.',
+  })
+  @ApiResponse({ status: 200, description: 'Probe result with connection state and latency' })
+  @ApiResponse({ status: 400, description: 'Unsupported protocol or validation failure' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  async testConnection(@Body() dto: TestConnectionDto) {
+    return this.camerasService.testConnection(dto);
+  }
+
+  @Get('connectors/list')
+  @ApiOperation({
+    summary: 'List available camera connectors and supported protocol adapters',
+  })
+  @ApiResponse({ status: 200, description: 'List of connectors and supported protocols' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  async getConnectors() {
+    return this.camerasService.getConnectors();
+  }
+
+  @Get('connectors')
+  @ApiOperation({
+    summary: 'List available camera connectors and supported protocol adapters (alias)',
+  })
+  @ApiResponse({ status: 200, description: 'List of connectors and supported protocols' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  async getConnectorsAlias() {
+    return this.camerasService.getConnectors();
   }
 
   @Get(':id')

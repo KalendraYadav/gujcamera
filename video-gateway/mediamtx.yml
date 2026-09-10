@@ -12,10 +12,10 @@ rtspAddress: :8554
 protocols: [tcp, udp]
 encryption: "no"
 
-# HLS streaming (available for future browser preview)
+# HLS streaming for browser live monitoring
 hls: yes
 hlsAddress: :8888
-hlsAlwaysRemux: no
+hlsAlwaysRemux: yes
 
 # Disable unneeded protocols to minimize resource consumption and attack surface
 rtmp: no
