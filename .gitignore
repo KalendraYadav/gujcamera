@@ -102,3 +102,7 @@ desktop.ini
 ai-worker/models/*.pt
 ai-worker/models/*.onnx
 !ai-worker/models/.gitkeep
+
+
+
+question.md
