@@ -31,6 +31,7 @@ import {
   Route,
   Timer,
   ScanLine,
+  FileCheck2,
 } from 'lucide-react';
 import { TimelineSighting, RouteSegment, RouteSummary } from '@/types/vehicle';
 import { StatusBadge } from '@/components/ui/StatusBadge';
@@ -40,6 +41,7 @@ interface SightingsTimelineProps {
   routeSegments: RouteSegment[];
   summary: RouteSummary;
   routePlausibilityScore: number;
+  onExportEvidence?: (sightingId: string) => void;
 }
 
 function formatTimestamp(iso: string): string {
@@ -75,9 +77,10 @@ interface SightingRowProps {
   index: number;
   isFirst: boolean;
   isLast: boolean;
+  onExportEvidence?: (sightingId: string) => void;
 }
 
-function SightingRow({ sighting, index, isFirst, isLast }: SightingRowProps) {
+function SightingRow({ sighting, index, isFirst, isLast, onExportEvidence }: SightingRowProps) {
   const confidencePercent = Math.round(sighting.confidence * 100);
   const confColor =
     confidencePercent >= 90
@@ -229,6 +232,30 @@ function SightingRow({ sighting, index, isFirst, isLast }: SightingRowProps) {
             </span>
           </div>
         </div>
+
+        {onExportEvidence && (
+          <div style={{ marginTop: 'var(--space-2)' }}>
+            <button
+              id={`verify-evidence-btn-${sighting.id}`}
+              onClick={() => onExportEvidence(sighting.id)}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
+                padding: '3px 8px',
+                backgroundColor: 'var(--bg-surface-elevated)',
+                border: '1px solid var(--border-subtle)',
+                borderRadius: 'var(--radius-xs)',
+                color: 'var(--accent-primary)',
+                fontSize: '11px',
+                fontWeight: 600,
+                cursor: 'pointer',
+              }}
+            >
+              <FileCheck2 size={12} /> Verify & Export Evidence Package
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -332,7 +359,13 @@ function RouteHopRow({ segment, index }: RouteHopRowProps) {
   );
 }
 
-export function SightingsTimeline({ sightings, routeSegments, summary, routePlausibilityScore }: SightingsTimelineProps) {
+export function SightingsTimeline({
+  sightings,
+  routeSegments,
+  summary,
+  routePlausibilityScore,
+  onExportEvidence,
+}: SightingsTimelineProps) {
   const plausibilityPct = Math.round(routePlausibilityScore * 100);
   const plausColor =
     plausibilityPct === 100
@@ -474,6 +507,7 @@ export function SightingsTimeline({ sightings, routeSegments, summary, routePlau
                 index={index}
                 isFirst={index === 0}
                 isLast={index === sightings.length - 1}
+                onExportEvidence={onExportEvidence}
               />
               {segment && <RouteHopRow segment={segment} index={index} />}
             </React.Fragment>

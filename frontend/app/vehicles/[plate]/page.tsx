@@ -33,10 +33,12 @@ import {
   List,
   Eye,
   Info,
+  FileArchive,
 } from 'lucide-react';
 import { AppShell } from '@/components/layout/AppShell';
 import { SightingsTimeline } from '@/components/vehicles/SightingsTimeline';
 import { RouteMap } from '@/components/vehicles/RouteMap';
+import { EvidenceExportModal } from '@/components/evidence/EvidenceExportModal';
 import { SimulatedDataBadge } from '@/components/ui/SimulatedDataBadge';
 import { StatusBadge, BadgeVariant } from '@/components/ui/StatusBadge';
 import { ErrorState } from '@/components/ui/ErrorState';
@@ -116,6 +118,7 @@ export default function VehicleDetailPage() {
   const [vehicleDetail, setVehicleDetail] = useState<VehicleDetail | null>(null);
   const [timeline, setTimeline] = useState<VehicleTimelineResponse | null>(null);
   const [activeTab, setActiveTab] = useState<ActiveTab>('overview');
+  const [evidenceSightingId, setEvidenceSightingId] = useState<string | null>(null);
 
   const loadData = async () => {
     if (!plate) return;
@@ -312,6 +315,31 @@ export default function VehicleDetailPage() {
                     <Eye size={11} />
                     {vehicleDetail.total_sightings} sighting{vehicleDetail.total_sightings !== 1 ? 's' : ''} recorded
                   </span>
+                  {((vehicleDetail.last_known_sighting?.id) || (timeline?.sightings?.[0]?.id)) && (
+                    <button
+                      id="header-export-evidence-btn"
+                      onClick={() => {
+                        const targetId = vehicleDetail.last_known_sighting?.id || timeline?.sightings?.[0]?.id;
+                        if (targetId) setEvidenceSightingId(targetId);
+                      }}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '5px',
+                        padding: '4px 10px',
+                        backgroundColor: 'var(--bg-surface)',
+                        border: '1px solid var(--border-default)',
+                        borderRadius: 'var(--radius-sm)',
+                        color: 'var(--accent-primary)',
+                        fontSize: 'var(--text-xs)',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        marginTop: '4px',
+                      }}
+                    >
+                      <FileArchive size={13} /> Export Evidence Package
+                    </button>
+                  )}
                 </div>
               </div>
 
@@ -641,6 +669,7 @@ export default function VehicleDetailPage() {
                   routeSegments={timeline.route_segments}
                   summary={timeline.summary}
                   routePlausibilityScore={timeline.route_plausibility_score}
+                  onExportEvidence={(sightingId) => setEvidenceSightingId(sightingId)}
                 />
               )}
 
@@ -657,6 +686,16 @@ export default function VehicleDetailPage() {
               )}
             </div>
           </>
+        )}
+
+        {/* Evidence Verification & Export Package Modal */}
+        {evidenceSightingId && vehicleDetail && (
+          <EvidenceExportModal
+            sightingId={evidenceSightingId}
+            plateNormalized={vehicleDetail.plate_normalized}
+            isOpen={true}
+            onClose={() => setEvidenceSightingId(null)}
+          />
         )}
       </div>
     </AppShell>
