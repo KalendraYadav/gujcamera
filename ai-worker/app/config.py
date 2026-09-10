@@ -73,6 +73,23 @@ class Settings(BaseSettings):
     OCR_ACCEPT_CONFIDENCE: float = Field(default=0.60, ge=0.0, le=1.0)
     OCR_TESSERACT_CMD: str = ""
 
+    # Multi-Frame Consensus Pipeline (Phase 3E)
+    CONSENSUS_ENABLED: bool = True
+    CONSENSUS_WINDOW_SIZE: int = Field(default=5, ge=5, le=8)
+    CONSENSUS_MIN_OBSERVATIONS: int = Field(default=3, ge=1, le=10)
+    CONSENSUS_MIN_CONFIDENCE: float = Field(default=0.60, ge=0.1, le=1.0)
+    CONSENSUS_MIN_AGREEMENT_RATIO: float = Field(default=0.60, ge=0.1, le=1.0)
+    CONSENSUS_MAX_WINDOW_SECONDS: float = Field(default=3.0, ge=0.5, le=30.0)
+
+    # Evidence Snapshot & Vaulting Pipeline (Phase 3E)
+    EVIDENCE_CAPTURE_ENABLED: bool = True
+    EVIDENCE_JPEG_QUALITY: int = Field(default=90, ge=30, le=100)
+    MINIO_ENDPOINT: str = "http://localhost:9000"
+    MINIO_ROOT_USER: str = "minio_admin"
+    MINIO_ROOT_PASSWORD: str = "minio_dev_secret_2026"
+    MINIO_BUCKET_NAME: str = "police-evidence-vault"
+    MINIO_SECURE: bool = False
+
     def get_camera_configs(self) -> List[CameraConfig]:
         """Resolve and parse the list of active camera streams"""
         cameras: List[CameraConfig] = []

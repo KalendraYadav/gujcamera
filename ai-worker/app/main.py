@@ -10,7 +10,10 @@ import time
 from typing import List
 
 from app.config import settings
+from app.consensus import MultiFrameConsensusAggregator
 from app.detector import InferencePipeline, PlateLocalizer, YoloVehicleDetector
+from app.domain import InMemoryDomainRepository
+from app.evidence import EvidenceSnapshotGenerator, MinioEvidenceVault
 from app.health import worker_health
 from app.logging_config import setup_logging
 from app.ocr import TesseractOCREngine
@@ -46,12 +49,43 @@ class WorkerApp:
                 tesseract_cmd=self.settings.OCR_TESSERACT_CMD if self.settings.OCR_TESSERACT_CMD else None
             )
 
+        # Initialize Phase 3E Consensus, Evidence Vault, and Domain Repository
+        consensus_aggregator = None
+        if self.settings.CONSENSUS_ENABLED:
+            consensus_aggregator = MultiFrameConsensusAggregator(
+                window_size=self.settings.CONSENSUS_WINDOW_SIZE,
+                min_observations=self.settings.CONSENSUS_MIN_OBSERVATIONS,
+                min_confidence=self.settings.CONSENSUS_MIN_CONFIDENCE,
+                min_agreement_ratio=self.settings.CONSENSUS_MIN_AGREEMENT_RATIO,
+                max_window_seconds=self.settings.CONSENSUS_MAX_WINDOW_SECONDS,
+            )
+
+        snapshot_generator = None
+        if self.settings.EVIDENCE_CAPTURE_ENABLED:
+            snapshot_generator = EvidenceSnapshotGenerator(
+                jpeg_quality=self.settings.EVIDENCE_JPEG_QUALITY
+            )
+
+        evidence_vault = MinioEvidenceVault(
+            endpoint=self.settings.MINIO_ENDPOINT,
+            access_key=self.settings.MINIO_ROOT_USER,
+            secret_key=self.settings.MINIO_ROOT_PASSWORD,
+            bucket_name=self.settings.MINIO_BUCKET_NAME,
+            secure=self.settings.MINIO_SECURE,
+        )
+
+        domain_repository = InMemoryDomainRepository()
+
         self.pipeline = InferencePipeline(
             vehicle_detector=vehicle_detector,
             plate_detector=plate_detector,
             ocr_engine=ocr_engine,
             ocr_min_confidence=self.settings.OCR_MIN_CONFIDENCE,
             ocr_accept_confidence=self.settings.OCR_ACCEPT_CONFIDENCE,
+            consensus_aggregator=consensus_aggregator,
+            snapshot_generator=snapshot_generator,
+            evidence_vault=evidence_vault,
+            domain_repository=domain_repository,
         )
 
     def setup_signals(self) -> None:
@@ -171,6 +205,12 @@ class WorkerApp:
             inf["avg_ocr_latency_ms"],
             inf["min_ocr_latency_ms"],
             inf["max_ocr_latency_ms"],
+        )
+        logger.info(
+            "  -> [CONSENSUS] Evaluated: %d | Accepted: %d | Evidence Vault Stored: %d",
+            inf.get("total_consensus_evaluated", 0),
+            inf.get("total_consensus_accepted", 0),
+            inf.get("total_evidence_stored", 0),
         )
 
     def stop(self) -> None:

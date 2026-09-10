@@ -141,6 +141,7 @@ class DetectionResult:
     detected_objects: List[DetectedObject] = field(default_factory=list)
     plates: List[DetectedPlate] = field(default_factory=list)
     ocr_results: List[Any] = field(default_factory=list)
+    consensus_results: List[Any] = field(default_factory=list)
 
     @property
     def vehicle_count(self) -> int:
@@ -153,6 +154,10 @@ class DetectionResult:
     @property
     def ocr_count(self) -> int:
         return len(self.ocr_results)
+
+    @property
+    def consensus_count(self) -> int:
+        return len(self.consensus_results)
 
     def summary(self) -> Dict[str, Any]:
         """Produce lightweight summary dictionary for logging and metrics"""
@@ -167,5 +172,9 @@ class DetectionResult:
             "ocr_results": [
                 ocr.to_dict() if hasattr(ocr, "to_dict") else ocr
                 for ocr in self.ocr_results
+            ],
+            "consensus_results": [
+                c.to_dict() if hasattr(c, "to_dict") else c
+                for c in self.consensus_results
             ],
         }

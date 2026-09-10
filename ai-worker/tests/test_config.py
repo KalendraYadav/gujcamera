@@ -66,3 +66,31 @@ def test_sample_fps_bounds():
 
     with pytest.raises(Exception):
         Settings(SAMPLE_FPS=60.0)  # Above maximum 30.0
+
+
+def test_consensus_window_bounds():
+    """
+    Critical Check 1 & 11:
+    CONSENSUS_WINDOW_SIZE must be strictly between 5 and 8 frames (inclusive).
+    Default must be 5. Values 4 and 9 must be rejected.
+    """
+    # Default is 5
+    s_default = Settings()
+    assert s_default.CONSENSUS_WINDOW_SIZE == 5
+
+    # 5 is valid
+    s5 = Settings(CONSENSUS_WINDOW_SIZE=5)
+    assert s5.CONSENSUS_WINDOW_SIZE == 5
+
+    # 8 is valid
+    s8 = Settings(CONSENSUS_WINDOW_SIZE=8)
+    assert s8.CONSENSUS_WINDOW_SIZE == 8
+
+    # 4 is rejected / invalid (< 5)
+    with pytest.raises(Exception):
+        Settings(CONSENSUS_WINDOW_SIZE=4)
+
+    # 9 is rejected / invalid (> 8)
+    with pytest.raises(Exception):
+        Settings(CONSENSUS_WINDOW_SIZE=9)
+

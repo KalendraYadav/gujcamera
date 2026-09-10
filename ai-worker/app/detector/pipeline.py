@@ -10,8 +10,25 @@ import time
 from typing import Any, Callable, Dict, List, Optional
 import numpy as np
 
+from app.consensus import (
+    ConsensusResult,
+    MultiFrameConsensusAggregator,
+    PlateObservation,
+)
 from app.detection_contract import DetectionResult
 from app.detector.base import BasePlateDetector, BaseVehicleDetector
+from app.domain import (
+    BaseDomainRepository,
+    EvidenceRecord,
+    VehicleSightingRecord,
+    convert_consensus_to_domain,
+)
+from app.evidence import (
+    EvidenceArtifact,
+    EvidenceSnapshotGenerator,
+    EvidenceStorageResult,
+    MinioEvidenceVault,
+)
 from app.frame_contract import FramePayload
 from app.ocr import (
     BaseOCREngine,
@@ -26,8 +43,9 @@ logger = logging.getLogger("ai_worker.pipeline")
 
 class InferencePipeline:
     """
-    Coordinates vehicle detection, plate localization, and OCR for sampled video frames.
-    Tracks execution latency and inference metrics in a thread-safe manner.
+    Coordinates vehicle detection, plate localization, OCR, multi-frame consensus,
+    and evidence capture for sampled video frames.
+    Tracks execution latency and telemetry in a thread-safe manner.
     """
 
     def __init__(
@@ -37,14 +55,24 @@ class InferencePipeline:
         ocr_engine: Optional[BaseOCREngine] = None,
         ocr_min_confidence: float = 0.30,
         ocr_accept_confidence: float = 0.60,
+        consensus_aggregator: Optional[MultiFrameConsensusAggregator] = None,
+        snapshot_generator: Optional[EvidenceSnapshotGenerator] = None,
+        evidence_vault: Optional[MinioEvidenceVault] = None,
+        domain_repository: Optional[BaseDomainRepository] = None,
         on_detection: Optional[Callable[[DetectionResult], None]] = None,
+        on_consensus: Optional[Callable[[ConsensusResult, Optional[EvidenceArtifact], Optional[EvidenceStorageResult]], None]] = None,
     ):
         self.vehicle_detector = vehicle_detector
         self.plate_detector = plate_detector
         self.ocr_engine = ocr_engine
         self.ocr_min_confidence = ocr_min_confidence
         self.ocr_accept_confidence = ocr_accept_confidence
+        self.consensus_aggregator = consensus_aggregator
+        self.snapshot_generator = snapshot_generator
+        self.evidence_vault = evidence_vault
+        self.domain_repository = domain_repository
         self.on_detection = on_detection
+        self.on_consensus = on_consensus
 
         # Thread-safe rolling telemetry
         self._lock = threading.Lock()
@@ -53,6 +81,9 @@ class InferencePipeline:
         self.total_plates_localized: int = 0
         self.total_ocr_processed: int = 0
         self.total_ocr_success: int = 0
+        self.total_consensus_evaluated: int = 0
+        self.total_consensus_accepted: int = 0
+        self.total_evidence_stored: int = 0
         self.total_latency_ms: float = 0.0
         self.min_latency_ms: float = float("inf")
         self.max_latency_ms: float = 0.0
@@ -183,6 +214,87 @@ class InferencePipeline:
                             )
                         )
 
+            # 4. Multi-Frame Consensus & Evidence Stage (Phase 3E)
+            consensus_results: List[ConsensusResult] = []
+            if self.consensus_aggregator is not None and plates and ocr_results:
+                for plate, ocr_res in zip(plates, ocr_results):
+                    if ocr_res.success and ocr_res.normalized_text:
+                        obs = PlateObservation(
+                            camera_id=payload.camera_id,
+                            frame_sequence=payload.frame_index,
+                            timestamp=payload.captured_at,
+                            raw_text=ocr_res.raw_text,
+                            normalized_text=ocr_res.normalized_text,
+                            confidence=ocr_res.confidence or 0.0,
+                            format_valid=ocr_res.format_valid,
+                            frame=payload.frame,
+                            plate_bbox=plate.bbox.to_list(),
+                            vehicle_id=plate.vehicle_id,
+                        )
+                        c_res = self.consensus_aggregator.add_observation(obs)
+                        if c_res is not None:
+                            consensus_results.append(c_res)
+                            evidence_artifact = None
+                            storage_result = None
+
+                            if c_res.is_accepted:
+                                # Create Evidence Snapshot
+                                if self.snapshot_generator is not None and c_res.best_frame is not None:
+                                    evidence_artifact = self.snapshot_generator.create_snapshot(
+                                        frame=c_res.best_frame,
+                                        camera_id=c_res.camera_id,
+                                        frame_sequence=c_res.best_frame_sequence,
+                                        captured_at=c_res.last_observed_ts,
+                                        plate_normalized=c_res.consensus_plate or "",
+                                    )
+
+                                # Store in MinIO Evidence Vault
+                                if self.evidence_vault is not None and evidence_artifact is not None:
+                                    storage_result = self.evidence_vault.store_artifact(evidence_artifact)
+
+                                # Convert to canonical domain records
+                                sighting, evidence_rec = convert_consensus_to_domain(
+                                    consensus=c_res,
+                                    evidence_artifact=evidence_artifact,
+                                    storage_result=storage_result,
+                                )
+
+                                # Persist to domain repository if configured
+                                if self.domain_repository is not None and sighting is not None:
+                                    self.domain_repository.save_sighting(sighting, evidence_rec)
+
+                                with self._lock:
+                                    self.total_consensus_evaluated += 1
+                                    self.total_consensus_accepted += 1
+                                    if storage_result and storage_result.success:
+                                        self.total_evidence_stored += 1
+
+                                logger.info(
+                                    "[%s] Consensus ACCEPTED: %s (conf: %.2f, frames: %d/%d). Sighting ID: %s",
+                                    c_res.camera_id,
+                                    c_res.consensus_plate,
+                                    c_res.consensus_confidence,
+                                    c_res.consensus_of,
+                                    c_res.total_window_observations,
+                                    sighting.id if sighting else "NONE",
+                                )
+                            else:
+                                with self._lock:
+                                    self.total_consensus_evaluated += 1
+
+                                logger.debug(
+                                    "[%s] Consensus %s: %s",
+                                    c_res.camera_id,
+                                    c_res.status.value,
+                                    c_res.rejection_reason,
+                                )
+
+                            if self.on_consensus is not None:
+                                try:
+                                    self.on_consensus(c_res, evidence_artifact, storage_result)
+                                except Exception as cb_err:
+                                    logger.error("[%s] Error in on_consensus callback: %s", payload.camera_id, str(cb_err))
+
             elapsed_ms = (time.perf_counter() - start_time) * 1000.0
 
             result = DetectionResult(
@@ -197,6 +309,7 @@ class InferencePipeline:
                 detected_objects=vehicles,
                 plates=plates,
                 ocr_results=ocr_results,
+                consensus_results=consensus_results,
             )
 
             # Update rolling telemetry
@@ -224,13 +337,14 @@ class InferencePipeline:
 
             if vehicles:
                 logger.info(
-                    "[%s] Frame #%d: Detected %d vehicles, %d plates [%s], %d OCR reads in %.1fms",
+                    "[%s] Frame #%d: Detected %d vehicles, %d plates [%s], %d OCR reads, %d consensus in %.1fms",
                     payload.camera_id,
                     payload.frame_index,
                     len(vehicles),
                     len(plates),
                     self.plate_detector.mode_name,
                     len(ocr_results),
+                    len(consensus_results),
                     elapsed_ms,
                 )
 
@@ -278,6 +392,9 @@ class InferencePipeline:
                 "total_plates_localized": self.total_plates_localized,
                 "total_ocr_processed": self.total_ocr_processed,
                 "total_ocr_success": self.total_ocr_success,
+                "total_consensus_evaluated": self.total_consensus_evaluated,
+                "total_consensus_accepted": self.total_consensus_accepted,
+                "total_evidence_stored": self.total_evidence_stored,
                 "plate_localizer_mode": self.plate_detector.mode_name,
                 "ocr_engine": self.ocr_engine.engine_name if self.ocr_engine else "NONE",
                 "avg_latency_ms": round(avg_latency, 2),
