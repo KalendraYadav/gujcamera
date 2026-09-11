@@ -146,3 +146,9 @@ export interface CreateCameraPayload {
     url_or_handle?: string;
   };
 }
+
+export interface DepartmentRecord {
+  id: string;
+  name: string;
+}
+

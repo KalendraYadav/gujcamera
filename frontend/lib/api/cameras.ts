@@ -80,4 +80,11 @@ export const camerasApi = {
   async createCamera(payload: import('@/types/camera').CreateCameraPayload): Promise<Camera> {
     return apiClient.post<Camera>('/cameras', payload);
   },
+
+  /**
+   * Fetch list of departments with canonical IDs and names for administrative fleet assignment
+   */
+  async getDepartments(): Promise<import('@/types/camera').DepartmentRecord[]> {
+    return apiClient.get<import('@/types/camera').DepartmentRecord[]>('/cameras/departments');
+  },
 };

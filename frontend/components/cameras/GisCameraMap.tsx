@@ -137,38 +137,53 @@ export function GisCameraMap() {
         else if (isOffline) statusColor = '#64748b';
         else if (isError) statusColor = '#ef4444';
 
+        // Container sizing - MapLibre uses el.style.transform for geographic anchoring.
+        // DO NOT set transform or transition: transform on el.
         el.style.width = '32px';
         el.style.height = '32px';
-        el.style.borderRadius = '50%';
-        el.style.backgroundColor = 'rgba(15, 23, 42, 0.9)';
-        el.style.border = `2px solid ${statusColor}`;
-        el.style.boxShadow = isOnline
-          ? '0 0 10px rgba(16, 185, 129, 0.6)'
-          : isDegraded
-          ? '0 0 8px rgba(245, 158, 11, 0.5)'
-          : '0 2px 4px rgba(0,0,0,0.5)';
         el.style.cursor = 'pointer';
         el.style.display = 'flex';
         el.style.alignItems = 'center';
         el.style.justifyContent = 'center';
-        el.style.color = statusColor;
-        el.style.transition = 'transform 0.15s ease, box-shadow 0.15s ease';
+
+        // Inner visual wrapper - handles scale micro-interaction and aesthetics
+        // without overriding MapLibre's geographic coordinates on the outer container.
+        const inner = document.createElement('div');
+        inner.className = 'tactical-marker-visual';
+        inner.style.width = '100%';
+        inner.style.height = '100%';
+        inner.style.borderRadius = '50%';
+        inner.style.backgroundColor = 'rgba(15, 23, 42, 0.9)';
+        inner.style.border = `2px solid ${statusColor}`;
+        inner.style.boxShadow = isOnline
+          ? '0 0 10px rgba(16, 185, 129, 0.6)'
+          : isDegraded
+          ? '0 0 8px rgba(245, 158, 11, 0.5)'
+          : '0 2px 4px rgba(0,0,0,0.5)';
+        inner.style.display = 'flex';
+        inner.style.alignItems = 'center';
+        inner.style.justifyContent = 'center';
+        inner.style.color = statusColor;
+        inner.style.pointerEvents = 'none';
+        inner.style.transformOrigin = 'center center';
+        inner.style.transition = 'transform 0.15s ease, box-shadow 0.15s ease';
 
         // Inner SVG icon
-        el.innerHTML = `
+        inner.innerHTML = `
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
             <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/>
             <circle cx="12" cy="13" r="3"/>
           </svg>
         `;
+        el.appendChild(inner);
 
-        // Micro-interactions
+        // Micro-interactions apply only to inner visual element and outer z-index
         el.onmouseenter = () => {
-          el.style.transform = 'scale(1.25)';
+          inner.style.transform = 'scale(1.25)';
           el.style.zIndex = '100';
         };
         el.onmouseleave = () => {
-          el.style.transform = 'scale(1)';
+          inner.style.transform = 'scale(1)';
           el.style.zIndex = '1';
         };
 

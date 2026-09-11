@@ -21,6 +21,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
     let status = HttpStatus.INTERNAL_SERVER_ERROR;
     let errorCode = 'INTERNAL_SERVER_ERROR';
     let message = 'An unexpected error occurred';
+    let existingCamera: any = undefined;
 
     if (exception instanceof HttpException) {
       status = exception.getStatus();
@@ -31,6 +32,9 @@ export class HttpExceptionFilter implements ExceptionFilter {
       } else if (typeof res === 'object' && res !== null) {
         message = res.message || res.error || message;
         errorCode = res.error_code || this.statusToErrorCode(status);
+        if (res.existing_camera) {
+          existingCamera = res.existing_camera;
+        }
         if (Array.isArray(message)) {
           // Flatten class-validator message array
           message = message.join('; ');
@@ -48,12 +52,16 @@ export class HttpExceptionFilter implements ExceptionFilter {
       errorCode = this.statusToErrorCode(status);
     }
 
-    const errorPayload = {
+    const errorPayload: Record<string, any> = {
       error_code: errorCode,
       message: message,
       request_id: requestId,
       timestamp: new Date().toISOString(),
     };
+
+    if (existingCamera) {
+      errorPayload.existing_camera = existingCamera;
+    }
 
     response.status(status).json(errorPayload);
   }

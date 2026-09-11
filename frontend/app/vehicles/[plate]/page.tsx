@@ -46,7 +46,7 @@ import { LoadingState } from '@/components/ui/LoadingState';
 import { vehiclesApi } from '@/lib/api/vehicles';
 import { VehicleDetail, VehicleTimelineResponse } from '@/types/vehicle';
 import { useAuth } from '@/lib/auth/context';
-import { hasRoleAccess } from '@/lib/auth/rbac';
+import { hasRoleAccess, canExportEvidence } from '@/lib/auth/rbac';
 
 type PageState = 'loading' | 'error' | 'loaded';
 type ActiveTab = 'overview' | 'timeline' | 'map';
@@ -112,6 +112,7 @@ function DetailField({ label, value, mono }: DetailFieldProps) {
 export default function VehicleDetailPage() {
   const { user, isLoading: authLoading } = useAuth();
   const isAuthorized = hasRoleAccess(user?.role, ['SUPER_ADMIN', 'DEPARTMENT_ADMIN', 'INVESTIGATOR']);
+  const isEvidenceExportAuthorized = canExportEvidence(user?.role);
 
   const params = useParams();
   const router = useRouter();
@@ -350,7 +351,7 @@ export default function VehicleDetailPage() {
                     <Eye size={11} />
                     {vehicleDetail.total_sightings} sighting{vehicleDetail.total_sightings !== 1 ? 's' : ''} recorded
                   </span>
-                  {((vehicleDetail.last_known_sighting?.id) || (timeline?.sightings?.[0]?.id)) && (
+                  {isEvidenceExportAuthorized && ((vehicleDetail.last_known_sighting?.id) || (timeline?.sightings?.[0]?.id)) && (
                     <button
                       id="header-export-evidence-btn"
                       onClick={() => {
@@ -704,7 +705,8 @@ export default function VehicleDetailPage() {
                   routeSegments={timeline.route_segments}
                   summary={timeline.summary}
                   routePlausibilityScore={timeline.route_plausibility_score}
-                  onExportEvidence={(sightingId) => setEvidenceSightingId(sightingId)}
+                  onExportEvidence={isEvidenceExportAuthorized ? (sightingId) => setEvidenceSightingId(sightingId) : undefined}
+                  userRole={user?.role}
                 />
               )}
 
@@ -724,7 +726,7 @@ export default function VehicleDetailPage() {
         )}
 
         {/* Evidence Verification & Export Package Modal */}
-        {evidenceSightingId && vehicleDetail && (
+        {isEvidenceExportAuthorized && evidenceSightingId && vehicleDetail && (
           <EvidenceExportModal
             sightingId={evidenceSightingId}
             plateNormalized={vehicleDetail.plate_normalized}

@@ -35,6 +35,8 @@ import {
 } from 'lucide-react';
 import { TimelineSighting, RouteSegment, RouteSummary } from '@/types/vehicle';
 import { StatusBadge } from '@/components/ui/StatusBadge';
+import { PoliceRole } from '@/types/auth';
+import { canExportEvidence } from '@/lib/auth/rbac';
 
 interface SightingsTimelineProps {
   sightings: TimelineSighting[];
@@ -42,6 +44,7 @@ interface SightingsTimelineProps {
   summary: RouteSummary;
   routePlausibilityScore: number;
   onExportEvidence?: (sightingId: string) => void;
+  userRole?: PoliceRole;
 }
 
 function formatTimestamp(iso: string): string {
@@ -365,7 +368,10 @@ export function SightingsTimeline({
   summary,
   routePlausibilityScore,
   onExportEvidence,
+  userRole,
 }: SightingsTimelineProps) {
+  const isExportAuthorized = !userRole || canExportEvidence(userRole);
+  const effectiveOnExport = isExportAuthorized ? onExportEvidence : undefined;
   const plausibilityPct = Math.round(routePlausibilityScore * 100);
   const plausColor =
     plausibilityPct === 100
@@ -507,7 +513,7 @@ export function SightingsTimeline({
                 index={index}
                 isFirst={index === 0}
                 isLast={index === sightings.length - 1}
-                onExportEvidence={onExportEvidence}
+                onExportEvidence={effectiveOnExport}
               />
               {segment && <RouteHopRow segment={segment} index={index} />}
             </React.Fragment>

@@ -137,14 +137,33 @@ export class EvidenceService {
       };
     }
 
+    const isVerified = verificationResult.verified;
+    const isBreach = verificationResult.status === 'INTEGRITY_BREACH';
+
     return {
       id: evidence.id,
       source_type: evidence.sourceType,
       source_id: evidence.sourceId,
+      sighting_id: evidence.sourceId,
       storage_ref: evidence.storageRef,
+      file_path: evidence.storageRef,
       hash: evidence.hash,
+      stored_sha256: evidence.hash,
+      computed_sha256: verificationResult.calculated_hash,
       captured_at: evidence.capturedAt.toISOString(),
       created_at: evidence.createdAt.toISOString(),
+      file_size_bytes: verificationResult.size_bytes || 0,
+      mime_type: 'image/jpeg',
+      retention_days: 365,
+      verification_status: isVerified
+        ? 'INTEGRITY_VERIFIED'
+        : isBreach
+        ? 'INTEGRITY_BREACH'
+        : 'VERIFICATION_UNAVAILABLE',
+      integrity_match: isVerified,
+      tamper_detected: isBreach,
+      legal_admissibility_notice:
+        'Statutory Notice: Indian Evidence Act Section 65B electronic record metadata.',
       verification: verificationResult,
       sighting: sighting
         ? {
@@ -155,6 +174,7 @@ export class EvidenceService {
             timestamp: sighting.ts.toISOString(),
             confidence: Number(sighting.confidence),
             consensus_of: sighting.consensusOf,
+            consensus_frames: sighting.consensusOf,
           }
         : null,
     };

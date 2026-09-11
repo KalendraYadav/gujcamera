@@ -7,8 +7,52 @@
 
 import { PrismaClient, OperationalStatus, CameraProtocol, AlertSeverity, AlertStatus, DetectionType } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
+import * as crypto from 'crypto';
+import { S3Client, PutObjectCommand, HeadBucketCommand, CreateBucketCommand } from '@aws-sdk/client-s3';
 
 const prisma = new PrismaClient();
+
+const MINIO_ENDPOINT = process.env.MINIO_ENDPOINT || 'http://localhost:9000';
+const S3_BUCKET = process.env.MINIO_BUCKET_NAME || process.env.MINIO_BUCKET || 'police-evidence-vault';
+const MINIO_ACCESS_KEY = process.env.MINIO_ROOT_USER || process.env.MINIO_ACCESS_KEY || 'minio_admin';
+const MINIO_SECRET_KEY = process.env.MINIO_ROOT_PASSWORD || process.env.MINIO_SECRET_KEY || 'minio_dev_secret_2026';
+
+const s3Client = new S3Client({
+  endpoint: MINIO_ENDPOINT,
+  region: 'us-east-1',
+  credentials: {
+    accessKeyId: MINIO_ACCESS_KEY,
+    secretAccessKey: MINIO_SECRET_KEY,
+  },
+  forcePathStyle: true,
+});
+
+function createSyntheticEvidenceJpeg(comment: string): Buffer {
+  const commentBytes = Buffer.from(comment, 'utf8');
+  const comLength = commentBytes.length + 2;
+  const comHeader = Buffer.from([0xff, 0xfe, (comLength >> 8) & 0xff, comLength & 0xff]);
+
+  const baseHeader = Buffer.from([
+    0xff, 0xd8, // SOI
+    0xff, 0xe0, 0x00, 0x10, 0x4a, 0x46, 0x49, 0x46, 0x00, 0x01, 0x01, 0x01, 0x00, 0x48, 0x00, 0x48, 0x00, 0x00, // APP0 JFIF
+  ]);
+
+  const baseRest = Buffer.from([
+    0xff, 0xdb, 0x00, 0x43, 0x00, 0x08, 0x06, 0x06, 0x07, 0x06, 0x05, 0x08,
+    0x07, 0x07, 0x07, 0x09, 0x09, 0x08, 0x0a, 0x0c, 0x14, 0x0d, 0x0c, 0x0b, 0x0b, 0x0c, 0x19, 0x12,
+    0x13, 0x0f, 0x14, 0x1d, 0x1a, 0x1f, 0x1e, 0x1d, 0x1a, 0x1c, 0x1c, 0x20, 0x24, 0x2e, 0x27, 0x20,
+    0x22, 0x2c, 0x23, 0x1c, 0x1c, 0x28, 0x37, 0x29, 0x2c, 0x30, 0x31, 0x34, 0x34, 0x34, 0x1f, 0x27,
+    0x39, 0x3d, 0x38, 0x32, 0x3c, 0x2e, 0x33, 0x34, 0x32, // DQT
+    0xff, 0xc0, 0x00, 0x0b, 0x08, 0x00, 0x01, 0x00, 0x01, 0x01, 0x01, 0x11, 0x00, // SOF0 (1x1 grayscale)
+    0xff, 0xc4, 0x00, 0x1f, 0x00, 0x00, 0x01, 0x05, 0x01, 0x01,
+    0x01, 0x01, 0x01, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x02, 0x03, 0x04,
+    0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, // DHT
+    0xff, 0xda, 0x00, 0x08, 0x01, 0x01, 0x00, 0x00, 0x3f, 0x00, 0xbf, 0x00, // SOS
+    0xff, 0xd9, // EOI
+  ]);
+
+  return Buffer.concat([baseHeader, comHeader, commentBytes, baseRest]);
+}
 
 async function main() {
   console.log('🌱 Starting database seeding (Development/Demo Fixtures)...');
@@ -118,6 +162,28 @@ async function main() {
       passwordHash,
       roleId: roleInvestigator.id,
       departmentId: deptAhmedabad.id,
+      mfaEnabled: true,
+      isActive: true,
+    },
+  });
+
+  const deptAdminUser = await prisma.user.create({
+    data: {
+      email: 'deptadmin.demo@gujcamera.local',
+      passwordHash,
+      roleId: roleDeptAdmin.id,
+      departmentId: deptAhmedabad.id,
+      mfaEnabled: true,
+      isActive: true,
+    },
+  });
+
+  const auditorUser = await prisma.user.create({
+    data: {
+      email: 'auditor.demo@gujcamera.local',
+      passwordHash,
+      roleId: roleAuditor.id,
+      departmentId: deptDGP.id,
       mfaEnabled: true,
       isActive: true,
     },
@@ -387,17 +453,77 @@ async function main() {
     },
   });
 
-  // 11. Seed Evidence Record for Sighting 2
-  console.log('🛡️ Generating evidence vault fixture with SHA-256 hash...');
-  await prisma.evidence.create({
+  // 11. Seed Evidence Records with MinIO S3 Binary Uploads & Authentic SHA-256 Digests
+  console.log('🛡️ Generating deterministic synthetic evidence vault fixtures in MinIO & DB...');
+  
+  // Ensure MinIO bucket exists
+  try {
+    await s3Client.send(new HeadBucketCommand({ Bucket: S3_BUCKET }));
+  } catch {
+    try {
+      await s3Client.send(new CreateBucketCommand({ Bucket: S3_BUCKET }));
+      console.log(`   📦 Created MinIO bucket '${S3_BUCKET}'.`);
+    } catch (createErr: any) {
+      console.warn(`   ⚠️ Bucket creation notice: ${createErr.message}`);
+    }
+  }
+
+  // Generate deterministic JPEG frames with clear simulated demo comments
+  const jpegSighting1 = createSyntheticEvidenceJpeg(
+    'SIMULATED DEMO CCTV EVIDENCE - GUJARAT POLICE GPIC-2026 - CAM-AHM-01 - GJ01AB1234 - SIGHTING 1'
+  );
+  const sha256Sighting1 = crypto.createHash('sha256').update(jpegSighting1).digest('hex');
+
+  const jpegSighting2 = createSyntheticEvidenceJpeg(
+    'SIMULATED DEMO CCTV EVIDENCE - GUJARAT POLICE GPIC-2026 - CAM-AHM-02 - GJ01AB1234 - SIGHTING 2'
+  );
+  const sha256Sighting2 = crypto.createHash('sha256').update(jpegSighting2).digest('hex');
+
+  const key1 = 'frames/2026/09/09/cam-ahm-01-gj01ab1234-sighting1.jpg';
+  const key2 = 'frames/2026/09/09/cam-ahm-02-gj01ab1234-sighting2.jpg';
+
+  // Upload frames to MinIO S3
+  await s3Client.send(
+    new PutObjectCommand({
+      Bucket: S3_BUCKET,
+      Key: key1,
+      Body: jpegSighting1,
+      ContentType: 'image/jpeg',
+    })
+  );
+  console.log(`   ✅ Sighting 1 frame stored in MinIO ('${S3_BUCKET}/${key1}'). SHA-256: ${sha256Sighting1}`);
+
+  await s3Client.send(
+    new PutObjectCommand({
+      Bucket: S3_BUCKET,
+      Key: key2,
+      Body: jpegSighting2,
+      ContentType: 'image/jpeg',
+    })
+  );
+  console.log(`   ✅ Sighting 2 frame stored in MinIO ('${S3_BUCKET}/${key2}'). SHA-256: ${sha256Sighting2}`);
+
+  // Create database Evidence records for both sightings with authentic cryptographic hashes
+  const evidence1 = await prisma.evidence.create({
+    data: {
+      sourceType: 'SIGHTING',
+      sourceId: sighting1.id,
+      storageRef: sighting1.frameRef,
+      hash: sha256Sighting1,
+      capturedAt: sighting1.ts,
+    },
+  });
+
+  const evidence2 = await prisma.evidence.create({
     data: {
       sourceType: 'SIGHTING',
       sourceId: sighting2.id,
       storageRef: sighting2.frameRef,
-      hash: 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855', // Example SHA-256 hash
+      hash: sha256Sighting2,
       capturedAt: sighting2.ts,
     },
   });
+  console.log(`   ✅ Evidence records seeded in DB: Sighting 1 -> ${evidence1.id}, Sighting 2 -> ${evidence2.id}`);
 
   // 12. Seed Initial Audit Record
   console.log('📝 Creating initial system audit log...');

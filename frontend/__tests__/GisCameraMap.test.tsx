@@ -21,6 +21,7 @@ const mockGetBounds = vi.fn(() => ({
   getNorth: () => 23.25,
 }));
 
+let createdMarkers: any[] = [];
 const mockMarkerInstance = {
   setLngLat: vi.fn().mockReturnThis(),
   addTo: vi.fn().mockReturnThis(),
@@ -41,17 +42,22 @@ vi.mock('maplibre-gl', () => {
     flyTo: vi.fn(),
   });
 
+  const mockMarkerConstructor = vi.fn().mockImplementation((options: any) => {
+    if (options) createdMarkers.push(options);
+    return mockMarkerInstance;
+  });
+
   return {
     default: {
       Map: vi.fn().mockImplementation(createMockMap),
       NavigationControl: vi.fn(),
       AttributionControl: vi.fn(),
-      Marker: vi.fn().mockImplementation(() => mockMarkerInstance),
+      Marker: mockMarkerConstructor,
     },
     Map: vi.fn().mockImplementation(createMockMap),
     NavigationControl: vi.fn(),
     AttributionControl: vi.fn(),
-    Marker: vi.fn().mockImplementation(() => mockMarkerInstance),
+    Marker: mockMarkerConstructor,
   };
 });
 
@@ -130,6 +136,7 @@ describe('GIS Camera Map Component (Phase 4B)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mapEvents = {};
+    createdMarkers = [];
   });
 
   it('renders tactical map HUD overlay with simulated data warning and map legend', async () => {
@@ -234,5 +241,49 @@ describe('GIS Camera Map Component (Phase 4B)', () => {
 
     // Verify no fake cameras are rendered
     expect(screen.queryByText('CAM-AHM-01: SG Highway')).not.toBeInTheDocument();
+  });
+
+  it('creates transform-safe camera markers where hover scales only the inner element and preserves outer element transform', async () => {
+    (camerasApi.getCameras as any).mockResolvedValue({
+      data: MOCK_CAMERAS,
+      pagination: { limit: 100, total: 2, next_cursor: null },
+    });
+
+    render(<GisCameraMap />);
+
+    await waitFor(() => {
+      expect(createdMarkers.length).toBe(2);
+    });
+
+    const markerEl = createdMarkers[0].element as HTMLElement;
+    expect(markerEl).toBeDefined();
+    expect(markerEl.className).toBe('tactical-camera-marker');
+
+    // Simulate MapLibre setting geographic translate transform on the outer container
+    markerEl.style.transform = 'translate(-50%, -50%) translate(450px, 280px)';
+
+    const innerVisual = markerEl.querySelector('.tactical-marker-visual') as HTMLElement;
+    expect(innerVisual).toBeDefined();
+    expect(innerVisual.style.transform).toBe('');
+
+    // Trigger hover (mouseenter)
+    fireEvent.mouseEnter(markerEl);
+
+    // Verify outer transform is NOT overwritten (preserves geographic translate coordinates, NOT scale)
+    expect(markerEl.style.transform).toBe('translate(-50%, -50%) translate(450px, 280px)');
+    expect(markerEl.style.zIndex).toBe('100');
+
+    // Verify inner visual element received the scale transform
+    expect(innerVisual.style.transform).toBe('scale(1.25)');
+
+    // Trigger mouseleave
+    fireEvent.mouseLeave(markerEl);
+
+    // Verify outer transform is still untouched
+    expect(markerEl.style.transform).toBe('translate(-50%, -50%) translate(450px, 280px)');
+    expect(markerEl.style.zIndex).toBe('1');
+
+    // Verify inner visual element reset to scale(1)
+    expect(innerVisual.style.transform).toBe('scale(1)');
   });
 });

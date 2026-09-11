@@ -102,6 +102,16 @@ export class CamerasController {
     return this.camerasService.getConnectors();
   }
 
+  @Get('departments')
+  @ApiOperation({
+    summary: 'List departments with canonical IDs and names for fleet assignment',
+  })
+  @ApiResponse({ status: 200, description: 'List of departments' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  async getDepartments() {
+    return this.camerasService.getDepartments();
+  }
+
   @Get(':id')
   @ApiOperation({
     summary: 'Get single camera deep-dive record',

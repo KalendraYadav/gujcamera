@@ -4,9 +4,11 @@ import { WsAdapter } from '@nestjs/platform-ws';
 import request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { OnvifProtocolTestFixture } from './fixtures/onvif-protocol-fixture';
+import { PrismaService } from '../src/prisma/prisma.service';
 
 describe('Camera Protocol Adapters & Onboarding Probes (e2e)', () => {
   let app: INestApplication;
+  let prisma: PrismaService;
   let adminToken: string;
   let operatorToken: string;
   let onvifFixture: OnvifProtocolTestFixture;
@@ -29,6 +31,7 @@ describe('Camera Protocol Adapters & Onboarding Probes (e2e)', () => {
     app.useWebSocketAdapter(new WsAdapter(app));
 
     await app.init();
+    prisma = app.get(PrismaService);
 
 
     // Start ONVIF Protocol Test Fixture on an OS-assigned dynamic port
@@ -82,6 +85,28 @@ describe('Camera Protocol Adapters & Onboarding Probes (e2e)', () => {
     it('rejects unauthenticated requests with 401', async () => {
       await request(app.getHttpServer())
         .get('/api/v1/cameras/connectors/list')
+        .expect(401);
+    });
+  });
+
+  describe('GET /api/v1/cameras/departments', () => {
+    it('returns canonical departments with valid UUIDs and names', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/api/v1/cameras/departments')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .expect(200);
+
+      expect(Array.isArray(res.body)).toBe(true);
+      expect(res.body.length).toBeGreaterThanOrEqual(1);
+
+      const ahmDept = res.body.find((d: any) => d.name.includes('Ahmedabad'));
+      expect(ahmDept).toBeDefined();
+      expect(ahmDept.id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i);
+    });
+
+    it('rejects unauthenticated requests with 401', async () => {
+      await request(app.getHttpServer())
+        .get('/api/v1/cameras/departments')
         .expect(401);
     });
   });
@@ -198,6 +223,49 @@ describe('Camera Protocol Adapters & Onboarding Probes (e2e)', () => {
           protocol: 'INVALID_PROTO',
         })
         .expect(400);
+    });
+  });
+
+  describe('Camera Registration Duplicate Endpoint Integrity (POST /api/v1/cameras)', () => {
+    it('rejects registration with 409 Conflict when stream endpoint is already registered and returns existing camera identity', async () => {
+      const existing = await prisma.cameraStream.findFirst({
+        include: { camera: { select: { id: true, name: true, departmentId: true } } },
+      });
+      expect(existing).toBeDefined();
+
+      const connector = await prisma.connector.findFirst();
+      expect(connector).toBeDefined();
+
+      const res = await request(app.getHttpServer())
+        .post('/api/v1/cameras')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({
+          name: 'CAM-DUPLICATE-TEST: Collision Attempt',
+          department_id: existing!.camera.departmentId,
+          lat: 23.0312,
+          long: 72.5123,
+          protocol: 'RTSP',
+          connector_type_id: connector!.id,
+          operational_status: 'ONLINE',
+          location: {
+            address: 'Collision Test Point',
+            zone: 'West Zone',
+            district: 'Ahmedabad',
+          },
+          stream: {
+            codec: 'h264',
+            resolution: '1920x1080',
+            fps: 25,
+            url_or_handle: existing!.urlOrHandle,
+          },
+        })
+        .expect(409);
+
+      expect(res.body.error_code).toBe('DUPLICATE_STREAM_ENDPOINT');
+      expect(res.body.message).toContain('already registered to another camera');
+      expect(res.body.existing_camera).toBeDefined();
+      expect(res.body.existing_camera.id).toBe(existing!.camera.id);
+      expect(res.body.existing_camera.name).toBe(existing!.camera.name);
     });
   });
 });

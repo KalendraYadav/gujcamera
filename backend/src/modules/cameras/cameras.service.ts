@@ -83,11 +83,22 @@ export class CamerasService {
     if (streamHandle) {
       const existingStream = await this.prisma.cameraStream.findFirst({
         where: { urlOrHandle: streamHandle },
+        include: {
+          camera: {
+            select: { id: true, name: true },
+          },
+        },
       });
       if (existingStream) {
         throw new ConflictException({
           error_code: 'DUPLICATE_STREAM_ENDPOINT',
           message: `Stream endpoint '${streamHandle}' is already registered to another camera`,
+          existing_camera: existingStream.camera
+            ? {
+                id: existingStream.camera.id,
+                name: existingStream.camera.name,
+              }
+            : undefined,
         });
       }
     }
@@ -810,6 +821,24 @@ export class CamerasService {
       })),
       supported_protocols: this.protocolRegistry.getSupportedProtocols(),
     };
+  }
+
+  /**
+   * List departments with canonical IDs and names for administrative fleet assignment
+   */
+  async getDepartments() {
+    const departments = await this.prisma.department.findMany({
+      select: {
+        id: true,
+        name: true,
+      },
+      orderBy: { name: 'asc' },
+    });
+
+    return departments.map((d) => ({
+      id: d.id,
+      name: d.name,
+    }));
   }
 
   private isValidUUID(uuid: string): boolean {

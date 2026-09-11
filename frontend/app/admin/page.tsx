@@ -17,6 +17,7 @@ import {
   Info,
   Layers,
   Lock,
+  ExternalLink,
 } from 'lucide-react';
 import { AppShell } from '@/components/layout/AppShell';
 import { StatusBadge } from '@/components/ui/StatusBadge';
@@ -30,23 +31,33 @@ import {
   CameraProtocol,
   ConnectionProbeResult,
   ConnectorRecord,
+  DepartmentRecord,
 } from '@/types/camera';
+import { ApiError } from '@/types/api';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+
+interface DuplicateErrorInfo {
+  endpoint: string;
+  existingCameraId?: string;
+  existingCameraName?: string;
+}
 
 export default function FleetAdminPage() {
   const { user, isLoading: authLoading } = useAuth();
   const router = useRouter();
   const isAuthorized = hasRoleAccess(user?.role, ['SUPER_ADMIN', 'DEPARTMENT_ADMIN']);
 
-  // Protocol connectors state
+  // Protocol connectors & departments state
   const [connectors, setConnectors] = useState<ConnectorRecord[]>([]);
   const [supportedProtocols, setSupportedProtocols] = useState<CameraProtocol[]>(['RTSP', 'ONVIF']);
   const [isLoadingConnectors, setIsLoadingConnectors] = useState(true);
+  const [departments, setDepartments] = useState<DepartmentRecord[]>([]);
+  const [isLoadingDepartments, setIsLoadingDepartments] = useState(true);
 
   // Onboarding form state
   const [name, setName] = useState('CAM-AHM-07: SG Highway - Thaltej Crossroad Junction');
-  const [departmentId, setDepartmentId] = useState('d1111111-0000-0000-0000-000000000001');
+  const [departmentId, setDepartmentId] = useState(user?.department_id || '');
   const [protocol, setProtocol] = useState<CameraProtocol>('RTSP');
   const [connectorId, setConnectorId] = useState('');
   const [streamUrl, setStreamUrl] = useState('rtsp://localhost:8554/live/cam-ahm-01');
@@ -67,29 +78,58 @@ export default function FleetAdminPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [duplicateError, setDuplicateError] = useState<DuplicateErrorInfo | null>(null);
 
   useEffect(() => {
-    async function loadConnectors() {
+    async function loadMetadata() {
       try {
         setIsLoadingConnectors(true);
-        const res = await camerasApi.getConnectors();
-        setConnectors(res.connectors);
-        setSupportedProtocols(res.supported_protocols);
-        if (res.connectors.length > 0) {
-          // Default connector matching RTSP
-          const rtspConn = res.connectors.find((c) => c.adapter_type.includes('RTSP')) || res.connectors[0];
-          setConnectorId(rtspConn.id);
+        setIsLoadingDepartments(true);
+
+        const [connRes, deptRes] = await Promise.allSettled([
+          camerasApi.getConnectors(),
+          camerasApi.getDepartments(),
+        ]);
+
+        if (connRes.status === 'fulfilled') {
+          setConnectors(connRes.value.connectors);
+          setSupportedProtocols(connRes.value.supported_protocols);
+          if (connRes.value.connectors.length > 0) {
+            const rtspConn = connRes.value.connectors.find((c) => c.adapter_type.includes('RTSP')) || connRes.value.connectors[0];
+            setConnectorId(rtspConn.id);
+          }
+        }
+
+        if (deptRes.status === 'fulfilled' && deptRes.value.length > 0) {
+          setDepartments(deptRes.value);
+          if (user?.role === 'DEPARTMENT_ADMIN' && user.department_id) {
+            setDepartmentId(user.department_id);
+          } else {
+            setDepartmentId((prev) => {
+              if (prev && deptRes.value.some((d) => d.id === prev)) return prev;
+              const ahmDept = deptRes.value.find((d) => d.name.toLowerCase().includes('ahmedabad')) || deptRes.value[0];
+              return ahmDept.id;
+            });
+          }
         }
       } catch (err: any) {
-        console.warn('Could not load connectors dynamically:', err);
+        console.warn('Could not load administrative metadata dynamically:', err);
       } finally {
         setIsLoadingConnectors(false);
+        setIsLoadingDepartments(false);
       }
     }
-    loadConnectors();
-  }, []);
+    loadMetadata();
+  }, [user]);
 
-  // Update default URL when protocol toggles
+  // Keep departmentId synced if user changes
+  useEffect(() => {
+    if (user?.role === 'DEPARTMENT_ADMIN' && user.department_id) {
+      setDepartmentId(user.department_id);
+    }
+  }, [user]);
+
+  // Update default URL and credentials when protocol toggles
   const handleProtocolChange = (newProtocol: CameraProtocol) => {
     setProtocol(newProtocol);
     setProbeResult(null);
@@ -97,10 +137,14 @@ export default function FleetAdminPage() {
 
     if (newProtocol === 'RTSP') {
       setStreamUrl('rtsp://localhost:8554/live/cam-ahm-01');
+      setUsername('admin');
+      setPassword('');
       const rtspConn = connectors.find((c) => c.adapter_type.includes('RTSP'));
       if (rtspConn) setConnectorId(rtspConn.id);
     } else if (newProtocol === 'ONVIF') {
       setStreamUrl('http://localhost:8555/onvif/device_service');
+      setUsername('admin');
+      setPassword('GujaratPolice@2026');
       const onvifConn = connectors.find((c) => c.adapter_type.includes('ONVIF'));
       if (onvifConn) setConnectorId(onvifConn.id);
     }
@@ -139,6 +183,7 @@ export default function FleetAdminPage() {
     setIsSubmitting(true);
     setSubmitSuccess(null);
     setSubmitError(null);
+    setDuplicateError(null);
 
     try {
       const targetConnector =
@@ -168,7 +213,21 @@ export default function FleetAdminPage() {
 
       setSubmitSuccess(`Camera '${newCamera.name}' successfully onboarded with ID ${newCamera.id}!`);
     } catch (err: any) {
-      setSubmitError(err.message || 'Failed to onboard camera. Verify authorization and unique stream URL.');
+      // Detect duplicate stream endpoint conflict and surface an actionable banner
+      const isDuplicate =
+        (err instanceof ApiError && (err.errorCode === 'DUPLICATE_STREAM_ENDPOINT' || err.statusCode === 409)) ||
+        err?.errorCode === 'DUPLICATE_STREAM_ENDPOINT' ||
+        err?.message?.includes('already registered to another camera');
+
+      if (isDuplicate) {
+        setDuplicateError({
+          endpoint: streamUrl.trim(),
+          existingCameraId: err.existingCamera?.id,
+          existingCameraName: err.existingCamera?.name,
+        });
+      } else {
+        setSubmitError(err.message || 'Failed to onboard camera. Verify authorization and unique stream URL.');
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -361,6 +420,65 @@ export default function FleetAdminPage() {
           </div>
         )}
 
+        {duplicateError && (
+          <div
+            role="alert"
+            data-testid="duplicate-endpoint-banner"
+            style={{
+              backgroundColor: 'rgba(234, 179, 8, 0.08)',
+              border: '1px solid rgba(234, 179, 8, 0.35)',
+              borderRadius: 'var(--radius-md)',
+              padding: 'var(--space-3) var(--space-4)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 'var(--space-3)',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 'var(--space-2)' }}>
+              <AlertTriangle size={18} color="rgb(234, 179, 8)" style={{ flexShrink: 0, marginTop: '2px' }} />
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                <span style={{ fontSize: 'var(--text-xs)', fontWeight: 700, color: 'rgb(234, 179, 8)' }}>
+                  Stream endpoint already registered
+                </span>
+                <span style={{ fontSize: '11px', color: 'var(--text-muted)', lineHeight: '1.4' }}>
+                  <code style={{ fontFamily: 'monospace', fontSize: '11px', color: 'var(--text-secondary)' }}>{duplicateError.endpoint}</code> is already
+                  associated with{' '}
+                  {duplicateError.existingCameraName ? (
+                    <strong style={{ color: 'var(--text-primary)' }}>{duplicateError.existingCameraName}</strong>
+                  ) : (
+                    'an existing camera'
+                  )}.
+                  {' '}Each camera must have a unique stream endpoint. To onboard equipment, specify an unused endpoint.
+                </span>
+              </div>
+            </div>
+            {duplicateError.existingCameraId && (
+              <Link
+                href={`/cameras?id=${duplicateError.existingCameraId}`}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '5px',
+                  padding: '6px 14px',
+                  backgroundColor: 'rgba(234, 179, 8, 0.15)',
+                  border: '1px solid rgba(234, 179, 8, 0.45)',
+                  borderRadius: 'var(--radius-sm)',
+                  color: 'rgb(234, 179, 8)',
+                  fontSize: '11px',
+                  fontWeight: 600,
+                  textDecoration: 'none',
+                  whiteSpace: 'nowrap',
+                  flexShrink: 0,
+                  transition: 'background-color 0.15s ease',
+                }}
+              >
+                Open Existing Camera <ExternalLink size={12} />
+              </Link>
+            )}
+          </div>
+        )}
+
         {/* Main Onboarding Form */}
         <form onSubmit={handleRegisterCamera} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 'var(--space-5)' }}>
           {/* Column 1 & 2: Camera Details & Protocol Config */}
@@ -410,6 +528,7 @@ export default function FleetAdminPage() {
                       Assigned Police Department *
                     </label>
                     <select
+                      id="department-selector"
                       value={departmentId}
                       onChange={(e) => setDepartmentId(e.target.value)}
                       style={{
@@ -422,15 +541,22 @@ export default function FleetAdminPage() {
                         color: 'var(--text-primary)',
                       }}
                     >
-                      <option value="d1111111-0000-0000-0000-000000000001">
-                        Ahmedabad City Police (HQ)
-                      </option>
-                      <option value="d2222222-0000-0000-0000-000000000002">
-                        Gandhinagar District Police
-                      </option>
-                      <option value="d3333333-0000-0000-0000-000000000003">
-                        Surat City Police
-                      </option>
+                      {departments.length > 0 ? (
+                        departments.map((dept) => {
+                          const displayLabel = dept.name.includes('Ahmedabad')
+                            ? 'Ahmedabad City Police (HQ)'
+                            : dept.name;
+                          return (
+                            <option key={dept.id} value={dept.id}>
+                              {displayLabel}
+                            </option>
+                          );
+                        })
+                      ) : (
+                        <option value={user?.department_id || departmentId || 'a8e1fdbb-f264-4841-a45b-06df23724a20'}>
+                          {user?.department_name || 'Ahmedabad City Police (HQ)'}
+                        </option>
+                      )}
                     </select>
                   </div>
 
@@ -611,6 +737,9 @@ export default function FleetAdminPage() {
                 <div>
                   <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: 'var(--space-1)' }}>
                     {protocol === 'RTSP' ? 'RTSP Stream URL *' : 'ONVIF Device Service URL *'}
+                    <span style={{ fontWeight: 400, marginLeft: '6px', color: 'var(--text-muted)', fontSize: '10px' }}>
+                      {protocol === 'RTSP' ? '(Video Stream Endpoint)' : '(Device Management Endpoint)'}
+                    </span>
                   </label>
                   <input
                     type="text"
@@ -633,33 +762,131 @@ export default function FleetAdminPage() {
                       fontFamily: 'var(--font-mono)',
                     }}
                   />
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '4px', fontSize: '11px', color: 'var(--text-muted)' }}>
-                    <span>
-                      {protocol === 'RTSP'
-                        ? 'Sample live stream: rtsp://localhost:8554/live/cam-ahm-01'
-                        : 'Sample ONVIF test fixture: http://localhost:8555/onvif/device_service'}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setStreamUrl(
-                          protocol === 'RTSP'
-                            ? 'rtsp://localhost:8554/live/cam-ahm-01'
-                            : 'http://localhost:8555/onvif/device_service'
-                        )
-                      }
-                      style={{
-                        background: 'none',
-                        border: 'none',
-                        color: 'var(--accent-primary)',
-                        cursor: 'pointer',
-                        fontSize: '11px',
-                        fontWeight: 600,
-                        textDecoration: 'underline',
-                      }}
-                    >
-                      Fill Default
-                    </button>
+                  {/* Demo Fixture Controls with explicit simulated data clarity */}
+                  <div
+                    style={{
+                      marginTop: '6px',
+                      padding: '8px 10px',
+                      backgroundColor: 'rgba(255, 255, 255, 0.02)',
+                      border: '1px dashed var(--border-subtle)',
+                      borderRadius: 'var(--radius-sm)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '6px',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '6px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <span
+                          style={{
+                            fontSize: '9px',
+                            fontWeight: 700,
+                            letterSpacing: '0.04em',
+                            textTransform: 'uppercase',
+                            padding: '1px 5px',
+                            borderRadius: '3px',
+                            backgroundColor: 'rgba(59, 130, 246, 0.12)',
+                            color: 'rgb(147, 197, 253)',
+                            border: '1px solid rgba(59, 130, 246, 0.25)',
+                          }}
+                        >
+                          DEMO FIXTURES &bull; SIMULATED DATA
+                        </span>
+                        <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                          {protocol === 'RTSP'
+                            ? 'MediaMTX streaming gateway loop (port 8554)'
+                            : 'Local ONVIF Profile S test fixture (port 8555)'}
+                        </span>
+                      </div>
+
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                        {protocol === 'RTSP' ? (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setStreamUrl('rtsp://localhost:8554/live/cam-ahm-02');
+                                setName('CAM-AHM-08: SG Highway - Thaltej Crossroad East');
+                                setLat('23.052140');
+                                setLong('72.520110');
+                                setAddress('SG Highway East Service Rd, Thaltej');
+                                setUsername('admin');
+                                setPassword('');
+                                setProbeResult(null);
+                                setProbeError(null);
+                                setDuplicateError(null);
+                              }}
+                              style={{
+                                background: 'none',
+                                border: 'none',
+                                color: 'var(--accent-primary)',
+                                cursor: 'pointer',
+                                fontSize: '11px',
+                                fontWeight: 600,
+                                textDecoration: 'underline',
+                                padding: 0,
+                              }}
+                              title="Active MediaMTX stream fixture that is currently unregistered in the fleet"
+                            >
+                              Fill Unused Demo Fixture (cam-ahm-02)
+                            </button>
+                            <span style={{ color: 'var(--border-default)', fontSize: '10px' }}>|</span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setStreamUrl('rtsp://localhost:8554/live/cam-ahm-01');
+                                setName('CAM-AHM-07: SG Highway - Thaltej Crossroad Junction');
+                                setLat('23.051280');
+                                setLong('72.518420');
+                                setAddress('Thaltej Crossroad, SG Highway');
+                                setUsername('admin');
+                                setPassword('');
+                                setProbeResult(null);
+                                setProbeError(null);
+                                setDuplicateError(null);
+                              }}
+                              style={{
+                                background: 'none',
+                                border: 'none',
+                                color: 'var(--text-muted)',
+                                cursor: 'pointer',
+                                fontSize: '11px',
+                                fontWeight: 500,
+                                textDecoration: 'underline',
+                                padding: 0,
+                              }}
+                              title="Registered demo stream to demonstrate duplicate endpoint protection"
+                            >
+                              Fill Registered Fixture (cam-ahm-01)
+                            </button>
+                          </>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setStreamUrl('http://localhost:8555/onvif/device_service');
+                              setUsername('admin');
+                              setPassword('GujaratPolice@2026');
+                              setProbeResult(null);
+                              setProbeError(null);
+                              setDuplicateError(null);
+                            }}
+                            style={{
+                              background: 'none',
+                              border: 'none',
+                              color: 'var(--accent-primary)',
+                              cursor: 'pointer',
+                              fontSize: '11px',
+                              fontWeight: 600,
+                              textDecoration: 'underline',
+                              padding: 0,
+                            }}
+                          >
+                            Fill Default (ONVIF Fixture)
+                          </button>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 </div>
 

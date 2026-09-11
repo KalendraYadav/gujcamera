@@ -85,6 +85,24 @@ export default function CameraRegistryPage() {
     fetchRegistryData();
   }, [fetchRegistryData]);
 
+  // Handle query parameter deep linking (?id=... or ?search=...)
+  useEffect(() => {
+    if (typeof window !== 'undefined' && cameras.length > 0) {
+      const params = new URLSearchParams(window.location.search);
+      const targetId = params.get('id');
+      const searchParam = params.get('search');
+      if (searchParam && !searchTerm) {
+        setSearchTerm(searchParam);
+      }
+      if (targetId) {
+        const matchingCam = cameras.find((c) => c.id === targetId);
+        if (matchingCam) {
+          setSelectedCamera(matchingCam);
+        }
+      }
+    }
+  }, [cameras]);
+
   // Extract distinct departments for filtering
   const distinctDepartments = Array.from(
     new Set(cameras.map((c) => c.department_name).filter(Boolean))

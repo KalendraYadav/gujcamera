@@ -23,6 +23,7 @@ describe('Evidence Verification & Export Package API (e2e)', () => {
   let investigatorToken: string;
   let operatorToken: string;
   let auditorToken: string;
+  let deptAdminToken: string;
 
   let validEvidenceId: string;
   let tamperedEvidenceId: string;
@@ -93,6 +94,11 @@ describe('Evidence Verification & Export Package API (e2e)', () => {
       .post('/api/v1/auth/login')
       .send({ email: 'operator.demo@gujcamera.local', password: 'PoliceDemo@2026!' });
     operatorToken = opRes.body.access_token;
+
+    const deptAdminRes = await request(server)
+      .post('/api/v1/auth/login')
+      .send({ email: 'deptadmin.demo@gujcamera.local', password: 'PoliceDemo@2026!' });
+    deptAdminToken = deptAdminRes.body.access_token;
 
     // Ensure auditor user exists and login
     const auditorRole = await prisma.role.findFirst({ where: { name: 'SYSTEM_AUDITOR' } });
@@ -194,6 +200,13 @@ describe('Evidence Verification & Export Package API (e2e)', () => {
         .expect(403);
     });
 
+    it('2b. Rejects DEPARTMENT_ADMIN role with 403 Forbidden on evidence inspection', async () => {
+      await request(app.getHttpServer())
+        .get(`/api/v1/evidence/${validEvidenceId}`)
+        .set('Authorization', `Bearer ${deptAdminToken}`)
+        .expect(403);
+    });
+
     it('3. Authorizes INVESTIGATOR to inspect evidence with live cryptographic verification', async () => {
       const res = await request(app.getHttpServer())
         .get(`/api/v1/evidence/${validEvidenceId}`)
@@ -236,6 +249,13 @@ describe('Evidence Verification & Export Package API (e2e)', () => {
       expect(res.body).toHaveProperty('source_id', testSightingId);
       expect(res.body.verification.verified).toBe(true);
     });
+
+    it('6b. Rejects DEPARTMENT_ADMIN role with 403 Forbidden on lookup by sighting', async () => {
+      await request(app.getHttpServer())
+        .get(`/api/v1/evidence/by-sighting/${testSightingId}`)
+        .set('Authorization', `Bearer ${deptAdminToken}`)
+        .expect(403);
+    });
   });
 
   // ----------------------------------------------------------------------------
@@ -252,6 +272,13 @@ describe('Evidence Verification & Export Package API (e2e)', () => {
       await request(app.getHttpServer())
         .get(`/api/v1/evidence/${validEvidenceId}/export`)
         .set('Authorization', `Bearer ${operatorToken}`)
+        .expect(403);
+    });
+
+    it('8b. Rejects DEPARTMENT_ADMIN role with 403 Forbidden on export package', async () => {
+      await request(app.getHttpServer())
+        .get(`/api/v1/evidence/${validEvidenceId}/export`)
+        .set('Authorization', `Bearer ${deptAdminToken}`)
         .expect(403);
     });
 

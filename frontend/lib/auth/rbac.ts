@@ -122,3 +122,17 @@ export function formatRoleName(role: PoliceRole | undefined): string {
       return role;
   }
 }
+
+/**
+ * Roles authorized to inspect and export cryptographic evidence packages.
+ * Aligned with backend @Roles('INVESTIGATOR', 'SUPER_ADMIN', 'SYSTEM_AUDITOR') in evidence.controller.ts.
+ */
+export const EVIDENCE_EXPORT_ROLES: PoliceRole[] = [
+  'INVESTIGATOR',
+  'SUPER_ADMIN',
+  'SYSTEM_AUDITOR',
+];
+
+export function canExportEvidence(userRole: PoliceRole | undefined): boolean {
+  return hasRoleAccess(userRole, EVIDENCE_EXPORT_ROLES);
+}

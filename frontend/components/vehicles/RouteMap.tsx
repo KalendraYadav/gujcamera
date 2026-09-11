@@ -32,32 +32,32 @@ import {
 } from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 
-const TACTICAL_DARK_STYLE: any = {
+// Stable, openly accessible basemap style for MapLibre (OpenStreetMap standard raster tiles - No API key required)
+// Exactly matches the approved GisCameraMap basemap configuration
+const TACTICAL_DARK_STYLE: any = process.env.NEXT_PUBLIC_MAP_STYLE || {
   version: 8,
   sources: {
-    'carto-dark': {
+    'osm-tiles': {
       type: 'raster',
       tiles: [
-        'https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
-        'https://b.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
-        'https://c.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
-        'https://d.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
+        'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
       ],
       tileSize: 256,
       attribution:
-        '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+        '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors',
     },
   },
   layers: [
     {
-      id: 'carto-dark-tiles',
+      id: 'osm-tiles',
       type: 'raster',
-      source: 'carto-dark',
+      source: 'osm-tiles',
       minzoom: 0,
-      maxzoom: 20,
+      maxzoom: 19,
     },
   ],
 };
+
 
 interface RouteMapProps {
   sightings: TimelineSighting[];
@@ -183,7 +183,10 @@ export function RouteMap({ sightings, routeSegments, disclaimer, plateNormalized
 
         // --- Sighting Markers (numbered) ---
         sightings.forEach((sighting, index) => {
+          // Outer marker container - MapLibre uses el.style.transform for geographic positioning.
+          // DO NOT apply transform or transition: transform to el.
           const el = document.createElement('div');
+          el.className = 'route-sighting-marker';
 
           const isFirst = index === 0;
           const isLast = index === sightings.length - 1;
@@ -192,26 +195,45 @@ export function RouteMap({ sightings, routeSegments, disclaimer, plateNormalized
 
           el.style.width = '32px';
           el.style.height = '32px';
-          el.style.borderRadius = '50%';
-          el.style.backgroundColor = bgColor;
-          el.style.border = `2px solid ${borderColor}`;
-          el.style.boxShadow = `0 0 12px ${bgColor}80, 0 2px 4px rgba(0,0,0,0.6)`;
           el.style.display = 'flex';
           el.style.alignItems = 'center';
           el.style.justifyContent = 'center';
-          el.style.color = '#fff';
-          el.style.fontSize = '11px';
-          el.style.fontWeight = '700';
-          el.style.fontFamily = 'JetBrains Mono, monospace';
           el.style.cursor = 'default';
           el.style.zIndex = isFirst || isLast ? '20' : '10';
-          el.style.transition = 'transform 0.15s ease';
           el.title = `Sighting ${index + 1}: ${sighting.camera_name} at ${new Date(sighting.timestamp).toLocaleTimeString()}`;
 
-          el.innerHTML = `${index + 1}`;
+          // Inner visual element - handles styling and scale micro-interactions safely
+          const inner = document.createElement('div');
+          inner.className = 'route-marker-visual';
+          inner.style.width = '100%';
+          inner.style.height = '100%';
+          inner.style.borderRadius = '50%';
+          inner.style.backgroundColor = bgColor;
+          inner.style.border = `2px solid ${borderColor}`;
+          inner.style.boxShadow = `0 0 12px ${bgColor}80, 0 2px 4px rgba(0,0,0,0.6)`;
+          inner.style.display = 'flex';
+          inner.style.alignItems = 'center';
+          inner.style.justifyContent = 'center';
+          inner.style.color = '#fff';
+          inner.style.fontSize = '11px';
+          inner.style.fontWeight = '700';
+          inner.style.fontFamily = 'JetBrains Mono, monospace';
+          inner.style.pointerEvents = 'none';
+          inner.style.transformOrigin = 'center center';
+          inner.style.transition = 'transform 0.15s ease, box-shadow 0.15s ease';
+          inner.innerHTML = `${index + 1}`;
 
-          el.onmouseenter = () => (el.style.transform = 'scale(1.2)');
-          el.onmouseleave = () => (el.style.transform = 'scale(1)');
+          el.appendChild(inner);
+
+          // Micro-interactions apply only to inner visual element and outer z-index
+          el.onmouseenter = () => {
+            inner.style.transform = 'scale(1.2)';
+            el.style.zIndex = '50';
+          };
+          el.onmouseleave = () => {
+            inner.style.transform = 'scale(1)';
+            el.style.zIndex = isFirst || isLast ? '20' : '10';
+          };
 
           const marker = new Marker({ element: el })
             .setLngLat([sighting.coordinates.long, sighting.coordinates.lat])

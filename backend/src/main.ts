@@ -4,6 +4,7 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { WsAdapter } from '@nestjs/platform-ws';
 import helmet from 'helmet';
 import { AppModule } from './app.module';
+import { OnvifProtocolTestFixture } from './modules/cameras/fixtures/onvif-protocol.fixture';
 
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
@@ -75,6 +76,18 @@ async function bootstrap() {
   // 6. Start HTTP Server
   const port = process.env.PORT || 4000;
   await app.listen(port);
+
+  // 7. Demo ONVIF Device Service in non-production environments
+  if (process.env.NODE_ENV !== 'production') {
+    try {
+      const demoOnvifPort = parseInt(process.env.DEMO_ONVIF_PORT || '8555', 10);
+      const onvifFixture = new OnvifProtocolTestFixture({ port: demoOnvifPort });
+      const activePort = await onvifFixture.start();
+      logger.log(` Demo ONVIF Device Service: http://127.0.0.1:${activePort}/onvif/device_service`);
+    } catch (err: any) {
+      logger.warn(` Demo ONVIF Device Service could not be started: ${err?.message || err}`);
+    }
+  }
 
   logger.log(`================================================================`);
   logger.log(` Unified CCTV Intelligence Platform — Backend Initialized`);

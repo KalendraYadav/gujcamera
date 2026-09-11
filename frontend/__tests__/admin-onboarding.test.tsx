@@ -3,10 +3,12 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import FleetAdminPage from '@/app/admin/page';
 import { camerasApi } from '@/lib/api/cameras';
+import { ApiError } from '@/types/api';
 
 vi.mock('@/lib/api/cameras', () => ({
   camerasApi: {
     getConnectors: vi.fn(),
+    getDepartments: vi.fn(),
     testConnection: vi.fn(),
     createCamera: vi.fn(),
   },
@@ -18,6 +20,7 @@ vi.mock('@/lib/auth/context', () => ({
       id: 'admin-usr-1',
       email: 'admin.demo@gujcamera.local',
       role: 'SUPER_ADMIN',
+      department_id: 'a8e1fdbb-f264-4841-a45b-06df23724a20',
       department_name: 'Ahmedabad City Police',
     },
     isAuthenticated: true,
@@ -34,6 +37,17 @@ vi.mock('next/navigation', () => ({
 describe('Fleet Administration & Camera Onboarding UI (Phase 4F)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+
+    vi.mocked(camerasApi.getDepartments).mockResolvedValue([
+      {
+        id: 'a8e1fdbb-f264-4841-a45b-06df23724a20',
+        name: 'Ahmedabad City Police Commissionerate',
+      },
+      {
+        id: 'b1e1fdbb-f264-4841-a45b-06df23724a21',
+        name: 'Gandhinagar District Police',
+      },
+    ]);
 
     vi.mocked(camerasApi.getConnectors).mockResolvedValue({
       connectors: [
@@ -162,18 +176,76 @@ describe('Fleet Administration & Camera Onboarding UI (Phase 4F)', () => {
     });
   });
 
-  it('submits camera onboarding form and renders success notification', async () => {
+  it('submits camera onboarding form with canonical department UUID and renders success notification', async () => {
     render(<FleetAdminPage />);
+
+    // Wait for departments to load
+    await waitFor(() => {
+      expect(screen.getByText('Ahmedabad City Police (HQ)')).toBeInTheDocument();
+    });
 
     const submitButton = screen.getByRole('button', { name: /Register Camera in Fleet/i });
     fireEvent.click(submitButton);
 
     await waitFor(() => {
-      expect(camerasApi.createCamera).toHaveBeenCalled();
+      expect(camerasApi.createCamera).toHaveBeenCalledWith(
+        expect.objectContaining({
+          department_id: 'a8e1fdbb-f264-4841-a45b-06df23724a20',
+          name: 'CAM-AHM-07: SG Highway - Thaltej Crossroad Junction',
+          protocol: 'RTSP',
+        }),
+      );
     });
 
     await waitFor(() => {
       expect(screen.getByText(/successfully onboarded with ID new-cam-uuid-888/i)).toBeInTheDocument();
     });
+  });
+
+  it('displays professional duplicate endpoint alert with existing camera details and deep link', async () => {
+    const errorPayload = {
+      error_code: 'DUPLICATE_STREAM_ENDPOINT',
+      message: "Stream endpoint 'rtsp://localhost:8554/live/cam-ahm-01' is already registered to another camera",
+      existing_camera: {
+        id: 'cam-existing-uuid-123',
+        name: 'CAM-AHM-01: SG Highway - Pakwan Crossroad Junction',
+      },
+    };
+    vi.mocked(camerasApi.createCamera).mockRejectedValueOnce(new ApiError(errorPayload, 409));
+
+    render(<FleetAdminPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Ahmedabad City Police (HQ)')).toBeInTheDocument();
+    });
+
+    const submitButton = screen.getByRole('button', { name: /Register Camera in Fleet/i });
+    fireEvent.click(submitButton);
+
+    await waitFor(() => {
+      expect(screen.getByText('Stream endpoint already registered')).toBeInTheDocument();
+      expect(screen.getByText(/CAM-AHM-01: SG Highway - Pakwan Crossroad Junction/i)).toBeInTheDocument();
+      const openButton = screen.getByRole('link', { name: /Open Existing Camera/i });
+      expect(openButton).toBeInTheDocument();
+      expect(openButton).toHaveAttribute('href', '/cameras?id=cam-existing-uuid-123');
+    });
+  });
+
+  it('allows selecting unused demo fixture and registered demo fixture with simulated data badge', async () => {
+    render(<FleetAdminPage />);
+
+    expect(screen.getByText(/DEMO FIXTURES • SIMULATED DATA/i)).toBeInTheDocument();
+
+    const unusedButton = screen.getByRole('button', { name: /Fill Unused Demo Fixture/i });
+    fireEvent.click(unusedButton);
+
+    expect(screen.getByDisplayValue('rtsp://localhost:8554/live/cam-ahm-02')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('CAM-AHM-08: SG Highway - Thaltej Crossroad East')).toBeInTheDocument();
+
+    const registeredButton = screen.getByRole('button', { name: /Fill Registered Fixture/i });
+    fireEvent.click(registeredButton);
+
+    expect(screen.getByDisplayValue('rtsp://localhost:8554/live/cam-ahm-01')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('CAM-AHM-07: SG Highway - Thaltej Crossroad Junction')).toBeInTheDocument();
   });
 });
