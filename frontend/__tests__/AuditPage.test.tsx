@@ -141,6 +141,56 @@ describe('AuditPage Component', () => {
     });
   });
 
+  it('does not send sort_order in audit query parameters', async () => {
+    render(<AuditPage />);
+
+    await waitFor(() => {
+      expect(auditApi.getAuditLogs).toHaveBeenCalled();
+    });
+
+    const callArgs = vi.mocked(auditApi.getAuditLogs).mock.calls[0][0];
+    expect(callArgs).toBeDefined();
+    expect((callArgs as any)?.sort_order).toBeUndefined();
+  });
+
+  it('triggers API query with resource filter when select changed', async () => {
+    render(<AuditPage />);
+
+    await waitFor(() => {
+      expect(screen.getAllByText('LOGIN_SUCCESS').length).toBeGreaterThanOrEqual(1);
+    });
+
+    fireEvent.change(document.getElementById('audit-resource-filter')!, {
+      target: { value: 'Evidence' },
+    });
+
+    await waitFor(() => {
+      expect(auditApi.getAuditLogs).toHaveBeenCalledWith(
+        expect.objectContaining({ resource: 'Evidence' })
+      );
+    });
+  });
+
+  it('renders dropdown selects with dark color scheme for option visibility', async () => {
+    render(<AuditPage />);
+
+    await waitFor(() => {
+      expect(screen.getAllByText('LOGIN_SUCCESS').length).toBeGreaterThanOrEqual(1);
+    });
+
+    const actionSelect = document.getElementById('audit-action-filter');
+    const resourceSelect = document.getElementById('audit-resource-filter');
+    const statusSelect = document.getElementById('audit-status-filter');
+
+    expect(actionSelect).toBeInTheDocument();
+    expect(resourceSelect).toBeInTheDocument();
+    expect(statusSelect).toBeInTheDocument();
+
+    expect(actionSelect?.style.colorScheme).toBe('dark');
+    expect(resourceSelect?.style.colorScheme).toBe('dark');
+    expect(statusSelect?.style.colorScheme).toBe('dark');
+  });
+
   it('displays empty state when no records found', async () => {
     vi.mocked(auditApi.getAuditLogs).mockResolvedValue({
       data: [],
@@ -165,3 +215,4 @@ describe('AuditPage Component', () => {
     });
   });
 });
+

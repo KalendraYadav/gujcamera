@@ -23,6 +23,27 @@ body {
   overflow-x: hidden;
 }
 
+/* Mission-Critical Dark-First Form Controls & Native Selects */
+:root,
+html,
+body,
+select,
+input,
+textarea {
+  color-scheme: dark;
+}
+
+select {
+  background-color: var(--bg-surface);
+  color: var(--text-primary);
+  color-scheme: dark;
+}
+
+select option {
+  background-color: var(--bg-surface);
+  color: var(--text-primary);
+}
+
 /* Accessible Focus Outlines */
 :focus-visible {
   outline: 2px solid var(--border-focus);

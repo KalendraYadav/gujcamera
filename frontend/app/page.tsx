@@ -16,11 +16,81 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth/context';
 import { AppShell } from '@/components/layout/AppShell';
-import { formatRoleName } from '@/lib/auth/rbac';
+import { formatRoleName, hasRoleAccess } from '@/lib/auth/rbac';
+import { PoliceRole } from '@/types/auth';
 import { StatusBadge } from '@/components/ui/StatusBadge';
+import { ShieldAlert } from 'lucide-react';
 
 export default function CommandCenterPage() {
   const { user } = useAuth();
+  const isAuditor = user?.role === 'SYSTEM_AUDITOR';
+
+  const QUICK_LAUNCH_ITEMS = [
+    {
+      id: 'audit',
+      label: 'System Audit Trail',
+      href: '/audit',
+      description: 'Immutable legal audit logs tracking officer actions, alert status transitions, and evidence access.',
+      icon: <ShieldAlert size={20} color="var(--accent-primary)" />,
+      badge: 'Statutory',
+      badgeVariant: 'info' as const,
+      allowedRoles: ['SUPER_ADMIN', 'SYSTEM_AUDITOR'] as PoliceRole[],
+    },
+    {
+      id: 'map',
+      label: 'GIS Camera Command Map',
+      href: '/map',
+      description: 'Interactive MapLibre GL map with PostGIS spatial viewport bounding-box queries.',
+      icon: <MapPin size={20} color="var(--status-info)" />,
+      badge: isAuditor ? 'Read-Only' : 'Live',
+      badgeVariant: 'success' as const,
+      allowedRoles: ['SUPER_ADMIN', 'DEPARTMENT_ADMIN', 'INVESTIGATOR', 'OPERATOR', 'SYSTEM_AUDITOR', 'VIEWER'] as PoliceRole[],
+    },
+    {
+      id: 'cameras',
+      label: 'CCTV Camera Registry',
+      href: '/cameras',
+      description: 'Equipment inventory, operational telemetry status, and hardware stream profiles.',
+      icon: <Activity size={20} color="var(--accent-primary)" />,
+      badge: isAuditor ? 'Inventory' : 'Live',
+      badgeVariant: 'success' as const,
+      allowedRoles: ['SUPER_ADMIN', 'DEPARTMENT_ADMIN', 'INVESTIGATOR', 'OPERATOR', 'SYSTEM_AUDITOR', 'VIEWER'] as PoliceRole[],
+    },
+    {
+      id: 'live',
+      label: 'Live Video Monitoring',
+      href: '/live',
+      description: 'Deterministic CCTV HLS streams powered by MediaMTX.',
+      icon: <Video size={20} color="var(--accent-primary)" />,
+      badge: 'Live',
+      badgeVariant: 'success' as const,
+      allowedRoles: ['SUPER_ADMIN', 'DEPARTMENT_ADMIN', 'INVESTIGATOR', 'OPERATOR'] as PoliceRole[],
+    },
+    {
+      id: 'vehicles',
+      label: 'Vehicle Investigation',
+      href: '/vehicles',
+      description: 'Plate-based ANPR search, cross-camera sightings, and MapLibre GIS route reconstruction.',
+      icon: <Car size={20} color="var(--accent-primary)" />,
+      badge: 'Live',
+      badgeVariant: 'success' as const,
+      allowedRoles: ['SUPER_ADMIN', 'DEPARTMENT_ADMIN', 'INVESTIGATOR'] as PoliceRole[],
+    },
+    {
+      id: 'alerts',
+      label: 'Real-Time Alert Feed',
+      href: '/alerts',
+      description: 'WebSocket alert engine with 5-second polling fallback.',
+      icon: <BellRing size={20} color="var(--status-critical)" />,
+      badge: 'Live',
+      badgeVariant: 'success' as const,
+      allowedRoles: ['SUPER_ADMIN', 'DEPARTMENT_ADMIN', 'INVESTIGATOR', 'OPERATOR'] as PoliceRole[],
+    },
+  ];
+
+  const authorizedQuickLaunch = QUICK_LAUNCH_ITEMS.filter((item) =>
+    hasRoleAccess(user?.role, item.allowedRoles)
+  );
 
   return (
     <AppShell>
@@ -46,10 +116,16 @@ export default function CommandCenterPage() {
               <h1 style={{ fontSize: 'var(--text-2xl)', fontWeight: 700, color: 'var(--text-primary)' }}>
                 Command Center
               </h1>
-              <StatusBadge label="Operational" variant="success" pulse icon={<Activity size={12} />} />
+              {isAuditor ? (
+                <StatusBadge label="Read-Only Oversight" variant="info" pulse icon={<Shield size={12} />} />
+              ) : (
+                <StatusBadge label="Operational" variant="success" pulse icon={<Activity size={12} />} />
+              )}
             </div>
             <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)' }}>
-              Unified CCTV Intelligence Platform — State Control Room, Gandhinagar
+              {isAuditor
+                ? 'Independent Statutory Compliance & Security Review — Read-Only Access'
+                : 'Unified CCTV Intelligence Platform — State Control Room, Gandhinagar'}
             </p>
           </div>
 
@@ -66,12 +142,14 @@ export default function CommandCenterPage() {
           >
             <Shield size={22} color="var(--accent-primary)" />
             <div>
-              <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>Authenticated Officer</div>
+              <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>
+                {isAuditor ? 'Statutory Oversight Officer' : 'Authenticated Officer'}
+              </div>
               <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--text-primary)' }}>
                 {user?.email}
               </div>
               <div style={{ fontSize: '11px', color: 'var(--accent-primary)', fontWeight: 500 }}>
-                {formatRoleName(user?.role)} • {user?.department_name || 'Gujarat Police'}
+                {formatRoleName(user?.role)} • {isAuditor ? 'Read-Only Oversight' : (user?.department_name || 'Gujarat Police')}
               </div>
             </div>
           </div>
@@ -181,7 +259,7 @@ export default function CommandCenterPage() {
           </div>
         </div>
 
-        {/* Tactical Navigation Quick Launch */}
+        {/* Operations / Oversight Navigation Quick Launch */}
         <div>
           <h2
             style={{
@@ -193,7 +271,7 @@ export default function CommandCenterPage() {
               marginBottom: 'var(--space-3)',
             }}
           >
-            Tactical Operations Navigation
+            {isAuditor ? 'Authorized Oversight Modules' : 'Tactical Operations Navigation'}
           </h2>
 
           <div
@@ -203,125 +281,32 @@ export default function CommandCenterPage() {
               gap: 'var(--space-4)',
             }}
           >
-            <Link
-              href="/live"
-              style={{
-                display: 'block',
-                padding: 'var(--space-4)',
-                backgroundColor: 'var(--bg-card)',
-                border: '1px solid var(--accent-border)',
-                borderRadius: 'var(--radius-md)',
-                textDecoration: 'none',
-                transition: 'all var(--transition-fast)',
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'var(--space-2)' }}>
-                <Video size={20} color="var(--accent-primary)" />
-                <StatusBadge label="Live" variant="success" />
-              </div>
-              <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--text-primary)', marginBottom: 'var(--space-1)' }}>
-                Live Video Monitoring
-              </div>
-              <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)' }}>
-                Deterministic CCTV HLS streams powered by MediaMTX.
-              </p>
-            </Link>
-
-            <Link
-              href="/map"
-              style={{
-                display: 'block',
-                padding: 'var(--space-4)',
-                backgroundColor: 'var(--bg-card)',
-                border: '1px solid var(--accent-border)',
-                borderRadius: 'var(--radius-md)',
-                textDecoration: 'none',
-                transition: 'all var(--transition-fast)',
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'var(--space-2)' }}>
-                <MapPin size={20} color="var(--status-info)" />
-                <StatusBadge label="Live" variant="success" />
-              </div>
-              <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--text-primary)', marginBottom: 'var(--space-1)' }}>
-                GIS Camera Command Map
-              </div>
-              <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)' }}>
-                Interactive MapLibre GL map with PostGIS spatial viewport bounding-box queries.
-              </p>
-            </Link>
-
-            <Link
-              href="/cameras"
-              style={{
-                display: 'block',
-                padding: 'var(--space-4)',
-                backgroundColor: 'var(--bg-card)',
-                border: '1px solid var(--accent-border)',
-                borderRadius: 'var(--radius-md)',
-                textDecoration: 'none',
-                transition: 'all var(--transition-fast)',
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'var(--space-2)' }}>
-                <Activity size={20} color="var(--accent-primary)" />
-                <StatusBadge label="Live" variant="success" />
-              </div>
-              <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--text-primary)', marginBottom: 'var(--space-1)' }}>
-                CCTV Camera Registry
-              </div>
-              <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)' }}>
-                Equipment inventory, operational telemetry status, and hardware stream profiles.
-              </p>
-            </Link>
-
-            <Link
-              href="/vehicles"
-              style={{
-                display: 'block',
-                padding: 'var(--space-4)',
-                backgroundColor: 'var(--bg-card)',
-                border: '1px solid var(--accent-border)',
-                borderRadius: 'var(--radius-md)',
-                textDecoration: 'none',
-                transition: 'all var(--transition-fast)',
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'var(--space-2)' }}>
-                <Car size={20} color="var(--accent-primary)" />
-                <StatusBadge label="Live" variant="success" />
-              </div>
-              <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--text-primary)', marginBottom: 'var(--space-1)' }}>
-                Vehicle Investigation
-              </div>
-              <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)' }}>
-                Plate-based ANPR search, cross-camera sightings, and MapLibre GIS route reconstruction.
-              </p>
-            </Link>
-
-            <Link
-              href="/alerts"
-              style={{
-                display: 'block',
-                padding: 'var(--space-4)',
-                backgroundColor: 'var(--bg-primary)',
-                border: '1px solid var(--border-default)',
-                borderRadius: 'var(--radius-md)',
-                textDecoration: 'none',
-                transition: 'all var(--transition-fast)',
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'var(--space-2)' }}>
-                <BellRing size={20} color="var(--status-critical)" />
-                <StatusBadge label="Live" variant="success" />
-              </div>
-              <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--text-primary)', marginBottom: 'var(--space-1)' }}>
-                Real-Time Alert Feed
-              </div>
-              <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)' }}>
-                WebSocket alert engine with 5-second polling fallback.
-              </p>
-            </Link>
+            {authorizedQuickLaunch.map((item) => (
+              <Link
+                key={item.id}
+                href={item.href}
+                style={{
+                  display: 'block',
+                  padding: 'var(--space-4)',
+                  backgroundColor: 'var(--bg-card)',
+                  border: '1px solid var(--accent-border)',
+                  borderRadius: 'var(--radius-md)',
+                  textDecoration: 'none',
+                  transition: 'all var(--transition-fast)',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'var(--space-2)' }}>
+                  {item.icon}
+                  <StatusBadge label={item.badge} variant={item.badgeVariant} />
+                </div>
+                <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--text-primary)', marginBottom: 'var(--space-1)' }}>
+                  {item.label}
+                </div>
+                <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)' }}>
+                  {item.description}
+                </p>
+              </Link>
+            ))}
           </div>
         </div>
       </div>

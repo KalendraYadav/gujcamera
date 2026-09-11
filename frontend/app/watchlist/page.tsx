@@ -7,6 +7,7 @@
 // ==============================================================================
 
 import React, { useState, useEffect, useCallback } from 'react';
+import Link from 'next/link';
 import {
   ListFilter,
   Plus,
@@ -20,6 +21,8 @@ import {
   Trash2,
   RefreshCw,
   FolderPlus,
+  ExternalLink,
+  ArrowRight,
 } from 'lucide-react';
 import { AppShell } from '@/components/layout/AppShell';
 import { StatusBadge } from '@/components/ui/StatusBadge';
@@ -430,68 +433,125 @@ export default function WatchlistPage() {
                           <th style={{ padding: 'var(--space-2) var(--space-3)' }}>Category</th>
                           <th style={{ padding: 'var(--space-2) var(--space-3)' }}>Reason / FIR</th>
                           <th style={{ padding: 'var(--space-2) var(--space-3)' }}>Status</th>
-                          {canAddEntry && <th style={{ padding: 'var(--space-2) var(--space-3)', textAlign: 'right' }}>Action</th>}
+                          <th style={{ padding: 'var(--space-2) var(--space-3)', textAlign: 'right' }}>Action</th>
                         </tr>
                       </thead>
                       <tbody>
-                        {entries.map((entry) => (
-                          <tr
-                            key={entry.id}
-                            style={{
-                              borderBottom: '1px solid var(--border-subtle)',
-                              backgroundColor: entry.active ? 'transparent' : 'rgba(255,255,255,0.01)',
-                              opacity: entry.active ? 1 : 0.6,
-                            }}
-                          >
-                            <td style={{ padding: 'var(--space-3)', fontFamily: 'JetBrains Mono, monospace', fontWeight: 700, color: 'var(--text-primary)' }}>
-                              {entry.plate_normalized}
-                            </td>
-                            <td style={{ padding: 'var(--space-3)' }}>
-                              <StatusBadge
-                                label={entry.priority}
-                                variant={
-                                  entry.priority === 'CRITICAL'
-                                    ? 'critical'
-                                    : entry.priority === 'HIGH'
-                                    ? 'warning'
-                                    : entry.priority === 'MEDIUM'
-                                    ? 'info'
-                                    : 'neutral'
-                                }
-                              />
-                            </td>
-                            <td style={{ padding: 'var(--space-3)', color: 'var(--text-secondary)' }}>
-                              {entry.category}
-                            </td>
-                            <td style={{ padding: 'var(--space-3)', color: 'var(--text-secondary)', maxWidth: '280px' }}>
-                              {entry.reason}
-                            </td>
-                            <td style={{ padding: 'var(--space-3)' }}>
-                              <span style={{ color: entry.active ? 'var(--status-success)' : 'var(--text-muted)' }}>
-                                {entry.active ? 'Active' : 'Inactive'}
-                              </span>
-                            </td>
-                            {canAddEntry && (
-                              <td style={{ padding: 'var(--space-3)', textAlign: 'right' }}>
-                                {entry.active && (
-                                  <button
-                                    onClick={() => handleDeactivateEntry(entry.id)}
-                                    title="Deactivate plate"
+                        {entries.map((entry) => {
+                          const hasSightings = (entry.sightings_count ?? 0) > 0;
+                          return (
+                            <tr
+                              key={entry.id}
+                              style={{
+                                borderBottom: '1px solid var(--border-subtle)',
+                                backgroundColor: entry.active ? 'transparent' : 'rgba(255,255,255,0.01)',
+                                opacity: entry.active ? 1 : 0.6,
+                              }}
+                            >
+                              <td style={{ padding: 'var(--space-3)', fontFamily: 'JetBrains Mono, monospace', fontWeight: 700 }}>
+                                {hasSightings ? (
+                                  <Link
+                                    href={`/vehicles/${encodeURIComponent(entry.plate_normalized)}`}
+                                    id={`track-plate-link-${entry.id}`}
                                     style={{
-                                      background: 'none',
-                                      border: 'none',
-                                      color: 'var(--text-muted)',
-                                      cursor: 'pointer',
-                                      padding: '4px',
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: '4px',
+                                      color: 'var(--accent-primary)',
+                                      textDecoration: 'none',
+                                      fontWeight: 700,
                                     }}
+                                    title={`Investigate ${entry.plate_normalized} in Vehicle Tracking`}
                                   >
-                                    <Trash2 size={14} />
-                                  </button>
+                                    <span>{entry.plate_normalized}</span>
+                                    <ExternalLink size={12} />
+                                  </Link>
+                                ) : (
+                                  <span style={{ color: 'var(--text-primary)' }}>{entry.plate_normalized}</span>
                                 )}
                               </td>
-                            )}
-                          </tr>
-                        ))}
+                              <td style={{ padding: 'var(--space-3)' }}>
+                                <StatusBadge
+                                  label={entry.priority}
+                                  variant={
+                                    entry.priority === 'CRITICAL'
+                                      ? 'critical'
+                                      : entry.priority === 'HIGH'
+                                      ? 'warning'
+                                      : entry.priority === 'MEDIUM'
+                                      ? 'info'
+                                      : 'neutral'
+                                  }
+                                />
+                              </td>
+                              <td style={{ padding: 'var(--space-3)', color: 'var(--text-secondary)' }}>
+                                {entry.category}
+                              </td>
+                              <td style={{ padding: 'var(--space-3)', color: 'var(--text-secondary)', maxWidth: '280px' }}>
+                                {entry.reason}
+                              </td>
+                              <td style={{ padding: 'var(--space-3)' }}>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                  <span style={{ color: entry.active ? 'var(--status-success)' : 'var(--text-muted)', fontWeight: 600 }}>
+                                    {entry.active ? 'Active Target' : 'Inactive'}
+                                  </span>
+                                  <span
+                                    style={{
+                                      fontSize: '11px',
+                                      color: hasSightings ? 'var(--accent-primary)' : 'var(--text-muted)',
+                                    }}
+                                  >
+                                    {hasSightings
+                                      ? `${entry.sightings_count} camera ${entry.sightings_count === 1 ? 'sighting' : 'sightings'} recorded`
+                                      : 'No camera sightings recorded'}
+                                  </span>
+                                </div>
+                              </td>
+                              <td style={{ padding: 'var(--space-3)', textAlign: 'right' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 'var(--space-2)' }}>
+                                  {hasSightings && (
+                                    <Link
+                                      href={`/vehicles/${encodeURIComponent(entry.plate_normalized)}`}
+                                      id={`track-action-btn-${entry.id}`}
+                                      style={{
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        gap: '3px',
+                                        padding: '3px 8px',
+                                        backgroundColor: 'var(--accent-glow)',
+                                        border: '1px solid rgba(59, 130, 246, 0.3)',
+                                        borderRadius: 'var(--radius-sm)',
+                                        color: 'var(--accent-primary)',
+                                        textDecoration: 'none',
+                                        fontSize: '11px',
+                                        fontWeight: 600,
+                                      }}
+                                      title={`Track ${entry.plate_normalized} in Vehicle Intelligence`}
+                                    >
+                                      <span>Track</span>
+                                      <ArrowRight size={11} />
+                                    </Link>
+                                  )}
+                                  {canAddEntry && entry.active && (
+                                    <button
+                                      onClick={() => handleDeactivateEntry(entry.id)}
+                                      title="Deactivate plate"
+                                      style={{
+                                        background: 'none',
+                                        border: 'none',
+                                        color: 'var(--text-muted)',
+                                        cursor: 'pointer',
+                                        padding: '4px',
+                                      }}
+                                    >
+                                      <Trash2 size={14} />
+                                    </button>
+                                  )}
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
                       </tbody>
                     </table>
                   </div>

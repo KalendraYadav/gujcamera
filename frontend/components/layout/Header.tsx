@@ -79,6 +79,32 @@ export function Header() {
           <span>API 200 OK</span>
         </div>
 
+        {/* System Auditor Oversight Mode Indicator */}
+        {user?.role === 'SYSTEM_AUDITOR' && (
+          <div
+            id="auditor-oversight-badge"
+            title="Active Role: System Auditor (Statutory Read-Only Compliance Review)"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              color: 'var(--accent-primary)',
+              backgroundColor: 'rgba(59, 130, 246, 0.12)',
+              border: '1px solid rgba(59, 130, 246, 0.3)',
+              padding: '3px 8px',
+              borderRadius: 'var(--radius-sm)',
+              fontWeight: 600,
+              letterSpacing: '0.04em',
+              textTransform: 'uppercase',
+              fontSize: '10px',
+              fontFamily: 'var(--font-mono)',
+            }}
+          >
+            <Shield size={12} />
+            <span>Read-Only Oversight</span>
+          </div>
+        )}
+
         {/* Mandatory Hackathon Simulated Data Label */}
         <SimulatedDataBadge compact />
       </div>

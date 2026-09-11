@@ -16,6 +16,7 @@ export interface WatchlistEntry {
   added_by: string;
   expires_at: string | null;
   active: boolean;
+  sightings_count?: number;
   created_at: string;
 }
 

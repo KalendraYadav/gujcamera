@@ -72,6 +72,7 @@ const MOCK_ENTRIES: WatchlistEntry[] = [
     added_by: 'usr-admin-1',
     expires_at: null,
     active: true,
+    sightings_count: 2,
     created_at: '2026-09-08T00:00:00.000Z',
   },
   {
@@ -84,6 +85,7 @@ const MOCK_ENTRIES: WatchlistEntry[] = [
     added_by: 'usr-admin-1',
     expires_at: null,
     active: false,
+    sightings_count: 0,
     created_at: '2026-09-08T00:00:00.000Z',
   },
 ];
@@ -99,6 +101,7 @@ const MOCK_ENTRIES_WL2: WatchlistEntry[] = [
     added_by: 'usr-admin-1',
     expires_at: null,
     active: true,
+    sightings_count: 0,
     created_at: '2026-09-08T00:00:00.000Z',
   },
 ];
@@ -270,5 +273,29 @@ describe('Watchlist Management Page (Phase 4E)', () => {
     await waitFor(() => {
       expect(watchlistsApi.deactivateEntry).toHaveBeenCalledWith('ent-1');
     });
+  });
+
+  it('clearly distinguishes targets with camera sightings vs zero sightings and provides tracking route', async () => {
+    render(<WatchlistPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText('GJ01AB1234')).toBeInTheDocument();
+    });
+
+    // Plate with sightings (GJ01AB1234, sightings: 2)
+    const plateLink = screen.getByRole('link', { name: /GJ01AB1234/i });
+    expect(plateLink).toBeInTheDocument();
+    expect(plateLink).toHaveAttribute('href', '/vehicles/GJ01AB1234');
+
+    expect(screen.getByText('2 camera sightings recorded')).toBeInTheDocument();
+
+    const trackBtn = screen.getByRole('link', { name: /^Track$/i });
+    expect(trackBtn).toBeInTheDocument();
+    expect(trackBtn).toHaveAttribute('href', '/vehicles/GJ01AB1234');
+
+    // Plate without sightings (GJ05CD5678, sightings: 0)
+    expect(screen.getByText('GJ05CD5678')).toBeInTheDocument();
+    expect(screen.getByText('No camera sightings recorded')).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /GJ05CD5678/i })).not.toBeInTheDocument();
   });
 });

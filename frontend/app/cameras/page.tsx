@@ -35,6 +35,7 @@ import Link from 'next/link';
 export default function CameraRegistryPage() {
   const { user } = useAuth();
   const canOnboard = hasRoleAccess(user?.role, ['SUPER_ADMIN', 'DEPARTMENT_ADMIN']);
+  const isAuditor = user?.role === 'SYSTEM_AUDITOR';
 
   const [cameras, setCameras] = useState<Camera[]>([]);
   const [healthSummary, setHealthSummary] = useState<CameraHealthSummary | null>(null);
@@ -101,7 +102,7 @@ export default function CameraRegistryPage() {
         }
       }
     }
-  }, [cameras]);
+  }, [cameras, searchTerm]);
 
   // Extract distinct departments for filtering
   const distinctDepartments = Array.from(
@@ -170,12 +171,35 @@ export default function CameraRegistryPage() {
               </h1>
             </div>
             <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', marginTop: '2px' }}>
-              Authoritative equipment catalog & operational telemetry across Gujarat Police jurisdictions
+              {isAuditor
+                ? 'Read-only equipment catalog & operational telemetry audit across Gujarat Police jurisdictions'
+                : 'Authoritative equipment catalog & operational telemetry across Gujarat Police jurisdictions'}
             </p>
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
             <SimulatedDataBadge />
+
+            {isAuditor && (
+              <div
+                id="auditor-registry-badge"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  fontSize: '11px',
+                  color: 'var(--accent-primary)',
+                  backgroundColor: 'rgba(59, 130, 246, 0.12)',
+                  border: '1px solid rgba(59, 130, 246, 0.3)',
+                  padding: 'var(--space-1) var(--space-3)',
+                  borderRadius: 'var(--radius-sm)',
+                  fontWeight: 600,
+                }}
+              >
+                <Shield size={13} />
+                <span>Read-Only Audit</span>
+              </div>
+            )}
 
             {canOnboard && (
               <Link

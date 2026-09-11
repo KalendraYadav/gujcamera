@@ -6,6 +6,8 @@
    ============================================================================== */
 
 :root {
+  color-scheme: dark;
+
   /* Surfaces & Backgrounds */
   --bg-base: #06090f;
   --bg-primary: #0b0f19;

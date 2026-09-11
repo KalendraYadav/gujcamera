@@ -465,6 +465,24 @@ export class WatchlistsService {
       nextCursor = nextItem?.id || null;
     }
 
+    const plates = [...new Set(data.map((e) => e.plateNormalized))];
+    const sightingCounts = plates.length > 0
+      ? await this.prisma.vehicleSighting.groupBy({
+          by: ['plateNormalized'],
+          where: {
+            plateNormalized: { in: plates },
+          },
+          _count: {
+            id: true,
+          },
+        })
+      : [];
+
+    const sightingMap = new Map<string, number>();
+    for (const sc of sightingCounts) {
+      sightingMap.set(sc.plateNormalized, sc._count.id);
+    }
+
     return {
       watchlist_id: watchlistId,
       watchlist_name: watchlist.name,
@@ -478,6 +496,7 @@ export class WatchlistsService {
         added_by: e.addedBy,
         expires_at: e.expiresAt,
         active: e.active,
+        sightings_count: sightingMap.get(e.plateNormalized) ?? 0,
         created_at: e.createdAt,
       })),
       pagination: {
@@ -510,6 +529,10 @@ export class WatchlistsService {
       });
     }
 
+    const sightingsCount = await this.prisma.vehicleSighting.count({
+      where: { plateNormalized: entry.plateNormalized },
+    });
+
     return {
       id: entry.id,
       watchlist_id: entry.watchlistId,
@@ -523,6 +546,7 @@ export class WatchlistsService {
       added_by: entry.addedBy,
       expires_at: entry.expiresAt,
       active: entry.active,
+      sightings_count: sightingsCount,
       created_at: entry.createdAt,
     };
   }

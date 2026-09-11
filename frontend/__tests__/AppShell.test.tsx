@@ -77,6 +77,34 @@ describe('AppShell Component', () => {
     expect(screen.queryByText('Content')).not.toBeInTheDocument();
   });
 
+  it('renders Read-Only Oversight badge in header for SYSTEM_AUDITOR', () => {
+    mockAuthState.user = {
+      id: 'usr-auditor-1',
+      email: 'auditor.demo@gujcamera.local',
+      role: 'SYSTEM_AUDITOR',
+      department_id: 'dept-hq',
+      department_name: 'Gujarat State Police HQ',
+    };
+
+    render(
+      <AppShell>
+        <div>Auditor Review Content</div>
+      </AppShell>,
+    );
+
+    expect(screen.getByText('Read-Only Oversight')).toBeInTheDocument();
+  });
+
+  it('does not render Read-Only Oversight badge for operational roles like OPERATOR', () => {
+    render(
+      <AppShell>
+        <div>Operator Content</div>
+      </AppShell>,
+    );
+
+    expect(screen.queryByText('Read-Only Oversight')).not.toBeInTheDocument();
+  });
+
   it('redirects unauthenticated users to /login', () => {
     mockAuthState.isAuthenticated = false;
     mockAuthState.user = null;

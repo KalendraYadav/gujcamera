@@ -349,14 +349,6 @@ async function main() {
 
   // 8. Seed Demo Watchlist & Flagged Vehicles
   console.log('🚨 Seeding demo police watchlist & flagged plates...');
-  const watchlistStolen = await prisma.watchlist.create({
-    data: {
-      name: 'Ahmedabad Stolen Vehicles Watchlist (DEMO)',
-      departmentId: deptAhmedabad.id,
-      owner: 'Crime Branch Unit 3',
-    },
-  });
-
   const watchlistSuspects = await prisma.watchlist.create({
     data: {
       name: 'High-Priority Inter-District Suspects (DEMO)',
@@ -365,15 +357,11 @@ async function main() {
     },
   });
 
-  const entryStolen1 = await prisma.watchlistEntry.create({
+  const watchlistStolen = await prisma.watchlist.create({
     data: {
-      watchlistId: watchlistStolen.id,
-      plateNormalized: 'GJ01AB1234',
-      category: 'STOLEN_VEHICLE',
-      reason: 'White Hyundai Creta reported stolen from Vastrapur - FIR #102/2026',
-      priority: AlertSeverity.CRITICAL,
-      addedBy: investigatorUser.email,
-      active: true,
+      name: 'Ahmedabad Stolen Vehicles Watchlist (DEMO)',
+      departmentId: deptAhmedabad.id,
+      owner: 'Crime Branch Unit 3',
     },
   });
 
@@ -384,6 +372,18 @@ async function main() {
       category: 'HIT_AND_RUN',
       reason: 'Silver Swift involved in pedestrian hit-and-run on SG Highway - FIR #405/2026',
       priority: AlertSeverity.HIGH,
+      addedBy: investigatorUser.email,
+      active: true,
+    },
+  });
+
+  const entryStolen1 = await prisma.watchlistEntry.create({
+    data: {
+      watchlistId: watchlistStolen.id,
+      plateNormalized: 'GJ01AB1234',
+      category: 'STOLEN_VEHICLE',
+      reason: 'White Hyundai Creta reported stolen from Vastrapur - FIR #102/2026',
+      priority: AlertSeverity.CRITICAL,
       addedBy: investigatorUser.email,
       active: true,
     },

@@ -215,5 +215,16 @@ describe('Audit Log Compliance API (e2e)', () => {
       const hasReadLogs = res.body.data.some((r: any) => r.action === 'AUDIT_LOG_ACCESSED');
       expect(hasReadLogs).toBe(false);
     });
+
+    it('11. Rejects non-whitelisted query parameters (e.g. sort_order) with 400 Bad Request', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/api/v1/audit?sort_order=desc')
+        .set('Authorization', `Bearer ${auditorToken}`)
+        .expect(400);
+
+      expect(res.body.message).toContain('property sort_order should not exist');
+    });
   });
 });
+
+

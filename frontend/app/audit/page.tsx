@@ -87,14 +87,16 @@ export default function AuditPage() {
       const filter: AuditQueryFilter = {
         page,
         limit: 15,
-        sort_order: 'desc',
       };
       if (actionFilter) filter.action = actionFilter;
-      if (resourceFilter) filter.resource_type = resourceFilter;
-      if (statusFilter) filter.status = statusFilter;
+      if (resourceFilter) filter.resource = resourceFilter;
 
       const response = await auditApi.getAuditLogs(filter);
-      setLogs(response.data || []);
+      let list = response.data || [];
+      if (statusFilter) {
+        list = list.filter((log) => log.status === statusFilter);
+      }
+      setLogs(list);
       setTotalPages(response.meta?.totalPages || 1);
       setTotalCount(response.meta?.total || 0);
     } catch (err: any) {
@@ -221,17 +223,21 @@ export default function AuditPage() {
               border: '1px solid var(--border-subtle)',
               borderRadius: 'var(--radius-xs)',
               color: 'var(--text-primary)',
+              colorScheme: 'dark',
             }}
           >
-            <option value="">All Actions</option>
-            <option value="LOGIN_SUCCESS">LOGIN_SUCCESS</option>
-            <option value="LOGIN_FAILURE">LOGIN_FAILURE</option>
-            <option value="ALERT_STATUS_CHANGED">ALERT_STATUS_CHANGED</option>
-            <option value="VEHICLE_DETAIL_VIEW">VEHICLE_DETAIL_VIEW</option>
-            <option value="VEHICLE_TIMELINE_SEARCH">VEHICLE_TIMELINE_SEARCH</option>
-            <option value="EVIDENCE_EXPORTED">EVIDENCE_EXPORTED</option>
-            <option value="EVIDENCE_TAMPER_ALERT">EVIDENCE_TAMPER_ALERT</option>
-            <option value="WATCHLIST_PLATE_ADDED">WATCHLIST_PLATE_ADDED</option>
+            <option value="" style={{ backgroundColor: 'var(--bg-surface)', color: 'var(--text-primary)' }}>All Actions</option>
+            <option value="USER_LOGIN_SUCCESS" style={{ backgroundColor: 'var(--bg-surface)', color: 'var(--text-primary)' }}>USER_LOGIN_SUCCESS</option>
+            <option value="LOGIN_SUCCESS" style={{ backgroundColor: 'var(--bg-surface)', color: 'var(--text-primary)' }}>LOGIN_SUCCESS</option>
+            <option value="LOGIN_FAILURE" style={{ backgroundColor: 'var(--bg-surface)', color: 'var(--text-primary)' }}>LOGIN_FAILURE</option>
+            <option value="VEHICLE_SEARCH" style={{ backgroundColor: 'var(--bg-surface)', color: 'var(--text-primary)' }}>VEHICLE_SEARCH</option>
+            <option value="VEHICLE_DETAIL_VIEW" style={{ backgroundColor: 'var(--bg-surface)', color: 'var(--text-primary)' }}>VEHICLE_DETAIL_VIEW</option>
+            <option value="VEHICLE_TIMELINE_SEARCH" style={{ backgroundColor: 'var(--bg-surface)', color: 'var(--text-primary)' }}>VEHICLE_TIMELINE_SEARCH</option>
+            <option value="ALERT_STATUS_CHANGED" style={{ backgroundColor: 'var(--bg-surface)', color: 'var(--text-primary)' }}>ALERT_STATUS_CHANGED</option>
+            <option value="EVIDENCE_EXPORTED" style={{ backgroundColor: 'var(--bg-surface)', color: 'var(--text-primary)' }}>EVIDENCE_EXPORTED</option>
+            <option value="EVIDENCE_TAMPER_ALERT" style={{ backgroundColor: 'var(--bg-surface)', color: 'var(--text-primary)' }}>EVIDENCE_TAMPER_ALERT</option>
+            <option value="WATCHLIST_PLATE_ADDED" style={{ backgroundColor: 'var(--bg-surface)', color: 'var(--text-primary)' }}>WATCHLIST_PLATE_ADDED</option>
+            <option value="SYSTEM_INITIALIZATION" style={{ backgroundColor: 'var(--bg-surface)', color: 'var(--text-primary)' }}>SYSTEM_INITIALIZATION</option>
           </select>
 
           {/* Resource Filter */}
@@ -249,14 +255,17 @@ export default function AuditPage() {
               border: '1px solid var(--border-subtle)',
               borderRadius: 'var(--radius-xs)',
               color: 'var(--text-primary)',
+              colorScheme: 'dark',
             }}
           >
-            <option value="">All Resources</option>
-            <option value="Alert">Alert</option>
-            <option value="Evidence">Evidence</option>
-            <option value="Vehicle">Vehicle</option>
-            <option value="Watchlist">Watchlist</option>
-            <option value="Auth">Auth</option>
+            <option value="" style={{ backgroundColor: 'var(--bg-surface)', color: 'var(--text-primary)' }}>All Resources</option>
+            <option value="Vehicle" style={{ backgroundColor: 'var(--bg-surface)', color: 'var(--text-primary)' }}>Vehicle</option>
+            <option value="Auth" style={{ backgroundColor: 'var(--bg-surface)', color: 'var(--text-primary)' }}>Auth</option>
+            <option value="Alert" style={{ backgroundColor: 'var(--bg-surface)', color: 'var(--text-primary)' }}>Alert</option>
+            <option value="Evidence" style={{ backgroundColor: 'var(--bg-surface)', color: 'var(--text-primary)' }}>Evidence</option>
+            <option value="Watchlist" style={{ backgroundColor: 'var(--bg-surface)', color: 'var(--text-primary)' }}>Watchlist</option>
+            <option value="Camera" style={{ backgroundColor: 'var(--bg-surface)', color: 'var(--text-primary)' }}>Camera</option>
+            <option value="System" style={{ backgroundColor: 'var(--bg-surface)', color: 'var(--text-primary)' }}>System</option>
           </select>
 
           {/* Status Filter */}
@@ -274,11 +283,12 @@ export default function AuditPage() {
               border: '1px solid var(--border-subtle)',
               borderRadius: 'var(--radius-xs)',
               color: 'var(--text-primary)',
+              colorScheme: 'dark',
             }}
           >
-            <option value="">All Statuses</option>
-            <option value="SUCCESS">SUCCESS</option>
-            <option value="FAILURE">FAILURE</option>
+            <option value="" style={{ backgroundColor: 'var(--bg-surface)', color: 'var(--text-primary)' }}>All Statuses</option>
+            <option value="SUCCESS" style={{ backgroundColor: 'var(--bg-surface)', color: 'var(--text-primary)' }}>SUCCESS</option>
+            <option value="FAILURE" style={{ backgroundColor: 'var(--bg-surface)', color: 'var(--text-primary)' }}>FAILURE</option>
           </select>
 
           {(actionFilter || resourceFilter || statusFilter) && (
@@ -567,12 +577,16 @@ export default function AuditPage() {
                     <span>{selectedLog.resource_type} ({selectedLog.resource_id || 'Global'})</span>
                   </div>
                   <div>
-                    <span style={{ color: 'var(--text-muted)' }}>Officer: </span>
-                    <span>{selectedLog.user?.name || 'System'} ({selectedLog.user?.badge_number || 'N/A'})</span>
+                    <span style={{ color: 'var(--text-muted)' }}>Officer / Actor: </span>
+                    <span>{selectedLog.user?.name || selectedLog.actor_email || 'System Pipeline'} ({selectedLog.user?.badge_number || selectedLog.actor_role || 'N/A'})</span>
                   </div>
                   <div>
-                    <span style={{ color: 'var(--text-muted)' }}>IP / Source: </span>
-                    <span style={{ fontFamily: 'var(--font-mono)' }}>{selectedLog.ip_address || 'Internal Service'}</span>
+                    <span style={{ color: 'var(--text-muted)' }}>Department: </span>
+                    <span>{selectedLog.user?.department || selectedLog.actor_department || 'System Internal'}</span>
+                  </div>
+                  <div>
+                    <span style={{ color: 'var(--text-muted)' }}>IP / Correlation ID: </span>
+                    <span style={{ fontFamily: 'var(--font-mono)' }}>{selectedLog.correlation_id || selectedLog.ip_address || 'Internal Service'}</span>
                   </div>
                 </div>
 
@@ -593,7 +607,7 @@ export default function AuditPage() {
                       maxHeight: '300px',
                     }}
                   >
-                    {JSON.stringify(selectedLog.details, null, 2) || '// No additional payload metadata'}
+                    {JSON.stringify(selectedLog.details || { before: selectedLog.before, after: selectedLog.after }, null, 2) || '// No additional payload metadata'}
                   </pre>
                 </div>
               </div>

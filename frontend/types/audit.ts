@@ -23,15 +23,28 @@ export interface AuditLogItem {
   details: Record<string, any> | null;
   timestamp: string;
   user: AuditUser | null;
+  actor_id?: string | null;
+  actor_email?: string;
+  actor_role?: string;
+  actor_department?: string;
+  resource?: string;
+  before?: Record<string, any> | null;
+  after?: Record<string, any> | null;
+  ts?: string;
+  correlation_id?: string | null;
 }
 
 export interface AuditQueryFilter {
   user_id?: string;
+  actor_id?: string;
   action?: string;
+  resource?: string;
   resource_type?: string;
   resource_id?: string;
   from_date?: string;
   to_date?: string;
+  start_date?: string;
+  end_date?: string;
   status?: string;
   page?: number;
   limit?: number;
@@ -46,5 +59,11 @@ export interface AuditListResponse {
     page: number;
     limit: number;
     totalPages: number;
+  };
+  pagination?: {
+    total: number;
+    page: number;
+    limit: number;
+    total_pages: number;
   };
 }
