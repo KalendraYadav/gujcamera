@@ -23,7 +23,6 @@ import { AppShell } from '@/components/layout/AppShell';
 import { Camera, CameraHealthSummary, OperationalStatus } from '@/types/camera';
 import { camerasApi } from '@/lib/api/cameras';
 import { StatusBadge, BadgeVariant } from '@/components/ui/StatusBadge';
-import { SimulatedDataBadge } from '@/components/ui/SimulatedDataBadge';
 import { LoadingState } from '@/components/ui/LoadingState';
 import { ErrorState } from '@/components/ui/ErrorState';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -160,26 +159,47 @@ export default function CameraRegistryPage() {
 
   return (
     <AppShell>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
         {/* Page Header */}
-        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 'var(--space-3)' }}>
+        <div
+          className="netrava-card"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: 'var(--space-3)',
+            padding: '14px 20px',
+          }}
+        >
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
-              <CameraIcon size={22} color="var(--accent-primary)" />
-              <h1 style={{ fontSize: 'var(--text-xl)', fontWeight: 700, color: 'var(--text-primary)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <div
+                style={{
+                  width: '28px',
+                  height: '28px',
+                  borderRadius: 'var(--radius-xs)',
+                  backgroundColor: 'rgba(215, 25, 63, 0.12)',
+                  border: '1px solid rgba(215, 25, 63, 0.3)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <CameraIcon size={15} color="#F87171" />
+              </div>
+              <h1 style={{ fontSize: 'var(--text-lg)', fontWeight: 600, color: 'var(--text-primary)', letterSpacing: '0.01em', margin: 0 }}>
                 CCTV Camera Registry
               </h1>
             </div>
-            <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', marginTop: '2px' }}>
+            <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)', marginTop: '3px', margin: 0 }}>
               {isAuditor
-                ? 'Read-only equipment catalog & operational telemetry audit across Gujarat Police jurisdictions'
-                : 'Authoritative equipment catalog & operational telemetry across Gujarat Police jurisdictions'}
+                ? 'Read-only equipment catalog & operational telemetry across Gujarat Police jurisdictions.'
+                : 'Registered camera equipment & operational telemetry across Gujarat Police jurisdictions.'}
             </p>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
-            <SimulatedDataBadge />
-
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             {isAuditor && (
               <div
                 id="auditor-registry-badge"
@@ -187,16 +207,17 @@ export default function CameraRegistryPage() {
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: '6px',
-                  fontSize: '11px',
-                  color: 'var(--accent-primary)',
+                  fontSize: 'var(--text-xs)',
+                  color: '#60A5FA',
                   backgroundColor: 'rgba(59, 130, 246, 0.12)',
                   border: '1px solid rgba(59, 130, 246, 0.3)',
-                  padding: 'var(--space-1) var(--space-3)',
-                  borderRadius: 'var(--radius-sm)',
+                  padding: '2px 8px',
+                  borderRadius: 'var(--radius-xs)',
                   fontWeight: 600,
+                  letterSpacing: '0.02em',
                 }}
               >
-                <Shield size={13} />
+                <Shield size={12} />
                 <span>Read-Only Audit</span>
               </div>
             )}
@@ -205,17 +226,13 @@ export default function CameraRegistryPage() {
               <Link
                 href="/admin"
                 id="fleet-onboarding-link"
+                className="btn-secondary"
                 style={{
                   display: 'inline-flex',
                   alignItems: 'center',
-                  gap: 'var(--space-2)',
-                  padding: 'var(--space-2) var(--space-3)',
-                  backgroundColor: 'rgba(6, 182, 212, 0.12)',
-                  border: '1px solid rgba(6, 182, 212, 0.3)',
-                  borderRadius: 'var(--radius-sm)',
-                  color: 'rgb(34, 211, 238)',
-                  fontSize: 'var(--text-xs)',
-                  fontWeight: 600,
+                  gap: '6px',
+                  padding: '6px 14px',
+                  fontSize: 'var(--text-sm)',
                   textDecoration: 'none',
                 }}
               >
@@ -226,49 +243,38 @@ export default function CameraRegistryPage() {
 
             <Link
               href="/map"
+              className="btn-secondary"
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: 'var(--space-2)',
-                padding: 'var(--space-2) var(--space-3)',
-                backgroundColor: 'var(--accent-subtle)',
-                border: '1px solid var(--accent-border)',
-                borderRadius: 'var(--radius-sm)',
-                color: 'var(--accent-primary)',
-                fontSize: 'var(--text-xs)',
-                fontWeight: 600,
+                gap: '6px',
+                padding: '6px 14px',
+                fontSize: 'var(--text-sm)',
                 textDecoration: 'none',
               }}
             >
-              <MapPin size={14} />
-              <span>Open GIS Map</span>
+              <MapPin size={14} color="#60A5FA" />
+              <span>GIS Map</span>
             </Link>
 
             <button
               id="refresh-registry-btn"
               onClick={fetchRegistryData}
               disabled={isLoading || isRefreshing}
+              className="btn-secondary"
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: 'var(--space-2)',
-                padding: 'var(--space-2) var(--space-3)',
-                backgroundColor: 'var(--bg-surface)',
-                border: '1px solid var(--border-default)',
-                borderRadius: 'var(--radius-sm)',
-                color: isRefreshing ? 'var(--accent-primary)' : 'var(--text-secondary)',
-                fontSize: 'var(--text-xs)',
-                fontWeight: 600,
-                cursor: isLoading || isRefreshing ? 'not-allowed' : 'pointer',
-                opacity: isLoading || isRefreshing ? 0.75 : 1,
-                transition: 'all 0.15s ease',
+                gap: '6px',
+                padding: '6px 14px',
+                fontSize: 'var(--text-sm)',
               }}
             >
               <RefreshCw
-                size={13}
+                size={14}
                 className={isRefreshing ? 'animate-spin' : ''}
                 style={{
-                  color: isRefreshing ? 'var(--accent-primary)' : 'currentColor',
+                  color: isRefreshing ? '#F87171' : 'currentColor',
                 }}
               />
               <span>{isRefreshing ? 'Refreshing...' : 'Refresh'}</span>
@@ -288,174 +294,148 @@ export default function CameraRegistryPage() {
         >
           {/* Total Registered */}
           <div
-            style={{
-              padding: 'var(--space-4)',
-              backgroundColor: 'var(--bg-card)',
-              border: '1px solid var(--border-default)',
-              borderRadius: 'var(--radius-md)',
-            }}
+            className="netrava-card"
+            style={{ padding: '14px 16px', minHeight: '88px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}
           >
-            <div style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+            <div style={{ fontSize: 'var(--text-xs)', fontWeight: 500, color: 'var(--text-secondary)' }}>
               Total Registered Cameras
             </div>
-            <div style={{ fontSize: 'var(--text-2xl)', fontWeight: 700, color: 'var(--text-primary)', marginTop: '4px', fontFamily: 'var(--font-mono)' }}>
+            <div style={{ fontSize: 'var(--text-2xl)', fontWeight: 700, color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums' }}>
               {healthSummary ? healthSummary.total_cameras : '—'}
             </div>
-            <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>
-              Across all district jurisdictions
+            <div style={{ fontSize: '11px', color: 'var(--text-dim)' }}>
+              All jurisdictions
             </div>
           </div>
 
           {/* Online */}
           <div
-            style={{
-              padding: 'var(--space-4)',
-              backgroundColor: 'var(--bg-card)',
-              border: '1px solid var(--border-default)',
-              borderRadius: 'var(--radius-md)',
-            }}
+            className="netrava-card"
+            style={{ padding: '14px 16px', minHeight: '88px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}
           >
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <span style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                Online & Operational
+              <span style={{ fontSize: 'var(--text-xs)', fontWeight: 500, color: 'var(--text-secondary)' }}>
+                Online &amp; Operational
               </span>
-              <CheckCircle2 size={15} color="var(--status-success)" />
+              <CheckCircle2 size={15} color="#34D399" />
             </div>
-            <div style={{ fontSize: 'var(--text-2xl)', fontWeight: 700, color: 'var(--status-success)', marginTop: '4px', fontFamily: 'var(--font-mono)' }}>
+            <div style={{ fontSize: 'var(--text-2xl)', fontWeight: 700, color: '#34D399', fontVariantNumeric: 'tabular-nums' }}>
               {healthSummary ? healthSummary.online : '—'}
             </div>
-            <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>
-              Transmitting healthy telemetry
+            <div style={{ fontSize: '11px', color: 'var(--text-dim)' }}>
+              Healthy telemetry
             </div>
           </div>
 
           {/* Degraded */}
           <div
-            style={{
-              padding: 'var(--space-4)',
-              backgroundColor: 'var(--bg-card)',
-              border: '1px solid var(--border-default)',
-              borderRadius: 'var(--radius-md)',
-            }}
+            className="netrava-card"
+            style={{ padding: '14px 16px', minHeight: '88px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}
           >
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <span style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+              <span style={{ fontSize: 'var(--text-xs)', fontWeight: 500, color: 'var(--text-secondary)' }}>
                 Degraded Performance
               </span>
-              <AlertCircle size={15} color="var(--status-warning)" />
+              <AlertCircle size={15} color="#FBBF24" />
             </div>
-            <div style={{ fontSize: 'var(--text-2xl)', fontWeight: 700, color: 'var(--status-warning)', marginTop: '4px', fontFamily: 'var(--font-mono)' }}>
+            <div style={{ fontSize: 'var(--text-2xl)', fontWeight: 700, color: '#FBBF24', fontVariantNumeric: 'tabular-nums' }}>
               {healthSummary ? healthSummary.degraded : '—'}
             </div>
-            <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>
+            <div style={{ fontSize: '11px', color: 'var(--text-dim)' }}>
               Low FPS / packet loss detected
             </div>
           </div>
 
           {/* Offline / Error */}
           <div
-            style={{
-              padding: 'var(--space-4)',
-              backgroundColor: 'var(--bg-card)',
-              border: '1px solid var(--border-default)',
-              borderRadius: 'var(--radius-md)',
-            }}
+            className="netrava-card"
+            style={{ padding: '14px 16px', minHeight: '88px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}
           >
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <span style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+              <span style={{ fontSize: 'var(--text-xs)', fontWeight: 500, color: 'var(--text-secondary)' }}>
                 Offline / Error
               </span>
-              <XCircle size={15} color="var(--text-muted)" />
+              <XCircle size={15} color="#94A3B8" />
             </div>
-            <div style={{ fontSize: 'var(--text-2xl)', fontWeight: 700, color: 'var(--text-muted)', marginTop: '4px', fontFamily: 'var(--font-mono)' }}>
+            <div style={{ fontSize: 'var(--text-2xl)', fontWeight: 700, color: 'var(--text-muted)', fontVariantNumeric: 'tabular-nums' }}>
               {healthSummary ? healthSummary.offline + healthSummary.error : '—'}
             </div>
-            <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>
-              No recent heartbeat signal
+            <div style={{ fontSize: '11px', color: 'var(--text-dim)' }}>
+              No heartbeat signal
             </div>
           </div>
         </div>
 
         {/* Health Telemetry Governance Banner */}
         <div
+          className="netrava-card"
           style={{
-            padding: 'var(--space-3) var(--space-4)',
-            backgroundColor: 'var(--bg-surface)',
-            border: '1px solid var(--border-subtle)',
-            borderRadius: 'var(--radius-sm)',
+            padding: '10px 16px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            gap: 'var(--space-3)',
+            gap: '12px',
             fontSize: '11px',
             color: 'var(--text-secondary)',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
-            <Activity size={15} color="var(--accent-primary)" style={{ flexShrink: 0 }} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Activity size={14} color="var(--accent-blue)" style={{ flexShrink: 0 }} />
             <span>
-              <strong>Telemetry Scope:</strong> Status metrics reflect registered equipment heartbeats and telemetry stored
-              in PostgreSQL. They do not constitute verification that an RTSP video stream is reachable. Live video matrix
-              playback is scheduled for <strong>Phase 4C</strong>.
+              <strong>Telemetry Scope:</strong> Heartbeat metrics reflect stored telemetry in PostgreSQL; stream reachability is verified on playback.
             </span>
           </div>
         </div>
 
         {/* Search and Filters Toolbar */}
         <div
+          className="netrava-card"
           style={{
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            gap: 'var(--space-3)',
-            backgroundColor: 'var(--bg-card)',
-            border: '1px solid var(--border-default)',
-            borderRadius: 'var(--radius-md)',
-            padding: 'var(--space-3) var(--space-4)',
+            gap: '12px',
+            padding: '12px 16px',
             flexWrap: 'wrap',
           }}
         >
           {/* Search Input */}
           <div style={{ position: 'relative', flex: '1', minWidth: '240px' }}>
             <Search
-              size={15}
+              size={14}
               color="var(--text-muted)"
               style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)' }}
             />
             <input
               type="text"
+              className="netrava-input"
               placeholder="Search cameras by code, junction, district, or address..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               aria-label="Search camera registry"
               style={{
                 width: '100%',
-                padding: '8px 12px 8px 32px',
-                fontSize: 'var(--text-xs)',
-                backgroundColor: 'var(--bg-surface)',
-                border: '1px solid var(--border-default)',
-                borderRadius: 'var(--radius-sm)',
-                color: 'var(--text-primary)',
+                paddingLeft: '32px',
+                paddingTop: '6px',
+                paddingBottom: '6px',
+                fontSize: 'var(--text-sm)',
               }}
             />
           </div>
 
           {/* Status Dropdown */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
-            <label htmlFor="status-select" style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <label htmlFor="status-select" style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)', fontWeight: 500 }}>
               Status:
             </label>
             <select
               id="status-select"
+              className="netrava-input"
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
               style={{
-                padding: '6px 10px',
-                fontSize: 'var(--text-xs)',
-                backgroundColor: 'var(--bg-surface)',
-                border: '1px solid var(--border-default)',
-                borderRadius: 'var(--radius-sm)',
-                color: 'var(--text-primary)',
+                padding: '5px 10px',
+                fontSize: 'var(--text-sm)',
                 cursor: 'pointer',
               }}
             >
@@ -470,21 +450,18 @@ export default function CameraRegistryPage() {
 
           {/* Department Dropdown */}
           {distinctDepartments.length > 0 && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
-              <label htmlFor="dept-select" style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <label htmlFor="dept-select" style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)', fontWeight: 500 }}>
                 Jurisdiction:
               </label>
               <select
                 id="dept-select"
+                className="netrava-input"
                 value={deptFilter}
                 onChange={(e) => setDeptFilter(e.target.value)}
                 style={{
-                  padding: '6px 10px',
-                  fontSize: 'var(--text-xs)',
-                  backgroundColor: 'var(--bg-surface)',
-                  border: '1px solid var(--border-default)',
-                  borderRadius: 'var(--radius-sm)',
-                  color: 'var(--text-primary)',
+                  padding: '5px 10px',
+                  fontSize: 'var(--text-sm)',
                   cursor: 'pointer',
                   maxWidth: '220px',
                 }}
@@ -502,14 +479,10 @@ export default function CameraRegistryPage() {
           {(searchTerm || statusFilter !== 'ALL' || deptFilter !== 'ALL') && (
             <button
               onClick={clearFilters}
+              className="btn-secondary"
               style={{
-                background: 'transparent',
-                border: '1px solid var(--border-subtle)',
-                color: 'var(--text-secondary)',
-                fontSize: '11px',
-                padding: '6px 10px',
-                borderRadius: 'var(--radius-sm)',
-                cursor: 'pointer',
+                fontSize: 'var(--text-sm)',
+                padding: '5px 12px',
               }}
             >
               Reset Filters
@@ -518,18 +491,18 @@ export default function CameraRegistryPage() {
         </div>
 
         {/* Results Count & Viewport Note */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '11px', color: 'var(--text-muted)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 'var(--text-xs)', color: 'var(--text-dim)' }}>
           <span>
-            Showing <strong>{filteredCameras.length}</strong> of {cameras.length} registered cameras
+            Showing <strong>{filteredCameras.length}</strong> of {cameras.length} cameras
           </span>
-          <span>Click any row or press Enter to inspect full hardware specifications and telemetry</span>
+          <span>Select row to inspect hardware specifications and stream telemetry</span>
         </div>
 
         {/* Camera Registry Data Table */}
         {isLoading && cameras.length === 0 ? (
           <LoadingState
             message="Loading CCTV camera registry..."
-            subtext="Querying backend telemetry records and PostGIS metadata"
+            subtext="Querying backend telemetry records and spatial metadata"
           />
         ) : error ? (
           <ErrorState
@@ -542,14 +515,13 @@ export default function CameraRegistryPage() {
           <EmptyState
             title="No Cameras Found"
             message="No registered CCTV cameras match the active search and filter criteria."
-            action={{ label: 'Reset Filter Criteria', onClick: clearFilters }}
+            action={{ label: 'Reset Filters', onClick: clearFilters }}
           />
         ) : (
           <div
+            className="netrava-card"
             style={{
-              backgroundColor: 'var(--bg-card)',
-              border: '1px solid var(--border-default)',
-              borderRadius: 'var(--radius-md)',
+              padding: 0,
               overflowX: 'auto',
               opacity: isRefreshing ? 0.65 : 1,
               transition: 'opacity 0.2s ease',
@@ -558,33 +530,23 @@ export default function CameraRegistryPage() {
             <table
               role="table"
               aria-label="CCTV Cameras Registry Table"
+              className="netrava-table"
               style={{
                 width: '100%',
-                borderCollapse: 'collapse',
                 textAlign: 'left',
-                fontSize: 'var(--text-xs)',
+                fontSize: 'var(--text-sm)',
               }}
             >
               <thead>
-                <tr
-                  style={{
-                    backgroundColor: 'var(--bg-secondary)',
-                    borderBottom: '1px solid var(--border-default)',
-                    color: 'var(--text-muted)',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.05em',
-                    fontSize: '10px',
-                    fontWeight: 700,
-                  }}
-                >
-                  <th style={{ padding: 'var(--space-3) var(--space-4)' }}>Camera Code & Name</th>
-                  <th style={{ padding: 'var(--space-3) var(--space-4)' }}>Status</th>
-                  <th style={{ padding: 'var(--space-3) var(--space-4)' }}>Physical Location</th>
-                  <th style={{ padding: 'var(--space-3) var(--space-4)' }}>Department</th>
-                  <th style={{ padding: 'var(--space-3) var(--space-4)' }}>Protocol / Stream</th>
-                  <th style={{ padding: 'var(--space-3) var(--space-4)' }}>Coordinates</th>
-                  <th style={{ padding: 'var(--space-3) var(--space-4)' }}>Heartbeat</th>
-                  <th style={{ padding: 'var(--space-3) var(--space-4)', textAlign: 'right' }}>Action</th>
+                <tr>
+                  <th>Camera Code & Name</th>
+                  <th>Status</th>
+                  <th>Physical Location</th>
+                  <th>Department</th>
+                  <th>Protocol / Stream</th>
+                  <th>Coordinates</th>
+                  <th>Heartbeat</th>
+                  <th style={{ textAlign: 'right' }}>Action</th>
                 </tr>
               </thead>
               <tbody>
@@ -606,63 +568,55 @@ export default function CameraRegistryPage() {
                         }
                       }}
                       style={{
-                        borderBottom: '1px solid var(--border-subtle)',
-                        backgroundColor: isSelected ? 'var(--accent-subtle)' : 'transparent',
+                        backgroundColor: isSelected ? 'rgba(215, 25, 63, 0.08)' : undefined,
                         cursor: 'pointer',
-                        transition: 'background var(--transition-fast)',
                         outline: 'none',
-                      }}
-                      onMouseEnter={(e) => {
-                        if (!isSelected) e.currentTarget.style.backgroundColor = 'var(--bg-surface)';
-                      }}
-                      onMouseLeave={(e) => {
-                        if (!isSelected) e.currentTarget.style.backgroundColor = 'transparent';
                       }}
                     >
                       {/* Name & ID */}
-                      <td style={{ padding: 'var(--space-3) var(--space-4)' }}>
+                      <td>
                         <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{camera.name}</div>
-                        <div style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', color: 'var(--text-muted)' }}>
+                        <div style={{ fontSize: '11px', fontFamily: 'var(--font-mono)', color: 'var(--text-dim)' }}>
                           {camera.id.substring(0, 8)}...
                         </div>
                       </td>
 
                       {/* Status */}
-                      <td style={{ padding: 'var(--space-3) var(--space-4)' }}>
+                      <td>
                         <StatusBadge
+                          status={camera.operational_status}
                           label={camera.operational_status}
-                          variant={getStatusBadgeVariant(camera.operational_status)}
-                          pulse={camera.operational_status === 'ONLINE'}
+                          size="sm"
                         />
                       </td>
 
                       {/* Location */}
-                      <td style={{ padding: 'var(--space-3) var(--space-4)' }}>
-                        <div style={{ color: 'var(--text-secondary)' }}>
+                      <td>
+                        <div style={{ color: 'var(--text-primary)' }}>
                           {camera.location?.address || 'Street unassigned'}
                         </div>
-                        <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>
+                        <div style={{ fontSize: '11px', color: 'var(--text-dim)' }}>
                           {camera.location?.zone ? `${camera.location.zone}, ` : ''}
                           {camera.location?.district || 'District N/A'}
                         </div>
                       </td>
 
                       {/* Department */}
-                      <td style={{ padding: 'var(--space-3) var(--space-4)', color: 'var(--text-secondary)' }}>
+                      <td style={{ color: 'var(--text-secondary)' }}>
                         {camera.department_name || 'Statewide HQ'}
                       </td>
 
                       {/* Protocol & Stream Specs */}
-                      <td style={{ padding: 'var(--space-3) var(--space-4)' }}>
+                      <td>
                         <span
                           style={{
                             display: 'inline-block',
-                            padding: '1px 5px',
+                            padding: '1px 6px',
                             borderRadius: 'var(--radius-xs)',
-                            backgroundColor: 'var(--bg-surface)',
+                            backgroundColor: 'rgba(255, 255, 255, 0.04)',
                             border: '1px solid var(--border-subtle)',
                             fontFamily: 'var(--font-mono)',
-                            fontSize: '10px',
+                            fontSize: '11px',
                             color: 'var(--text-primary)',
                             marginBottom: '2px',
                           }}
@@ -670,38 +624,33 @@ export default function CameraRegistryPage() {
                           {camera.protocol}
                         </span>
                         {firstStream && (
-                          <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
+                          <div style={{ fontSize: '11px', color: 'var(--text-dim)', fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums' }}>
                             {firstStream.resolution} @ {firstStream.fps}fps
                           </div>
                         )}
                       </td>
 
                       {/* Coordinates */}
-                      <td style={{ padding: 'var(--space-3) var(--space-4)', fontFamily: 'var(--font-mono)', color: 'var(--text-muted)' }}>
+                      <td style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)', fontSize: 'var(--text-xs)', fontVariantNumeric: 'tabular-nums' }}>
                         {camera.lat.toFixed(4)}, {camera.long.toFixed(4)}
                       </td>
 
                       {/* Heartbeat */}
-                      <td style={{ padding: 'var(--space-3) var(--space-4)', fontFamily: 'var(--font-mono)', color: 'var(--text-muted)' }}>
+                      <td style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)', fontSize: 'var(--text-xs)', fontVariantNumeric: 'tabular-nums' }}>
                         {formatTimestamp(camera.health?.last_heartbeat)}
                       </td>
 
                       {/* Actions */}
-                      <td style={{ padding: 'var(--space-3) var(--space-4)', textAlign: 'right' }}>
+                      <td style={{ textAlign: 'right' }}>
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
                             setSelectedCamera(camera);
                           }}
+                          className="btn-secondary"
                           style={{
-                            padding: '4px 8px',
-                            backgroundColor: 'var(--bg-surface)',
-                            border: '1px solid var(--border-default)',
-                            borderRadius: 'var(--radius-xs)',
-                            color: 'var(--text-primary)',
+                            padding: '4px 10px',
                             fontSize: '11px',
-                            fontWeight: 600,
-                            cursor: 'pointer',
                           }}
                         >
                           Inspect

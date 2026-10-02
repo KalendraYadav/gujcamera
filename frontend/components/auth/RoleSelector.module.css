@@ -1,0 +1,327 @@
+/* ==============================================================================
+   NETRAVA LOGIN — ROLE SELECTOR INTERACTIVE CONSOLE MODULE
+   Interaction Language:
+   - IDLE: Calm Dark Navy / Charcoal
+   - HOVER: Muted Institutional Gold / Amber Glow (~180ms)
+   - CLICK / ACTIVATION: Crimson Red Accent Sweep Sequence (~420ms)
+   - ACTIVE / SELECTED: NETRAVA Blue Glow + Status Indicator
+   ============================================================================== */
+
+.roleSelectorContainer {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+
+.roleCard {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  text-align: left;
+  user-select: none;
+  background-color: rgba(11, 16, 32, 0.65);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: #CBD5E1;
+  transition:
+    background-color 180ms cubic-bezier(0.16, 1, 0.3, 1),
+    border-color 180ms cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 180ms cubic-bezier(0.16, 1, 0.3, 1),
+    transform 180ms cubic-bezier(0.16, 1, 0.3, 1);
+  outline: none;
+}
+
+.roleCard:focus-visible {
+  outline: 2px solid #3B82F6;
+  outline-offset: 2px;
+}
+
+.roleCardFullWidth {
+  grid-column: span 2;
+}
+
+/* ------------------------------------------------------------------------------
+   1. IDLE STATE
+   ------------------------------------------------------------------------------ */
+.iconWrapper {
+  width: 28px;
+  height: 28px;
+  border-radius: 4px;
+  background-color: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #94A3B8;
+  flex-shrink: 0;
+  transition:
+    background-color 180ms cubic-bezier(0.16, 1, 0.3, 1),
+    color 180ms cubic-bezier(0.16, 1, 0.3, 1),
+    border-color 180ms cubic-bezier(0.16, 1, 0.3, 1),
+    transform 180ms cubic-bezier(0.16, 1, 0.3, 1),
+    filter 180ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.textGroup {
+  min-width: 0;
+  flex: 1;
+}
+
+.roleTitle {
+  font-size: 11px;
+  font-weight: 700;
+  color: #E2E8F0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  line-height: 1.25;
+  transition: color 180ms ease, text-shadow 180ms ease;
+}
+
+.roleDesc {
+  font-size: 9px;
+  color: #64748B;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-top: 1px;
+  line-height: 1.25;
+  transition: color 180ms ease;
+}
+
+/* ------------------------------------------------------------------------------
+   2. HOVER STATE (YELLOW / INSTITUTIONAL GOLD)
+   Fast, restrained, subtle atmospheric illumination
+   ------------------------------------------------------------------------------ */
+.roleCard:hover:not(.isSelected):not(.isActivating) {
+  background-color: rgba(245, 158, 11, 0.09);
+  border-color: rgba(245, 158, 11, 0.55);
+  box-shadow: 0 0 8px rgba(245, 158, 11, 0.22), 0 0 16px rgba(245, 158, 11, 0.08);
+}
+
+.roleCard:hover:not(.isSelected):not(.isActivating) .iconWrapper {
+  background-color: rgba(245, 158, 11, 0.16);
+  border-color: rgba(245, 158, 11, 0.35);
+  color: #F59E0B;
+  transform: scale(1.05);
+  filter: drop-shadow(0 0 5px rgba(245, 158, 11, 0.45));
+}
+
+.roleCard:hover:not(.isSelected):not(.isActivating) .roleTitle {
+  color: #FFFFFF;
+  text-shadow: 0 0 8px rgba(245, 158, 11, 0.2);
+}
+
+.roleCard:hover:not(.isSelected):not(.isActivating) .roleDesc {
+  color: #FCD34D;
+}
+
+/* ------------------------------------------------------------------------------
+   3. CLICK / ACTIVATION STATE (RED ACCENT SWEEP OVERTAKING YELLOW -> BLUE)
+   Cinematic activation sequence (~420ms)
+   ------------------------------------------------------------------------------ */
+.roleCard.isActivating {
+  animation: activationCardCycle 420ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes activationCardCycle {
+  0% {
+    background-color: rgba(245, 158, 11, 0.12);
+    border-color: rgba(245, 158, 11, 0.7);
+    box-shadow: 0 0 10px rgba(245, 158, 11, 0.3);
+  }
+  25% {
+    background-color: rgba(215, 25, 63, 0.22);
+    border-color: #D7193F;
+    box-shadow: 0 0 14px rgba(215, 25, 63, 0.45), 0 0 24px rgba(215, 25, 63, 0.2);
+  }
+  65% {
+    background-color: rgba(59, 130, 246, 0.16);
+    border-color: #3B82F6;
+    box-shadow: 0 0 14px rgba(59, 130, 246, 0.4), 0 0 22px rgba(59, 130, 246, 0.15);
+  }
+  100% {
+    background-color: rgba(59, 130, 246, 0.12);
+    border-color: #3B82F6;
+    box-shadow: 0 0 12px rgba(59, 130, 246, 0.3), 0 0 20px rgba(59, 130, 246, 0.1);
+  }
+}
+
+.roleCard.isActivating .iconWrapper {
+  animation: activationIconCycle 420ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes activationIconCycle {
+  0% {
+    background-color: rgba(245, 158, 11, 0.18);
+    color: #F59E0B;
+    transform: scale(1.05);
+  }
+  25% {
+    background-color: rgba(215, 25, 63, 0.3);
+    border-color: rgba(215, 25, 63, 0.6);
+    color: #EF4444;
+    transform: scale(1.08);
+    filter: drop-shadow(0 0 8px rgba(215, 25, 63, 0.6));
+  }
+  65% {
+    background-color: rgba(59, 130, 246, 0.24);
+    border-color: rgba(59, 130, 246, 0.5);
+    color: #60A5FA;
+    transform: scale(1);
+    filter: drop-shadow(0 0 6px rgba(59, 130, 246, 0.5));
+  }
+  100% {
+    background-color: rgba(59, 130, 246, 0.2);
+    border-color: rgba(59, 130, 246, 0.4);
+    color: #60A5FA;
+  }
+}
+
+/* Moving Red Laser/Beam Sweep Overlay */
+.redSweepBeam {
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  pointer-events: none;
+  z-index: 5;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(215, 25, 63, 0) 10%,
+    rgba(215, 25, 63, 0.4) 35%,
+    rgba(239, 68, 68, 0.85) 50%,
+    rgba(254, 202, 202, 0.95) 55%,
+    rgba(215, 25, 63, 0.6) 65%,
+    transparent 100%
+  );
+  animation: sweepLeftToRight 420ms cubic-bezier(0.2, 0, 0.2, 1) forwards;
+}
+
+@keyframes sweepLeftToRight {
+  0% {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+  15% {
+    opacity: 1;
+  }
+  75% {
+    opacity: 0.95;
+  }
+  100% {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+}
+
+/* ------------------------------------------------------------------------------
+   4. SETTLED SELECTED / ACTIVE STATE (NETRAVA BLUE)
+   ------------------------------------------------------------------------------ */
+.roleCard.isSelected:not(.isActivating) {
+  background-color: rgba(59, 130, 246, 0.12);
+  border-color: #3B82F6;
+  box-shadow: 0 0 10px rgba(59, 130, 246, 0.28), 0 0 20px rgba(59, 130, 246, 0.1), inset 0 0 10px rgba(59, 130, 246, 0.05);
+}
+
+.roleCard.isSelected:not(.isActivating) .iconWrapper {
+  background-color: rgba(59, 130, 246, 0.2);
+  border-color: rgba(59, 130, 246, 0.4);
+  color: #60A5FA;
+  filter: drop-shadow(0 0 6px rgba(59, 130, 246, 0.45));
+}
+
+.roleCard.isSelected:not(.isActivating) .roleTitle {
+  color: #FFFFFF;
+}
+
+.roleCard.isSelected:not(.isActivating) .roleDesc {
+  color: #93C5FD;
+}
+
+/* Subtle Active Indicator Pill / Dot */
+.activeBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 6px;
+  border-radius: 3px;
+  background-color: rgba(59, 130, 246, 0.18);
+  border: 1px solid rgba(59, 130, 246, 0.4);
+  font-size: 8.5px;
+  font-family: var(--font-mono);
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  color: #93C5FD;
+  text-transform: uppercase;
+  flex-shrink: 0;
+  margin-left: 2px;
+}
+
+.activeDot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background-color: #60A5FA;
+  box-shadow: 0 0 6px #60A5FA;
+}
+
+/* Left Active Accent Notch */
+.leftActiveNotch {
+  position: absolute;
+  left: 0;
+  top: 4px;
+  bottom: 4px;
+  width: 2.5px;
+  border-radius: 0 2px 2px 0;
+  background-color: #3B82F6;
+  box-shadow: 0 0 8px rgba(59, 130, 246, 0.8);
+}
+
+/* ------------------------------------------------------------------------------
+   5. ACCESSIBILITY / PREFERS-REDUCED-MOTION
+   ------------------------------------------------------------------------------ */
+@media (prefers-reduced-motion: reduce) {
+  .roleCard,
+  .iconWrapper,
+  .roleTitle,
+  .roleDesc {
+    transition: none !important;
+    animation: none !important;
+  }
+
+  .redSweepBeam {
+    display: none !important;
+  }
+
+  .roleCard.isActivating {
+    background-color: rgba(59, 130, 246, 0.12) !important;
+    border-color: #3B82F6 !important;
+  }
+}
+
+/* ------------------------------------------------------------------------------
+   6. RESPONSIVE ADAPTATIONS (MOBILE / TOUCH)
+   ------------------------------------------------------------------------------ */
+@media (max-width: 440px) {
+  .roleSelectorContainer {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+
+  .roleCardFullWidth {
+    grid-column: span 1;
+  }
+
+  .roleCard {
+    padding: 10px 12px;
+    min-height: 44px;
+  }
+}
+

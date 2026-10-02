@@ -2,6 +2,7 @@
 // Camera Selector Sidebar Component
 // Gujarat Police Innovation Challenge 2026
 // Source of Truth: master_architecture.md (Section 5.2, Section 14.2)
+// Visual Language: Kit8 / Anton Fritsler Police Operations System
 // ==============================================================================
 
 'use client';
@@ -52,21 +53,21 @@ export const CameraSelector: React.FC<CameraSelectorProps> = ({
   return (
     <div
       data-testid="camera-selector-panel"
+      className="netrava-card"
       style={{
         display: 'flex',
         flexDirection: 'column',
         height: '100%',
-        backgroundColor: 'var(--bg-secondary)',
-        border: '1px solid var(--border-subtle)',
-        borderRadius: '8px',
         overflow: 'hidden',
+        padding: 0,
       }}
     >
       {/* Header */}
       <div
         style={{
-          padding: '16px',
+          padding: '14px 16px',
           borderBottom: '1px solid var(--border-subtle)',
+          backgroundColor: 'rgba(11, 17, 32, 0.75)',
         }}
       >
         <div
@@ -79,9 +80,9 @@ export const CameraSelector: React.FC<CameraSelectorProps> = ({
         >
           <div
             style={{
-              fontSize: '14px',
+              fontSize: '11px',
               fontWeight: 700,
-              letterSpacing: '0.04em',
+              letterSpacing: '0.08em',
               textTransform: 'uppercase',
               color: 'var(--text-primary)',
               display: 'flex',
@@ -89,17 +90,17 @@ export const CameraSelector: React.FC<CameraSelectorProps> = ({
               gap: '8px',
             }}
           >
-            <Video size={16} color="var(--accent-blue)" />
-            Camera Feeds
+            <Video size={14} color="var(--accent-blue)" />
+            <span>Surveillance Feeds</span>
           </div>
           <span
             style={{
-              fontSize: '11px',
+              fontSize: '10px',
               fontFamily: 'var(--font-mono)',
               color: 'var(--text-muted)',
-              backgroundColor: 'var(--bg-surface)',
+              backgroundColor: 'rgba(255, 255, 255, 0.04)',
               padding: '2px 8px',
-              borderRadius: '12px',
+              borderRadius: '4px',
               border: '1px solid var(--border-subtle)',
             }}
           >
@@ -108,14 +109,9 @@ export const CameraSelector: React.FC<CameraSelectorProps> = ({
         </div>
 
         {/* Search Box */}
-        <div
-          style={{
-            position: 'relative',
-            marginBottom: '10px',
-          }}
-        >
+        <div style={{ position: 'relative', marginBottom: '10px' }}>
           <Search
-            size={14}
+            size={13}
             color="var(--text-muted)"
             style={{
               position: 'absolute',
@@ -126,43 +122,42 @@ export const CameraSelector: React.FC<CameraSelectorProps> = ({
             }}
           />
           <input
-            type="text"
             data-testid="camera-search-input"
+            type="text"
+            className="netrava-input"
+            placeholder="Search feed, zone, location..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search by ID, location, zone..."
             style={{
               width: '100%',
-              padding: '8px 10px 8px 32px',
-              fontSize: '12px',
-              backgroundColor: 'var(--bg-primary)',
-              border: '1px solid var(--border-default)',
-              borderRadius: '6px',
-              color: 'var(--text-primary)',
-              outline: 'none',
+              paddingLeft: '32px',
+              paddingTop: '6px',
+              paddingBottom: '6px',
+              fontSize: '11px',
             }}
           />
         </div>
 
-        {/* Filter Pills */}
-        <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', paddingBottom: '2px' }}>
+        {/* Status Filter Tabs */}
+        <div
+          style={{
+            display: 'flex',
+            gap: '4px',
+            overflowX: 'auto',
+            paddingBottom: '2px',
+          }}
+        >
           {(['ALL', 'ONLINE', 'DEGRADED', 'OFFLINE'] as const).map((st) => (
             <button
               key={st}
               type="button"
               data-testid={`filter-${st.toLowerCase()}`}
               onClick={() => setStatusFilter(st)}
+              className={`netrava-tab-button ${statusFilter === st ? 'active' : ''}`}
               style={{
-                padding: '3px 8px',
-                fontSize: '11px',
-                fontWeight: statusFilter === st ? 600 : 400,
-                borderRadius: '4px',
-                border: '1px solid',
-                borderColor: statusFilter === st ? 'var(--accent-blue)' : 'var(--border-subtle)',
-                backgroundColor: statusFilter === st ? 'rgba(37, 99, 235, 0.2)' : 'transparent',
-                color: statusFilter === st ? '#ffffff' : 'var(--text-muted)',
-                cursor: 'pointer',
-                whiteSpace: 'nowrap',
+                padding: '3px 9px',
+                fontSize: '10px',
+                height: '24px',
               }}
             >
               {st}
@@ -189,7 +184,7 @@ export const CameraSelector: React.FC<CameraSelectorProps> = ({
               padding: '24px',
               textAlign: 'center',
               color: 'var(--text-muted)',
-              fontSize: '13px',
+              fontSize: '12px',
             }}
           >
             Loading registered cameras...
@@ -200,7 +195,7 @@ export const CameraSelector: React.FC<CameraSelectorProps> = ({
               padding: '24px',
               textAlign: 'center',
               color: 'var(--text-muted)',
-              fontSize: '13px',
+              fontSize: '12px',
             }}
           >
             No cameras match your search filter.
@@ -217,51 +212,35 @@ export const CameraSelector: React.FC<CameraSelectorProps> = ({
                 type="button"
                 data-testid={`camera-item-${camera.name}`}
                 onClick={() => onSelectCamera(camera)}
+                className={`netrava-nav-link ${isSelected ? 'active' : ''}`}
                 style={{
                   display: 'flex',
                   flexDirection: 'column',
-                  gap: '6px',
+                  alignItems: 'stretch',
+                  gap: '5px',
                   padding: '10px 12px',
-                  backgroundColor: isSelected ? 'var(--bg-elevated)' : 'var(--bg-primary)',
-                  border: '1px solid',
-                  borderColor: isSelected ? 'var(--accent-blue)' : 'var(--border-subtle)',
-                  borderRadius: '6px',
-                  cursor: 'pointer',
                   textAlign: 'left',
-                  transition: 'background-color 0.15s ease, border-color 0.15s ease',
-                  position: 'relative',
                 }}
               >
-                {/* Active Indicator Bar */}
-                {isSelected && (
-                  <div
-                    style={{
-                      position: 'absolute',
-                      left: 0,
-                      top: '6px',
-                      bottom: '6px',
-                      width: '3px',
-                      backgroundColor: 'var(--accent-blue)',
-                      borderRadius: '0 2px 2px 0',
-                    }}
-                  />
-                )}
-
                 {/* Top Row: Camera Name & Status */}
                 <div
                   style={{
                     display: 'flex',
                     justifyContent: 'space-between',
                     alignItems: 'center',
+                    width: '100%',
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0 }}>
                     <span
                       style={{
-                        fontSize: '13px',
+                        fontSize: '12px',
                         fontWeight: 700,
                         fontFamily: 'var(--font-mono)',
-                        color: isSelected ? 'var(--accent-blue)' : 'var(--text-primary)',
+                        color: 'inherit',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
                       }}
                     >
                       {camera.name}
@@ -269,13 +248,15 @@ export const CameraSelector: React.FC<CameraSelectorProps> = ({
                     {isRtsp ? (
                       <span
                         style={{
-                          fontSize: '10px',
-                          fontWeight: 600,
+                          fontSize: '9px',
+                          fontWeight: 700,
                           padding: '1px 5px',
                           borderRadius: '3px',
-                          backgroundColor: 'rgba(16, 185, 129, 0.15)',
-                          color: '#10b981',
-                          border: '1px solid rgba(16, 185, 129, 0.3)',
+                          backgroundColor: 'var(--status-success-bg)',
+                          color: 'var(--status-success)',
+                          border: '1px solid var(--status-success-border)',
+                          flexShrink: 0,
+                          letterSpacing: '0.04em',
                         }}
                       >
                         LIVE HLS
@@ -283,13 +264,14 @@ export const CameraSelector: React.FC<CameraSelectorProps> = ({
                     ) : (
                       <span
                         style={{
-                          fontSize: '10px',
+                          fontSize: '9px',
                           fontWeight: 600,
                           padding: '1px 5px',
                           borderRadius: '3px',
-                          backgroundColor: 'rgba(100, 116, 139, 0.15)',
+                          backgroundColor: 'rgba(255, 255, 255, 0.04)',
                           color: 'var(--text-muted)',
                           border: '1px solid var(--border-subtle)',
+                          flexShrink: 0,
                         }}
                       >
                         {camera.protocol}
@@ -307,7 +289,7 @@ export const CameraSelector: React.FC<CameraSelectorProps> = ({
                 {/* Middle Row: Location & Department */}
                 <div
                   style={{
-                    fontSize: '12px',
+                    fontSize: '11px',
                     color: 'var(--text-secondary)',
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',
@@ -323,8 +305,8 @@ export const CameraSelector: React.FC<CameraSelectorProps> = ({
                   style={{
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '8px',
-                    fontSize: '11px',
+                    gap: '6px',
+                    fontSize: '10px',
                     fontFamily: 'var(--font-mono)',
                     color: 'var(--text-muted)',
                   }}

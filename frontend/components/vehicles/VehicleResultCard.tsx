@@ -13,8 +13,8 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { Car, Clock, Eye, AlertTriangle, Shield } from 'lucide-react';
-import { VehicleSearchResult, WatchlistPriority } from '@/types/vehicle';
+import { Car, Clock, Eye, AlertTriangle, Shield, ArrowRight } from 'lucide-react';
+import { VehicleSearchResult } from '@/types/vehicle';
 import { StatusBadge, BadgeVariant } from '@/components/ui/StatusBadge';
 
 interface VehicleResultCardProps {
@@ -41,7 +41,7 @@ function formatRelativeTime(iso: string): string {
   const diffH = Math.floor(diffMs / 3600000);
   const diffD = Math.floor(diffMs / 86400000);
 
-  if (diffH < 1) return 'within last hour';
+  if (diffH < 1) return 'Within last hour';
   if (diffH < 24) return `${diffH}h ago`;
   if (diffD === 1) return '1 day ago';
   return `${diffD} days ago`;
@@ -59,22 +59,23 @@ export function VehicleResultCard({ vehicle }: VehicleResultCardProps) {
       <div
         role="article"
         tabIndex={0}
+        className="netrava-card"
         style={{
           backgroundColor: vehicle.is_watchlisted
             ? 'rgba(239, 68, 68, 0.04)'
             : 'var(--bg-surface)',
-          border: `1px solid ${vehicle.is_watchlisted ? 'var(--status-critical-border)' : 'var(--border-subtle)'}`,
-          borderRadius: 'var(--radius-md)',
-          padding: 'var(--space-4)',
+          borderColor: vehicle.is_watchlisted
+            ? 'var(--status-critical-border)'
+            : 'var(--border-default)',
+          padding: 'var(--space-4) var(--space-5)',
           cursor: 'pointer',
           transition: 'all var(--transition-fast)',
           position: 'relative',
-          overflow: 'hidden',
         }}
         onMouseEnter={(e) => {
           e.currentTarget.style.borderColor = vehicle.is_watchlisted
             ? 'var(--status-critical)'
-            : 'var(--border-default)';
+            : 'var(--border-medium)';
           e.currentTarget.style.backgroundColor = vehicle.is_watchlisted
             ? 'rgba(239, 68, 68, 0.08)'
             : 'var(--bg-surface-hover)';
@@ -83,14 +84,14 @@ export function VehicleResultCard({ vehicle }: VehicleResultCardProps) {
         onMouseLeave={(e) => {
           e.currentTarget.style.borderColor = vehicle.is_watchlisted
             ? 'var(--status-critical-border)'
-            : 'var(--border-subtle)';
+            : 'var(--border-default)';
           e.currentTarget.style.backgroundColor = vehicle.is_watchlisted
             ? 'rgba(239, 68, 68, 0.04)'
             : 'var(--bg-surface)';
           e.currentTarget.style.transform = 'translateY(0)';
         }}
       >
-        {/* Left accent bar for watchlisted vehicles */}
+        {/* Left Accent Bar for Watchlisted Targets */}
         {vehicle.is_watchlisted && (
           <div
             style={{
@@ -100,42 +101,59 @@ export function VehicleResultCard({ vehicle }: VehicleResultCardProps) {
               bottom: 0,
               width: '3px',
               backgroundColor: 'var(--status-critical)',
+              boxShadow: 'var(--accent-primary-glow)',
             }}
           />
         )}
 
-        {/* Header: plate + watchlist badge */}
+        {/* Header: Plate + Watchlist / Clear Badges */}
         <div
           style={{
             display: 'flex',
-            alignItems: 'flex-start',
+            alignItems: 'center',
             justifyContent: 'space-between',
+            flexWrap: 'wrap',
             gap: 'var(--space-3)',
             marginBottom: 'var(--space-3)',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
-            <Car size={16} color={vehicle.is_watchlisted ? 'var(--status-critical)' : 'var(--accent-primary)'} />
-            <span
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
+            <div
               style={{
-                fontSize: 'var(--text-lg)',
-                fontWeight: 800,
-                fontFamily: 'var(--font-mono)',
-                letterSpacing: '0.1em',
-                color: 'var(--text-primary)',
+                width: '34px',
+                height: '34px',
+                borderRadius: 'var(--radius-sm)',
+                backgroundColor: vehicle.is_watchlisted ? 'var(--status-critical-bg)' : 'var(--accent-blue-subtle)',
+                border: `1px solid ${vehicle.is_watchlisted ? 'var(--status-critical-border)' : 'var(--accent-blue-border)'}`,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
               }}
             >
-              {vehicle.plate_normalized}
-            </span>
+              <Car size={18} color={vehicle.is_watchlisted ? 'var(--status-critical)' : 'var(--accent-blue)'} />
+            </div>
+            <div>
+              <span
+                style={{
+                  fontSize: 'var(--text-lg)',
+                  fontWeight: 800,
+                  fontFamily: 'var(--font-mono)',
+                  letterSpacing: '0.1em',
+                  color: 'var(--text-primary)',
+                }}
+              >
+                {vehicle.plate_normalized}
+              </span>
+            </div>
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', flexShrink: 0 }}>
-            {vehicle.is_watchlisted && (
+            {vehicle.is_watchlisted ? (
               <>
                 <StatusBadge
                   label={vehicle.watchlist_priority || 'WATCHLISTED'}
                   variant={getPriorityVariant(vehicle.watchlist_priority)}
-                  icon={<AlertTriangle size={10} />}
+                  icon={<AlertTriangle size={11} />}
                   size="sm"
                 />
                 {vehicle.watchlist_category && (
@@ -146,14 +164,13 @@ export function VehicleResultCard({ vehicle }: VehicleResultCardProps) {
                   />
                 )}
               </>
-            )}
-            {!vehicle.is_watchlisted && (
-              <StatusBadge label="CLEAR" variant="success" icon={<Shield size={10} />} size="sm" />
+            ) : (
+              <StatusBadge label="CLEAR" variant="success" icon={<Shield size={11} />} size="sm" />
             )}
           </div>
         </div>
 
-        {/* Vehicle attributes (if available) */}
+        {/* Vehicle Attributes Chips */}
         {hasAttrs && (
           <div
             style={{
@@ -177,10 +194,11 @@ export function VehicleResultCard({ vehicle }: VehicleResultCardProps) {
                     fontSize: '11px',
                     fontWeight: 600,
                     color: 'var(--text-secondary)',
-                    backgroundColor: 'var(--bg-secondary)',
+                    backgroundColor: 'var(--bg-primary)',
                     padding: '2px 8px',
                     borderRadius: 'var(--radius-xs)',
                     border: '1px solid var(--border-subtle)',
+                    fontFamily: 'var(--font-mono)',
                   }}
                 >
                   {val}
@@ -189,7 +207,7 @@ export function VehicleResultCard({ vehicle }: VehicleResultCardProps) {
           </div>
         )}
 
-        {/* Footer metrics */}
+        {/* Footer Metrics */}
         <div
           style={{
             display: 'flex',
@@ -197,40 +215,48 @@ export function VehicleResultCard({ vehicle }: VehicleResultCardProps) {
             justifyContent: 'space-between',
             flexWrap: 'wrap',
             gap: 'var(--space-2)',
+            paddingTop: 'var(--space-2)',
+            borderTop: '1px solid var(--border-subtle)',
           }}
         >
           <div
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: 'var(--space-3)',
+              gap: 'var(--space-4)',
               fontSize: '11px',
               color: 'var(--text-muted)',
             }}
           >
-            <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-              <Eye size={11} />
+            <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+              <Eye size={12} color="var(--accent-blue)" />
               <span>
-                <strong style={{ color: 'var(--text-secondary)' }}>{vehicle.total_sightings}</strong>{' '}
+                <strong style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-mono)' }}>
+                  {vehicle.total_sightings}
+                </strong>{' '}
                 sighting{vehicle.total_sightings !== 1 ? 's' : ''}
               </span>
             </span>
-            <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-              <Clock size={11} />
-              Last seen: {formatRelativeTime(vehicle.last_seen)}
+            <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+              <Clock size={12} color="var(--text-dim)" />
+              <span>Last seen: {formatRelativeTime(vehicle.last_seen)}</span>
             </span>
           </div>
 
           <span
             style={{
-              fontSize: '10px',
+              fontSize: '11px',
               color: 'var(--accent-primary)',
-              fontWeight: 600,
+              fontWeight: 700,
               textTransform: 'uppercase',
-              letterSpacing: '0.04em',
+              letterSpacing: '0.06em',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px',
             }}
           >
-            Investigate →
+            <span>Investigate</span>
+            <ArrowRight size={13} />
           </span>
         </div>
       </div>

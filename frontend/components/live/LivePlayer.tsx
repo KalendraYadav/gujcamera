@@ -424,9 +424,9 @@ export const LivePlayer: React.FC<LivePlayerProps> = ({
         };
       case 'CONNECTING':
         return {
-          bg: 'rgba(59, 130, 246, 0.2)',
-          color: '#3b82f6',
-          border: 'rgba(59, 130, 246, 0.4)',
+          bg: 'rgba(63, 88, 137, 0.2)',
+          color: '#93B3E6',
+          border: 'rgba(147, 179, 230, 0.4)',
           text: 'CONNECTING...',
           icon: <Radio size={13} />,
         };
@@ -614,8 +614,8 @@ export const LivePlayer: React.FC<LivePlayerProps> = ({
                   width: '40px',
                   height: '40px',
                   borderRadius: '50%',
-                  border: '3px solid rgba(59, 130, 246, 0.2)',
-                  borderTopColor: 'var(--accent-blue)',
+                  border: '3px solid var(--accent-subtle)',
+                  borderTopColor: 'var(--accent-primary)',
                   animation: 'spin 1s linear infinite',
                   marginBottom: '16px',
                 }}
@@ -698,22 +698,22 @@ export const LivePlayer: React.FC<LivePlayerProps> = ({
                   width: '48px',
                   height: '48px',
                   borderRadius: '50%',
-                  backgroundColor: 'rgba(239, 68, 68, 0.12)',
-                  border: '1px solid rgba(239, 68, 68, 0.3)',
+                  backgroundColor: 'rgba(215, 25, 63, 0.12)',
+                  border: '1px solid rgba(215, 25, 63, 0.3)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   marginBottom: '16px',
                 }}
               >
-                <AlertTriangle size={24} color="var(--color-alert)" />
+                <AlertTriangle size={24} color="var(--accent-primary)" />
               </div>
-              <div style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '8px' }}>
+              <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '8px' }}>
                 {playbackStatus === 'OFFLINE' ? 'Stream Unavailable' : 'Stream Playback Error'}
               </div>
               <div
                 style={{
-                  fontSize: '13px',
+                  fontSize: '12px',
                   color: 'var(--text-secondary)',
                   maxWidth: '480px',
                   lineHeight: '1.5',
@@ -725,22 +725,17 @@ export const LivePlayer: React.FC<LivePlayerProps> = ({
               <button
                 type="button"
                 data-testid="manual-reconnect-button"
+                className="btn-primary"
                 onClick={handleManualRetry}
                 style={{
-                  padding: '10px 20px',
-                  backgroundColor: 'var(--accent-blue)',
-                  color: '#ffffff',
-                  border: 'none',
-                  borderRadius: '6px',
-                  fontSize: '13px',
-                  fontWeight: 600,
-                  cursor: 'pointer',
+                  padding: '9px 18px',
+                  fontSize: '12px',
                   display: 'flex',
                   alignItems: 'center',
                   gap: '8px',
                 }}
               >
-                <RotateCcw size={15} />
+                <RotateCcw size={14} />
                 Reconnect Stream
               </button>
             </>

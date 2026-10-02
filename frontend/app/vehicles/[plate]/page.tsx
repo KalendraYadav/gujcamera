@@ -39,7 +39,6 @@ import { AppShell } from '@/components/layout/AppShell';
 import { SightingsTimeline } from '@/components/vehicles/SightingsTimeline';
 import { RouteMap } from '@/components/vehicles/RouteMap';
 import { EvidenceExportModal } from '@/components/evidence/EvidenceExportModal';
-import { SimulatedDataBadge } from '@/components/ui/SimulatedDataBadge';
 import { StatusBadge, BadgeVariant } from '@/components/ui/StatusBadge';
 import { ErrorState } from '@/components/ui/ErrorState';
 import { LoadingState } from '@/components/ui/LoadingState';
@@ -86,13 +85,23 @@ function DetailField({ label, value, mono }: DetailFieldProps) {
   return (
     <div
       style={{
-        padding: 'var(--space-3)',
-        backgroundColor: 'var(--bg-surface)',
+        padding: 'var(--space-3) var(--space-4)',
+        backgroundColor: 'var(--bg-primary)',
         border: '1px solid var(--border-subtle)',
         borderRadius: 'var(--radius-sm)',
       }}
     >
-      <div style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '4px' }}>
+      <div
+        style={{
+          fontSize: '10px',
+          color: 'var(--text-dim)',
+          textTransform: 'uppercase',
+          letterSpacing: '0.08em',
+          fontFamily: 'var(--font-mono)',
+          fontWeight: 700,
+          marginBottom: '4px',
+        }}
+      >
         {label}
       </div>
       <div
@@ -166,7 +175,7 @@ export default function VehicleDetailPage() {
   if (authLoading) {
     return (
       <AppShell>
-        <div style={{ maxWidth: '960px', margin: '0 auto', padding: 'var(--space-6)' }}>
+        <div style={{ maxWidth: '1080px', margin: '0 auto', padding: 'var(--space-6)' }}>
           <LoadingState
             message="Verifying investigation credentials..."
             subtext="Checking cryptographic session and officer RBAC role"
@@ -179,7 +188,7 @@ export default function VehicleDetailPage() {
   if (!isAuthorized) {
     return (
       <AppShell>
-        <div style={{ maxWidth: '960px', margin: '0 auto', padding: 'var(--space-6)' }}>
+        <div style={{ maxWidth: '1080px', margin: '0 auto', padding: 'var(--space-6)' }}>
           <ErrorState
             title="Investigation Access Restricted"
             message="Vehicle intelligence search and cross-camera tracking are restricted to Investigator, Department Admin, and Super Admin personnel."
@@ -201,36 +210,32 @@ export default function VehicleDetailPage() {
     <AppShell>
       <div
         style={{
-          maxWidth: '960px',
+          maxWidth: '1080px',
           margin: '0 auto',
           display: 'flex',
           flexDirection: 'column',
           gap: 'var(--space-5)',
         }}
       >
-        {/* Back navigation */}
-        <button
-          id="vehicle-detail-back"
-          onClick={() => router.push('/vehicles')}
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 'var(--space-2)',
-            background: 'none',
-            border: 'none',
-            color: 'var(--text-secondary)',
-            fontSize: 'var(--text-sm)',
-            cursor: 'pointer',
-            padding: 0,
-            fontWeight: 600,
-          }}
-        >
-          <ArrowLeft size={14} />
-          Back to Vehicle Search
-        </button>
+        {/* Back Navigation Button */}
+        <div>
+          <button
+            id="vehicle-detail-back"
+            onClick={() => router.push('/vehicles')}
+            className="btn-secondary"
+            style={{
+              padding: '6px 12px',
+              fontSize: 'var(--text-xs)',
+              gap: '6px',
+            }}
+          >
+            <ArrowLeft size={14} />
+            <span>Search Results</span>
+          </button>
+        </div>
 
         {pageState === 'loading' && (
-          <div style={{ padding: 'var(--space-12)' }}>
+          <div className="netrava-card" style={{ padding: 'var(--space-12)' }}>
             <LoadingState
               message={`Loading vehicle record for ${plate}…`}
               subtext="Fetching sighting history and route trajectory from PostGIS backend"
@@ -250,15 +255,29 @@ export default function VehicleDetailPage() {
           <>
             {/* Vehicle Header Card */}
             <div
+              className="netrava-card"
               style={{
-                backgroundColor: vehicleDetail.is_watchlisted ? 'rgba(239, 68, 68, 0.05)' : 'var(--bg-card)',
-                border: `1px solid ${vehicleDetail.is_watchlisted ? 'var(--status-critical-border)' : 'var(--border-default)'}`,
-                borderRadius: 'var(--radius-lg)',
+                backgroundColor: vehicleDetail.is_watchlisted ? 'rgba(239, 68, 68, 0.05)' : 'var(--bg-surface)',
+                borderColor: vehicleDetail.is_watchlisted ? 'var(--status-critical-border)' : 'var(--border-default)',
                 padding: 'var(--space-5) var(--space-6)',
-                boxShadow: 'var(--shadow-card)',
+                position: 'relative',
               }}
             >
-              {/* Top row */}
+              {/* Top Accent Line */}
+              <div
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  height: '2px',
+                  background: vehicleDetail.is_watchlisted
+                    ? 'linear-gradient(90deg, #EF4444 0%, #B91C1C 50%, transparent 100%)'
+                    : 'linear-gradient(90deg, #D7193F 0%, #3B82F6 40%, transparent 80%)',
+                }}
+              />
+
+              {/* Top Details Row */}
               <div
                 style={{
                   display: 'flex',
@@ -275,14 +294,15 @@ export default function VehicleDetailPage() {
                       width: '48px',
                       height: '48px',
                       borderRadius: 'var(--radius-md)',
-                      backgroundColor: vehicleDetail.is_watchlisted ? 'var(--status-critical-bg)' : 'var(--accent-subtle)',
-                      border: `1px solid ${vehicleDetail.is_watchlisted ? 'var(--status-critical-border)' : 'var(--accent-border)'}`,
+                      backgroundColor: vehicleDetail.is_watchlisted ? 'var(--status-critical-bg)' : 'var(--accent-primary-subtle)',
+                      border: `1px solid ${vehicleDetail.is_watchlisted ? 'var(--status-critical-border)' : 'var(--accent-primary-border)'}`,
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
+                      boxShadow: vehicleDetail.is_watchlisted ? 'var(--accent-primary-glow)' : 'var(--accent-primary-glow)',
                     }}
                   >
-                    <Car size={22} color={vehicleDetail.is_watchlisted ? 'var(--status-critical)' : 'var(--accent-primary)'} />
+                    <Car size={24} color={vehicleDetail.is_watchlisted ? 'var(--status-critical)' : 'var(--accent-primary)'} />
                   </div>
                   <div>
                     <h1
@@ -309,13 +329,14 @@ export default function VehicleDetailPage() {
                             <span
                               key={i}
                               style={{
-                                fontSize: 'var(--text-xs)',
+                                fontSize: '11px',
                                 fontWeight: 600,
                                 color: 'var(--text-secondary)',
-                                backgroundColor: 'var(--bg-surface)',
+                                backgroundColor: 'var(--bg-primary)',
                                 padding: '2px 8px',
                                 borderRadius: 'var(--radius-xs)',
                                 border: '1px solid var(--border-subtle)',
+                                fontFamily: 'var(--font-mono)',
                               }}
                             >
                               {val}
@@ -327,7 +348,6 @@ export default function VehicleDetailPage() {
                 </div>
 
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 'var(--space-2)' }}>
-                  <SimulatedDataBadge compact />
                   <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center' }}>
                     {vehicleDetail.is_watchlisted ? (
                       <>
@@ -348,8 +368,11 @@ export default function VehicleDetailPage() {
                     )}
                   </div>
                   <span style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                    <Eye size={11} />
-                    {vehicleDetail.total_sightings} sighting{vehicleDetail.total_sightings !== 1 ? 's' : ''} recorded
+                    <Eye size={12} color="var(--accent-blue)" />
+                    <strong style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-mono)' }}>
+                      {vehicleDetail.total_sightings}
+                    </strong>{' '}
+                    sighting{vehicleDetail.total_sightings !== 1 ? 's' : ''} recorded
                   </span>
                   {isEvidenceExportAuthorized && ((vehicleDetail.last_known_sighting?.id) || (timeline?.sightings?.[0]?.id)) && (
                     <button
@@ -358,18 +381,12 @@ export default function VehicleDetailPage() {
                         const targetId = vehicleDetail.last_known_sighting?.id || timeline?.sightings?.[0]?.id;
                         if (targetId) setEvidenceSightingId(targetId);
                       }}
+                      className="btn-secondary"
                       style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '5px',
                         padding: '4px 10px',
-                        backgroundColor: 'var(--bg-surface)',
-                        border: '1px solid var(--border-default)',
-                        borderRadius: 'var(--radius-sm)',
-                        color: 'var(--accent-primary)',
                         fontSize: 'var(--text-xs)',
-                        fontWeight: 600,
-                        cursor: 'pointer',
+                        color: 'var(--accent-primary)',
+                        borderColor: 'var(--accent-primary-border)',
                         marginTop: '4px',
                       }}
                     >
@@ -379,13 +396,13 @@ export default function VehicleDetailPage() {
                 </div>
               </div>
 
-              {/* Watchlist details box */}
+              {/* Watchlist Details Alert Box */}
               {vehicleDetail.is_watchlisted && vehicleDetail.watchlist_details && (
                 <div
                   style={{
                     backgroundColor: 'var(--status-critical-bg)',
                     border: '1px solid var(--status-critical-border)',
-                    borderRadius: 'var(--radius-md)',
+                    borderRadius: 'var(--radius-sm)',
                     padding: 'var(--space-3) var(--space-4)',
                     display: 'flex',
                     alignItems: 'flex-start',
@@ -413,19 +430,20 @@ export default function VehicleDetailPage() {
                         paddingTop: 'var(--space-2)',
                       }}
                     >
-                      A watchlist plate match confirms only that a camera captured a vehicle bearing this plate. It does NOT confirm driver or occupant identity. Corroborating evidence and authorized verification are required before enforcement action.
+                      Note: ANPR plate match confirms detection only. Independent verification required before enforcement action.
                     </div>
                   </div>
                 </div>
               )}
             </div>
 
-            {/* Tab Navigation */}
+            {/* Tab Navigation Controls */}
             <div
               style={{
                 display: 'flex',
-                gap: 0,
+                gap: 'var(--space-1)',
                 borderBottom: '1px solid var(--border-default)',
+                paddingBottom: '2px',
               }}
             >
               {tabs.map((tab) => {
@@ -435,32 +453,23 @@ export default function VehicleDetailPage() {
                     key={tab.id}
                     id={`vehicle-tab-${tab.id}`}
                     onClick={() => setActiveTab(tab.id)}
+                    className={`netrava-tab-button ${isActive ? 'active' : ''}`}
                     style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 'var(--space-2)',
-                      padding: 'var(--space-3) var(--space-4)',
-                      background: 'none',
-                      border: 'none',
-                      borderBottom: isActive ? '2px solid var(--accent-primary)' : '2px solid transparent',
-                      color: isActive ? 'var(--accent-primary)' : 'var(--text-muted)',
-                      fontSize: 'var(--text-sm)',
-                      fontWeight: isActive ? 700 : 500,
-                      cursor: 'pointer',
-                      transition: 'all var(--transition-fast)',
-                      marginBottom: '-1px',
+                      borderRadius: 'var(--radius-sm) var(--radius-sm) 0 0',
+                      padding: 'var(--space-2) var(--space-4)',
                     }}
                   >
-                    <tab.icon size={14} />
-                    {tab.label}
+                    <tab.icon size={14} className="tab-icon" />
+                    <span>{tab.label}</span>
                     {tab.id === 'timeline' && (
                       <span
+                        className="nav-badge"
                         style={{
                           fontSize: '10px',
-                          backgroundColor: isActive ? 'var(--accent-subtle)' : 'var(--bg-surface)',
-                          color: isActive ? 'var(--accent-primary)' : 'var(--text-muted)',
+                          backgroundColor: isActive ? 'rgba(255, 255, 255, 0.25)' : 'var(--bg-elevated)',
+                          color: isActive ? '#FFFFFF' : 'var(--text-dim)',
                           border: '1px solid',
-                          borderColor: isActive ? 'var(--accent-border)' : 'var(--border-subtle)',
+                          borderColor: isActive ? 'rgba(255, 255, 255, 0.4)' : 'var(--border-subtle)',
                           borderRadius: 'var(--radius-full)',
                           padding: '0 6px',
                           fontFamily: 'var(--font-mono)',
@@ -475,71 +484,47 @@ export default function VehicleDetailPage() {
               })}
             </div>
 
-            {/* Tab Content */}
+            {/* Tab Content Panels */}
             <div style={{ minHeight: '300px' }}>
 
               {/* === OVERVIEW TAB === */}
               {activeTab === 'overview' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
-                  {/* Sighting period */}
-                  <section>
-                    <h2
-                      style={{
-                        fontSize: 'var(--text-sm)',
-                        fontWeight: 700,
-                        color: 'var(--text-muted)',
-                        textTransform: 'uppercase',
-                        letterSpacing: '0.08em',
-                        marginBottom: 'var(--space-3)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 'var(--space-2)',
-                      }}
-                    >
-                      <Clock size={13} />
-                      Observation Window
-                    </h2>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-3)' }}>
+                  {/* Sighting Observation Window */}
+                  <div className="netrava-card" style={{ padding: 'var(--space-4) var(--space-5)' }}>
+                    <div className="netrava-card-title" style={{ marginBottom: 'var(--space-3)' }}>
+                      <Clock size={15} color="var(--accent-blue)" />
+                      <span>Observation Window</span>
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 'var(--space-3)' }}>
                       <DetailField
-                        label="First Sighting"
+                        label="First Observation"
                         value={formatTimestamp(vehicleDetail.first_seen)}
                         mono
                       />
                       <DetailField
-                        label="Last Sighting"
+                        label="Last Observation"
                         value={formatTimestamp(vehicleDetail.last_seen)}
                         mono
                       />
                     </div>
-                  </section>
+                  </div>
 
-                  {/* First / last camera */}
+                  {/* First & Last Observed Cameras */}
                   {(vehicleDetail.first_known_sighting || vehicleDetail.last_known_sighting) && (
-                    <section>
-                      <h2
-                        style={{
-                          fontSize: 'var(--text-sm)',
-                          fontWeight: 700,
-                          color: 'var(--text-muted)',
-                          textTransform: 'uppercase',
-                          letterSpacing: '0.08em',
-                          marginBottom: 'var(--space-3)',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 'var(--space-2)',
-                        }}
-                      >
-                        <MapPin size={13} />
-                        First &amp; Last Known Locations
-                      </h2>
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-3)' }}>
+                    <div className="netrava-card" style={{ padding: 'var(--space-4) var(--space-5)' }}>
+                      <div className="netrava-card-title" style={{ marginBottom: 'var(--space-3)' }}>
+                        <MapPin size={15} color="var(--accent-primary)" />
+                        <span>Observation Endpoints</span>
+                      </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 'var(--space-3)' }}>
                         {vehicleDetail.first_known_sighting && (
                           <div
                             style={{
                               padding: 'var(--space-4)',
                               backgroundColor: 'var(--status-success-bg)',
                               border: '1px solid var(--status-success-border)',
-                              borderRadius: 'var(--radius-md)',
+                              borderRadius: 'var(--radius-sm)',
                             }}
                           >
                             <div
@@ -553,6 +538,7 @@ export default function VehicleDetailPage() {
                                 display: 'flex',
                                 alignItems: 'center',
                                 gap: '4px',
+                                fontFamily: 'var(--font-mono)',
                               }}
                             >
                               <ScanLine size={11} /> First Observation
@@ -563,7 +549,7 @@ export default function VehicleDetailPage() {
                             <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginBottom: '4px' }}>
                               {vehicleDetail.first_known_sighting.location}
                             </div>
-                            <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
+                            <div style={{ fontSize: '11px', color: 'var(--text-dim)', fontFamily: 'var(--font-mono)' }}>
                               {formatTimestamp(vehicleDetail.first_known_sighting.timestamp)}
                             </div>
                           </div>
@@ -574,7 +560,7 @@ export default function VehicleDetailPage() {
                               padding: 'var(--space-4)',
                               backgroundColor: 'rgba(239, 68, 68, 0.06)',
                               border: '1px solid var(--status-critical-border)',
-                              borderRadius: 'var(--radius-md)',
+                              borderRadius: 'var(--radius-sm)',
                             }}
                           >
                             <div
@@ -588,6 +574,7 @@ export default function VehicleDetailPage() {
                                 display: 'flex',
                                 alignItems: 'center',
                                 gap: '4px',
+                                fontFamily: 'var(--font-mono)',
                               }}
                             >
                               <ScanLine size={11} /> Last Observation
@@ -598,34 +585,22 @@ export default function VehicleDetailPage() {
                             <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginBottom: '4px' }}>
                               {vehicleDetail.last_known_sighting.location}
                             </div>
-                            <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
+                            <div style={{ fontSize: '11px', color: 'var(--text-dim)', fontFamily: 'var(--font-mono)' }}>
                               {formatTimestamp(vehicleDetail.last_known_sighting.timestamp)}
                             </div>
                           </div>
                         )}
                       </div>
-                    </section>
+                    </div>
                   )}
 
-                  {/* Route summary preview */}
+                  {/* Route Summary Overview */}
                   {timeline.sightings.length >= 2 && (
-                    <section>
-                      <h2
-                        style={{
-                          fontSize: 'var(--text-sm)',
-                          fontWeight: 700,
-                          color: 'var(--text-muted)',
-                          textTransform: 'uppercase',
-                          letterSpacing: '0.08em',
-                          marginBottom: 'var(--space-3)',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 'var(--space-2)',
-                        }}
-                      >
-                        <Map size={13} />
-                        Route Summary
-                      </h2>
+                    <div className="netrava-card" style={{ padding: 'var(--space-4) var(--space-5)' }}>
+                      <div className="netrava-card-title" style={{ marginBottom: 'var(--space-3)' }}>
+                        <Map size={15} color="var(--accent-blue)" />
+                        <span>Trajectory Summary</span>
+                      </div>
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 'var(--space-3)' }}>
                         <DetailField
                           label="Total Distance"
@@ -655,45 +630,29 @@ export default function VehicleDetailPage() {
                           }
                         />
                       </div>
-                      <div style={{ marginTop: 'var(--space-3)', display: 'flex', gap: 'var(--space-3)' }}>
+                      <div style={{ marginTop: 'var(--space-4)', display: 'flex', gap: 'var(--space-3)' }}>
                         <button
                           onClick={() => setActiveTab('timeline')}
+                          className="btn-secondary"
                           style={{
-                            padding: 'var(--space-2) var(--space-4)',
-                            backgroundColor: 'var(--bg-surface)',
-                            border: '1px solid var(--border-default)',
-                            borderRadius: 'var(--radius-sm)',
-                            color: 'var(--text-secondary)',
                             fontSize: 'var(--text-xs)',
-                            fontWeight: 600,
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '4px',
+                            padding: '6px 14px',
                           }}
                         >
-                          <List size={13} /> View Timeline
+                          <List size={13} /> View Sighting Timeline
                         </button>
                         <button
                           onClick={() => setActiveTab('map')}
+                          className="btn-primary"
                           style={{
-                            padding: 'var(--space-2) var(--space-4)',
-                            backgroundColor: 'var(--accent-subtle)',
-                            border: '1px solid var(--accent-border)',
-                            borderRadius: 'var(--radius-sm)',
-                            color: 'var(--accent-primary)',
                             fontSize: 'var(--text-xs)',
-                            fontWeight: 600,
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '4px',
+                            padding: '6px 14px',
                           }}
                         >
-                          <Map size={13} /> View Route Map
+                          <Map size={13} /> Open Route Map
                         </button>
                       </div>
-                    </section>
+                    </div>
                   )}
                 </div>
               )}

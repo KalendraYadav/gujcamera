@@ -28,21 +28,22 @@ export function EmptyState({
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        padding: 'var(--space-8)',
-        backgroundColor: 'var(--bg-card)',
-        border: '1px dashed var(--border-default)',
+        padding: '32px 24px',
+        backgroundColor: 'var(--bg-surface)',
+        border: '1px solid var(--border-default)',
         borderRadius: 'var(--radius-md)',
+        boxShadow: 'var(--shadow-none)',
         textAlign: 'center',
-        minHeight: '220px',
+        minHeight: '200px',
       }}
     >
       <div
         style={{
-          width: '44px',
-          height: '44px',
-          borderRadius: '50%',
-          backgroundColor: 'var(--bg-surface)',
-          border: '1px solid var(--border-subtle)',
+          width: '40px',
+          height: '40px',
+          borderRadius: 'var(--radius-sm)',
+          backgroundColor: 'rgba(255, 255, 255, 0.04)',
+          border: '1px solid var(--border-medium)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -50,7 +51,7 @@ export function EmptyState({
           marginBottom: 'var(--space-3)',
         }}
       >
-        <Icon size={22} />
+        <Icon size={20} />
       </div>
 
       <h4
@@ -59,6 +60,7 @@ export function EmptyState({
           fontWeight: 600,
           color: 'var(--text-primary)',
           marginBottom: 'var(--space-1)',
+          letterSpacing: '0.01em',
         }}
       >
         {title}
@@ -68,8 +70,9 @@ export function EmptyState({
         style={{
           fontSize: 'var(--text-sm)',
           color: 'var(--text-secondary)',
-          maxWidth: '420px',
+          maxWidth: '400px',
           marginBottom: subtext || action ? 'var(--space-2)' : '0',
+          lineHeight: 1.43,
         }}
       >
         {message}
@@ -79,9 +82,10 @@ export function EmptyState({
         <p
           style={{
             fontSize: 'var(--text-xs)',
-            color: 'var(--text-muted)',
+            color: 'var(--text-dim)',
             maxWidth: '380px',
             marginBottom: action ? 'var(--space-4)' : '0',
+            lineHeight: 1.4,
           }}
         >
           {subtext}
@@ -91,17 +95,11 @@ export function EmptyState({
       {action && (
         <button
           onClick={action.onClick}
+          className="btn-secondary"
           style={{
             marginTop: 'var(--space-3)',
-            padding: 'var(--space-2) var(--space-4)',
-            backgroundColor: 'var(--bg-surface)',
-            border: '1px solid var(--border-default)',
-            borderRadius: 'var(--radius-sm)',
-            color: 'var(--text-primary)',
-            fontSize: 'var(--text-xs)',
-            fontWeight: 600,
-            cursor: 'pointer',
-            transition: 'background var(--transition-fast)',
+            padding: '6px 14px',
+            fontSize: 'var(--text-sm)',
           }}
         >
           {action.label}

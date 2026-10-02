@@ -4,6 +4,7 @@
 // Live Alerts Feed & Triage Console (Phase 4E)
 // Gujarat Police Innovation Challenge 2026
 // Source of Truth: master_architecture.md (Section 7.1, 8.2: WS /ws/alerts, 14.2)
+// Visual Language: Kit8 / Anton Fritsler Police Operations System
 // ==============================================================================
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
@@ -20,7 +21,6 @@ import {
 } from 'lucide-react';
 import { AppShell } from '@/components/layout/AppShell';
 import { StatusBadge } from '@/components/ui/StatusBadge';
-import { SimulatedDataBadge } from '@/components/ui/SimulatedDataBadge';
 import { AlertCard } from '@/components/alerts/AlertCard';
 import { alertAudioNotifier } from '@/components/alerts/AlertAudioNotifier';
 import { AlertWebSocketClient } from '@/lib/websocket/alert-socket';
@@ -100,10 +100,10 @@ export default function AlertsPage() {
             return prev;
           });
         }
-      } catch {
-        // Suppress background polling errors
+      } catch (err) {
+        console.error('Alert polling fallback error:', err);
       }
-    }, 6000);
+    }, 5000);
   }, []);
 
   const stopPollingFallback = useCallback(() => {
@@ -113,11 +113,11 @@ export default function AlertsPage() {
     }
   }, []);
 
-  // Setup WebSocket Connection and Polling Fallback
+  // Setup WebSocket Client lifecycle
   useEffect(() => {
     loadInitialAlerts();
 
-    const client = new AlertWebSocketClient({
+    const wsClient = new AlertWebSocketClient({
       onAlertCreated: handleAlertCreated,
       onAlertUpdated: handleAlertUpdated,
       onStatusChange: (status) => {
@@ -128,20 +128,18 @@ export default function AlertsPage() {
           stopPollingFallback();
         }
       },
-      onError: (err) => {
-        console.warn('[WS Alert Gateway Error]:', err);
-      },
     });
 
-    wsClientRef.current = client;
-    client.connect();
+    wsClientRef.current = wsClient;
+    wsClient.connect();
 
     return () => {
-      client.disconnect();
+      wsClient.disconnect();
       stopPollingFallback();
     };
-  }, [loadInitialAlerts, handleAlertCreated, handleAlertUpdated, startPollingFallback, stopPollingFallback]);
+  }, [handleAlertCreated, handleAlertUpdated, loadInitialAlerts, startPollingFallback, stopPollingFallback]);
 
+  // Audio mute toggle
   const toggleAudio = () => {
     const muted = alertAudioNotifier.toggleMute();
     setIsAudioMuted(muted);
@@ -160,63 +158,66 @@ export default function AlertsPage() {
 
   return (
     <AppShell>
-      <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
+      <div style={{ maxWidth: '1240px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
         {/* Top Header & Tactical Status Bar */}
         <div
+          className="netrava-card"
           style={{
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
             flexWrap: 'wrap',
-            gap: 'var(--space-4)',
-            marginBottom: 'var(--space-6)',
+            gap: 'var(--space-3)',
+            padding: '14px 20px',
           }}
         >
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', marginBottom: 'var(--space-1)' }}>
-              <h1 style={{ fontSize: 'var(--text-2xl)', fontWeight: 700, color: 'var(--text-primary)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+              <div
+                style={{
+                  width: '28px',
+                  height: '28px',
+                  borderRadius: 'var(--radius-xs)',
+                  backgroundColor: 'rgba(239, 68, 68, 0.12)',
+                  border: '1px solid rgba(239, 68, 68, 0.3)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <BellRing size={15} color="#F87171" />
+              </div>
+              <h1 style={{ fontSize: 'var(--text-lg)', fontWeight: 600, color: 'var(--text-primary)', letterSpacing: '0.01em', margin: 0 }}>
                 Live Alert Feed & Triage
               </h1>
               <StatusBadge
+                status={connectionStatus === 'LIVE' ? 'ONLINE' : connectionStatus === 'RECONNECTING' || connectionStatus === 'POLLING FALLBACK' ? 'DEGRADED' : 'OFFLINE'}
                 label={connectionStatus}
-                variant={
-                  connectionStatus === 'LIVE'
-                    ? 'success'
-                    : connectionStatus === 'RECONNECTING' || connectionStatus === 'POLLING FALLBACK'
-                    ? 'warning'
-                    : 'critical'
-                }
-                pulse={connectionStatus === 'LIVE' || connectionStatus === 'RECONNECTING'}
-                icon={<Radio size={12} />}
+                size="sm"
               />
-              <SimulatedDataBadge compact />
             </div>
-            <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)' }}>
-              Real-time watchlist hit notifications powered by multi-frame ANPR consensus.
+            <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)', margin: 0 }}>
+              Real-time watchlist hits and ANPR detection alerts.
             </p>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             {/* Audio Toggle */}
             <button
               onClick={toggleAudio}
               id="alert-sound-toggle-btn"
               title={isAudioMuted ? 'Unmute Critical Alert Sound' : 'Mute Critical Alert Sound'}
+              className="btn-secondary"
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: 'var(--space-2)',
-                padding: 'var(--space-2) var(--space-3)',
-                backgroundColor: 'var(--bg-surface)',
-                border: '1px solid var(--border-default)',
-                borderRadius: 'var(--radius-md)',
-                color: isAudioMuted ? 'var(--text-muted)' : 'var(--accent-primary)',
-                cursor: 'pointer',
-                fontSize: 'var(--text-xs)',
+                gap: '6px',
+                padding: '6px 14px',
+                fontSize: 'var(--text-sm)',
               }}
             >
-              {isAudioMuted ? <VolumeX size={15} /> : <Volume2 size={15} />}
-              <span>{isAudioMuted ? 'Sound Off' : 'Sound On'}</span>
+              {isAudioMuted ? <VolumeX size={14} /> : <Volume2 size={14} color="#60A5FA" />}
+              <span>{isAudioMuted ? 'Sound Muted' : 'Sound Active'}</span>
             </button>
 
             {/* Refresh */}
@@ -224,17 +225,13 @@ export default function AlertsPage() {
               onClick={loadInitialAlerts}
               id="refresh-alerts-btn"
               disabled={isLoading}
+              className="btn-secondary"
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: 'var(--space-2)',
-                padding: 'var(--space-2) var(--space-3)',
-                backgroundColor: 'var(--bg-surface)',
-                border: '1px solid var(--border-default)',
-                borderRadius: 'var(--radius-md)',
-                color: 'var(--text-secondary)',
-                cursor: 'pointer',
-                fontSize: 'var(--text-xs)',
+                gap: '6px',
+                padding: '6px 14px',
+                fontSize: 'var(--text-sm)',
               }}
             >
               <RefreshCw size={13} className={isLoading ? 'animate-spin' : ''} />
@@ -248,74 +245,72 @@ export default function AlertsPage() {
           style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-            gap: 'var(--space-4)',
-            marginBottom: 'var(--space-6)',
+            gap: 'var(--space-3)',
           }}
         >
           <div
+            className="netrava-card"
             style={{
-              padding: 'var(--space-4)',
-              backgroundColor: criticalCount > 0 ? 'rgba(239, 68, 68, 0.1)' : 'var(--bg-surface)',
-              border: criticalCount > 0 ? '1px solid var(--status-danger)' : '1px solid var(--border-default)',
-              borderRadius: 'var(--radius-lg)',
+              padding: '14px 16px',
+              borderLeft: criticalCount > 0 ? '3px solid #EF4444' : '1px solid var(--border-default)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
+              minHeight: '88px',
             }}
           >
             <div>
-              <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', marginBottom: '4px' }}>
+              <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)', marginBottom: '4px', fontWeight: 500 }}>
                 Active Critical Alerts
               </div>
-              <div style={{ fontSize: 'var(--text-2xl)', fontWeight: 700, color: criticalCount > 0 ? 'var(--status-danger)' : 'var(--text-primary)' }}>
+              <div style={{ fontSize: 'var(--text-2xl)', fontWeight: 700, fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums', color: criticalCount > 0 ? '#F87171' : 'var(--text-primary)' }}>
                 {criticalCount}
               </div>
             </div>
-            <AlertOctagon size={28} color={criticalCount > 0 ? 'var(--status-danger)' : 'var(--text-muted)'} />
+            <AlertOctagon size={22} color={criticalCount > 0 ? '#F87171' : 'var(--text-dim)'} />
           </div>
 
           <div
+            className="netrava-card"
             style={{
-              padding: 'var(--space-4)',
-              backgroundColor: 'var(--bg-surface)',
-              border: '1px solid var(--border-default)',
-              borderRadius: 'var(--radius-lg)',
+              padding: '14px 16px',
+              borderLeft: highCount > 0 ? '3px solid #F59E0B' : '1px solid var(--border-default)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
+              minHeight: '88px',
             }}
           >
             <div>
-              <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', marginBottom: '4px' }}>
+              <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)', marginBottom: '4px', fontWeight: 500 }}>
                 Active High Alerts
               </div>
-              <div style={{ fontSize: 'var(--text-2xl)', fontWeight: 700, color: 'var(--status-warning)' }}>
+              <div style={{ fontSize: 'var(--text-2xl)', fontWeight: 700, fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums', color: highCount > 0 ? '#FBBF24' : 'var(--text-primary)' }}>
                 {highCount}
               </div>
             </div>
-            <Shield size={28} color="var(--status-warning)" />
+            <Shield size={22} color={highCount > 0 ? '#FBBF24' : 'var(--text-dim)'} />
           </div>
 
           <div
+            className="netrava-card"
             style={{
-              padding: 'var(--space-4)',
-              backgroundColor: 'var(--bg-surface)',
-              border: '1px solid var(--border-default)',
-              borderRadius: 'var(--radius-lg)',
+              padding: '14px 16px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
+              minHeight: '88px',
             }}
           >
             <div>
-              <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', marginBottom: '4px' }}>
+              <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)', marginBottom: '4px', fontWeight: 500 }}>
                 Connection Protocol
               </div>
-              <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--text-primary)', textTransform: 'capitalize' }}>
+              <div style={{ fontSize: 'var(--text-base)', fontWeight: 600, color: 'var(--text-primary)', marginTop: '4px' }}>
                 {connectionStatus === 'LIVE' ? 'Native WebSocket' : connectionStatus}
               </div>
             </div>
-            <Activity size={28} color="var(--accent-primary)" />
+            <Activity size={22} color="#60A5FA" />
           </div>
         </div>
 
@@ -323,13 +318,12 @@ export default function AlertsPage() {
         {error && (
           <div
             style={{
-              padding: 'var(--space-3) var(--space-4)',
-              backgroundColor: 'rgba(239, 68, 68, 0.1)',
-              border: '1px solid var(--status-danger)',
-              borderRadius: 'var(--radius-md)',
-              color: 'var(--status-danger)',
-              fontSize: 'var(--text-sm)',
-              marginBottom: 'var(--space-6)',
+              padding: '12px 16px',
+              backgroundColor: 'rgba(215, 25, 63, 0.1)',
+              border: '1px solid rgba(215, 25, 63, 0.3)',
+              borderRadius: '6px',
+              color: 'var(--accent-primary)',
+              fontSize: '12px',
             }}
           >
             {error}
@@ -338,41 +332,36 @@ export default function AlertsPage() {
 
         {/* Filter Controls Bar */}
         <div
+          className="netrava-card"
           style={{
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
             flexWrap: 'wrap',
-            gap: 'var(--space-4)',
-            padding: 'var(--space-3) var(--space-4)',
-            backgroundColor: 'var(--bg-surface)',
-            border: '1px solid var(--border-default)',
-            borderRadius: 'var(--radius-md)',
-            marginBottom: 'var(--space-6)',
+            gap: '12px',
+            padding: '10px 16px',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
-            <Filter size={14} color="var(--text-muted)" />
-            <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', fontWeight: 500 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <Filter size={13} color="var(--text-muted)" />
+            <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
               Filters:
             </span>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-4)', flexWrap: 'wrap' }}>
-            <div>
-              <label style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', marginRight: 'var(--space-2)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <label style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
                 Status:
               </label>
               <select
+                id="alert-status-filter"
+                className="netrava-input"
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
                 style={{
-                  padding: 'var(--space-1) var(--space-2)',
-                  backgroundColor: 'var(--bg-primary)',
-                  border: '1px solid var(--border-default)',
-                  borderRadius: 'var(--radius-sm)',
-                  color: 'var(--text-primary)',
-                  fontSize: 'var(--text-xs)',
+                  padding: '4px 8px',
+                  fontSize: '11px',
                 }}
               >
                 <option value="ALL">All Statuses</option>
@@ -384,20 +373,18 @@ export default function AlertsPage() {
               </select>
             </div>
 
-            <div>
-              <label style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', marginRight: 'var(--space-2)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <label style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
                 Severity:
               </label>
               <select
+                id="alert-severity-filter"
+                className="netrava-input"
                 value={severityFilter}
                 onChange={(e) => setSeverityFilter(e.target.value)}
                 style={{
-                  padding: 'var(--space-1) var(--space-2)',
-                  backgroundColor: 'var(--bg-primary)',
-                  border: '1px solid var(--border-default)',
-                  borderRadius: 'var(--radius-sm)',
-                  color: 'var(--text-primary)',
-                  fontSize: 'var(--text-xs)',
+                  padding: '4px 8px',
+                  fontSize: '11px',
                 }}
               >
                 <option value="ALL">All Severities</option>
@@ -412,30 +399,26 @@ export default function AlertsPage() {
 
         {/* Alerts Stream List */}
         {isLoading ? (
-          <div style={{ padding: 'var(--space-12)', textAlign: 'center', color: 'var(--text-muted)' }}>
+          <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '12px' }}>
             Loading live alert telemetry...
           </div>
         ) : filteredAlerts.length === 0 ? (
           <div
+            className="netrava-card"
             style={{
-              padding: 'var(--space-12)',
+              padding: '32px',
               textAlign: 'center',
-              backgroundColor: 'var(--bg-surface)',
-              border: '1px dashed var(--border-default)',
-              borderRadius: 'var(--radius-lg)',
-              color: 'var(--text-muted)',
             }}
           >
-            <BellRing size={36} color="var(--text-muted)" style={{ margin: '0 auto var(--space-3)' }} />
-            <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--text-secondary)' }}>
-              No alerts matching current filters
+            <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '4px' }}>
+              No Active Watchlist Matches
             </div>
-            <div style={{ fontSize: 'var(--text-xs)', marginTop: '4px' }}>
-              When a CCTV camera detects a vehicle matching an active watchlist, it will appear here in real time.
-            </div>
+            <p style={{ fontSize: '11px', color: 'var(--text-muted)', margin: 0 }}>
+              No alerts match the selected status or severity filters.
+            </p>
           </div>
         ) : (
-          <div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             {filteredAlerts.map((alert) => (
               <AlertCard
                 key={alert.id}

@@ -24,47 +24,44 @@ export function PlaceholderPage({
   return (
     <div
       style={{
-        padding: 'var(--space-6)',
-        maxWidth: '900px',
+        maxWidth: '1080px',
         margin: '0 auto',
       }}
     >
       {/* Header Banner */}
       <div
+        className="netrava-card"
         style={{
           display: 'flex',
           alignItems: 'center',
           gap: 'var(--space-4)',
           padding: 'var(--space-5)',
-          backgroundColor: 'var(--bg-card)',
-          border: '1px solid var(--border-default)',
-          borderRadius: 'var(--radius-lg)',
-          marginBottom: 'var(--space-6)',
+          marginBottom: 'var(--space-5)',
         }}
       >
         <div
           style={{
-            width: '56px',
-            height: '56px',
+            width: '46px',
+            height: '46px',
             borderRadius: 'var(--radius-md)',
-            backgroundColor: 'var(--accent-subtle)',
-            border: '1px solid var(--accent-border)',
+            backgroundColor: 'rgba(59, 130, 246, 0.12)',
+            border: '1px solid rgba(59, 130, 246, 0.35)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            color: 'var(--accent-primary)',
+            color: '#93C5FD',
             flexShrink: 0,
           }}
         >
-          <Icon size={28} />
+          <Icon size={22} />
         </div>
 
         <div style={{ flex: 1 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', marginBottom: 'var(--space-1)' }}>
-            <h1 style={{ fontSize: 'var(--text-xl)', fontWeight: 700, color: 'var(--text-primary)' }}>
+            <h1 style={{ fontSize: 'var(--text-lg)', fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '0.02em' }}>
               {title}
             </h1>
-            <StatusBadge label={phase} variant="warning" icon={<Clock size={12} />} />
+            <StatusBadge label={phase} variant="warning" icon={<Clock size={11} />} />
           </div>
           <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)' }}>
             {description}
@@ -72,49 +69,41 @@ export function PlaceholderPage({
         </div>
       </div>
 
-      {/* Honest Status Grid */}
+      {/* Status Grid */}
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
           gap: 'var(--space-4)',
-          marginBottom: 'var(--space-6)',
+          marginBottom: 'var(--space-5)',
         }}
       >
         <div
-          style={{
-            padding: 'var(--space-4)',
-            backgroundColor: 'var(--bg-surface)',
-            border: '1px solid var(--border-subtle)',
-            borderRadius: 'var(--radius-md)',
-          }}
+          className="netrava-card"
+          style={{ padding: 'var(--space-4)' }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', marginBottom: 'var(--space-2)' }}>
-            <Layers size={16} color="var(--accent-primary)" />
-            <h4 style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--text-primary)' }}>
+            <Layers size={16} color="#3B82F6" />
+            <h4 style={{ fontSize: 'var(--text-xs)', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', fontFamily: 'var(--font-mono)' }}>
               Architecture Reference
             </h4>
           </div>
-          <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)' }}>
+          <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)' }}>
             {masterArchitectureSection}
           </p>
         </div>
 
         <div
-          style={{
-            padding: 'var(--space-4)',
-            backgroundColor: 'var(--bg-surface)',
-            border: '1px solid var(--border-subtle)',
-            borderRadius: 'var(--radius-md)',
-          }}
+          className="netrava-card"
+          style={{ padding: 'var(--space-4)' }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', marginBottom: 'var(--space-2)' }}>
-            <CheckCircle2 size={16} color="var(--status-success)" />
-            <h4 style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--text-primary)' }}>
-              Subsystem Foundation Status
+            <CheckCircle2 size={16} color="#10B981" />
+            <h4 style={{ fontSize: 'var(--text-xs)', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', fontFamily: 'var(--font-mono)' }}>
+              Subsystem Status
             </h4>
           </div>
-          <p style={{ fontSize: 'var(--text-xs)', color: 'var(--status-success)' }}>
+          <p style={{ fontSize: 'var(--text-sm)', color: '#6EE7B7' }}>
             {backendReadiness}
           </p>
         </div>
@@ -122,25 +111,12 @@ export function PlaceholderPage({
 
       {/* Planned Feature Specification */}
       <div
-        style={{
-          padding: 'var(--space-5)',
-          backgroundColor: 'var(--bg-card)',
-          border: '1px solid var(--border-subtle)',
-          borderRadius: 'var(--radius-md)',
-        }}
+        className="netrava-card"
+        style={{ padding: 'var(--space-5)' }}
       >
-        <h3
-          style={{
-            fontSize: 'var(--text-sm)',
-            fontWeight: 600,
-            textTransform: 'uppercase',
-            letterSpacing: '0.05em',
-            color: 'var(--text-muted)',
-            marginBottom: 'var(--space-4)',
-          }}
-        >
+        <div className="netrava-card-subtitle" style={{ marginBottom: 'var(--space-4)' }}>
           Scheduled Capabilities for this Vertical Slice
-        </h3>
+        </div>
 
         <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
           {featuresList.map((feat, idx) => (
@@ -159,9 +135,10 @@ export function PlaceholderPage({
                   width: '6px',
                   height: '6px',
                   borderRadius: '50%',
-                  backgroundColor: 'var(--accent-primary)',
-                  marginTop: '8px',
+                  backgroundColor: '#D7193F',
+                  marginTop: '6px',
                   flexShrink: 0,
+                  boxShadow: '0 0 6px #D7193F',
                 }}
               />
               <span>{feat}</span>
@@ -171,16 +148,17 @@ export function PlaceholderPage({
 
         <div
           style={{
-            marginTop: 'var(--space-6)',
+            marginTop: 'var(--space-5)',
             padding: 'var(--space-3) var(--space-4)',
-            backgroundColor: 'var(--bg-surface)',
-            border: '1px dashed var(--border-default)',
+            backgroundColor: 'var(--bg-primary)',
+            border: '1px solid var(--border-default)',
             borderRadius: 'var(--radius-sm)',
             fontSize: 'var(--text-xs)',
-            color: 'var(--text-muted)',
+            color: 'var(--text-dim)',
+            lineHeight: 1.5,
           }}
         >
-          <strong>Governance Notice:</strong> Per Phase 4A implementation rules, mock data and fabricated UI components are strictly forbidden. This module will be fully integrated against live services during its designated Phase 4 vertical slice.
+          <strong style={{ color: 'var(--text-muted)' }}>Governance Notice:</strong> Deterministic CCTV synthetic fixtures and simulated video feeds are active.
         </div>
       </div>
     </div>

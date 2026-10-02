@@ -61,7 +61,6 @@ describe('AppShell Component', () => {
     expect(screen.getByText('operator.demo@gujcamera.local')).toBeInTheDocument();
     expect(screen.getByText('OPERATOR')).toBeInTheDocument();
     expect(screen.getByText('Ahmedabad City Police Commissionerate')).toBeInTheDocument();
-    expect(screen.getAllByText('SIMULATED DATA').length).toBeGreaterThan(0);
   });
 
   it('renders loading state when authentication is initializing', () => {
@@ -118,4 +117,28 @@ describe('AppShell Component', () => {
     expect(mockPush).toHaveBeenCalledWith('/login');
     expect(screen.queryByText('Protected Content')).not.toBeInTheDocument();
   });
+
+  it('renders redesigned user identity panel with avatar, organization, and handles sign out', async () => {
+    render(
+      <AppShell>
+        <div>Main Dashboard Content</div>
+      </AppShell>,
+    );
+
+    // Verify User Identity
+    expect(screen.getByText('operator.demo@gujcamera.local')).toBeInTheDocument();
+    expect(screen.getByText('OPERATOR')).toBeInTheDocument();
+    expect(screen.getByTitle('Officer Session Active')).toBeInTheDocument();
+
+    // Verify Organization Group
+    expect(screen.getByText('ORGANIZATION')).toBeInTheDocument();
+    expect(screen.getByText('Ahmedabad City Police Commissionerate')).toBeInTheDocument();
+
+    // Verify 3D Sign Out Button
+    const signOutBtn = screen.getByRole('button', { name: /sign out/i });
+    expect(signOutBtn).toBeInTheDocument();
+    signOutBtn.click();
+    expect(mockAuthState.logout).toHaveBeenCalledTimes(1);
+  });
 });
+

@@ -103,12 +103,10 @@ describe('Fleet Administration & Camera Onboarding UI (Phase 4F)', () => {
     });
   });
 
-  it('renders page header with Phase 4F badge and protocol architecture disclaimers', async () => {
+  it('renders page header and protocol architecture disclaimers', async () => {
     render(<FleetAdminPage />);
 
-    expect(screen.getAllByText('Phase 4F').length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText('Fleet Administration & Camera Onboarding')).toBeInTheDocument();
-
     expect(screen.getByText(/Authoritative Protocol Architecture Boundary/i)).toBeInTheDocument();
     expect(screen.getByText(/Real Protocol Implementation/i)).toBeInTheDocument();
   });
@@ -231,10 +229,8 @@ describe('Fleet Administration & Camera Onboarding UI (Phase 4F)', () => {
     });
   });
 
-  it('allows selecting unused demo fixture and registered demo fixture with simulated data badge', async () => {
+  it('allows selecting unused demo fixture and registered demo fixture', async () => {
     render(<FleetAdminPage />);
-
-    expect(screen.getByText(/DEMO FIXTURES • SIMULATED DATA/i)).toBeInTheDocument();
 
     const unusedButton = screen.getByRole('button', { name: /Fill Unused Demo Fixture/i });
     fireEvent.click(unusedButton);

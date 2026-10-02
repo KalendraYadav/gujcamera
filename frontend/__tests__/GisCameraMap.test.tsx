@@ -147,8 +147,6 @@ describe('GIS Camera Map Component (Phase 4B)', () => {
 
     render(<GisCameraMap />);
 
-    // Check simulated data indicator
-    expect(screen.getByText(/SIMULATED DATA/i)).toBeInTheDocument();
     // Check HUD title
     expect(screen.getByText('GIS COMMAND MAP')).toBeInTheDocument();
     // Check map legend

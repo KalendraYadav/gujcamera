@@ -35,7 +35,7 @@ describe('Command Center RBAC UX', () => {
     mockUserRole = 'OPERATOR';
     render(<CommandCenterPage />);
 
-    expect(screen.getByText('Operational')).toBeInTheDocument();
+    expect(screen.getAllByText(/Operational/i).length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText('Tactical Operations Navigation')).toBeInTheDocument();
     expect(screen.getByText('Live Video Monitoring')).toBeInTheDocument();
     expect(screen.getByText('GIS Camera Command Map')).toBeInTheDocument();
@@ -73,7 +73,7 @@ describe('Command Center RBAC UX', () => {
     mockUserRole = 'SUPER_ADMIN';
     render(<CommandCenterPage />);
 
-    expect(screen.getByText('Operational')).toBeInTheDocument();
+    expect(screen.getAllByText(/Operational/i).length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText('Tactical Operations Navigation')).toBeInTheDocument();
 
     // Super Admin has access to all cards

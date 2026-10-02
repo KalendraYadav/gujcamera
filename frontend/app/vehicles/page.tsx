@@ -21,11 +21,12 @@ import {
   ScanLine,
   ChevronLeft,
   ChevronRight,
+  Activity,
+  Layers,
 } from 'lucide-react';
 import { AppShell } from '@/components/layout/AppShell';
 import { VehicleSearchBar } from '@/components/vehicles/VehicleSearchBar';
 import { VehicleResultCard } from '@/components/vehicles/VehicleResultCard';
-import { SimulatedDataBadge } from '@/components/ui/SimulatedDataBadge';
 import { ErrorState } from '@/components/ui/ErrorState';
 import { LoadingState } from '@/components/ui/LoadingState';
 import { vehiclesApi } from '@/lib/api/vehicles';
@@ -91,7 +92,7 @@ export default function VehiclesPage() {
   if (authLoading) {
     return (
       <AppShell>
-        <div style={{ maxWidth: '960px', margin: '0 auto', padding: 'var(--space-6)' }}>
+        <div style={{ maxWidth: '1000px', margin: '0 auto', padding: 'var(--space-6)' }}>
           <LoadingState
             message="Verifying investigation credentials..."
             subtext="Checking cryptographic session and officer RBAC role"
@@ -104,7 +105,7 @@ export default function VehiclesPage() {
   if (!isAuthorized) {
     return (
       <AppShell>
-        <div style={{ maxWidth: '960px', margin: '0 auto', padding: 'var(--space-6)' }}>
+        <div style={{ maxWidth: '1000px', margin: '0 auto', padding: 'var(--space-6)' }}>
           <ErrorState
             title="Investigation Access Restricted"
             message="Vehicle intelligence search and cross-camera tracking are restricted to Investigator, Department Admin, and Super Admin personnel."
@@ -120,74 +121,115 @@ export default function VehiclesPage() {
     <AppShell>
       <div
         style={{
-          maxWidth: '960px',
+          maxWidth: '1080px',
           margin: '0 auto',
           display: 'flex',
           flexDirection: 'column',
-          gap: 'var(--space-6)',
+          gap: 'var(--space-5)',
         }}
       >
-        {/* Page Header */}
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', marginBottom: 'var(--space-2)' }}>
-            <div
-              style={{
-                width: '40px',
-                height: '40px',
-                borderRadius: 'var(--radius-md)',
-                backgroundColor: 'var(--accent-subtle)',
-                border: '1px solid var(--accent-border)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              <Car size={20} color="var(--accent-primary)" />
-            </div>
-            <div>
-              <h1
-                style={{
-                  fontSize: 'var(--text-2xl)',
-                  fontWeight: 800,
-                  color: 'var(--text-primary)',
-                  letterSpacing: '-0.02em',
-                }}
-              >
-                Vehicle Intelligence
-              </h1>
-              <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', marginTop: '2px' }}>
-                Plate-based cross-camera correlation · PostGIS route reconstruction · Watchlist matching
-              </p>
-            </div>
-            <div style={{ marginLeft: 'auto' }}>
-              <SimulatedDataBadge compact />
-            </div>
-          </div>
-
-          {/* Role notice */}
+        {/* Page Header Banner */}
+        <div
+          className="netrava-card"
+          style={{
+            padding: '16px 20px',
+            position: 'relative',
+          }}
+        >
           <div
             style={{
-              backgroundColor: 'var(--status-info-bg)',
-              border: '1px solid var(--status-info-border)',
-              borderRadius: 'var(--radius-sm)',
-              padding: 'var(--space-2) var(--space-3)',
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              height: '2px',
+              background: 'var(--highlight-gradient)',
+            }}
+          />
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: 'var(--space-3)',
+              marginBottom: 'var(--space-3)',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
+              <div
+                style={{
+                  width: '36px',
+                  height: '36px',
+                  borderRadius: 'var(--radius-xs)',
+                  backgroundColor: 'rgba(59, 130, 246, 0.12)',
+                  border: '1px solid rgba(59, 130, 246, 0.3)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <Car size={18} color="#60A5FA" />
+              </div>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+                  <h1
+                    style={{
+                      fontSize: 'var(--text-lg)',
+                      fontWeight: 600,
+                      color: 'var(--text-primary)',
+                      letterSpacing: '0.01em',
+                      margin: 0,
+                    }}
+                  >
+                    Vehicle Intelligence
+                  </h1>
+                  <span
+                    style={{
+                      fontSize: '11px',
+                      fontFamily: 'var(--font-mono)',
+                      fontWeight: 600,
+                      color: '#60A5FA',
+                      backgroundColor: 'rgba(59, 130, 246, 0.12)',
+                      border: '1px solid rgba(59, 130, 246, 0.3)',
+                      padding: '1px 6px',
+                      borderRadius: 'var(--radius-xs)',
+                      letterSpacing: '0.04em',
+                    }}
+                  >
+                    ANPR CORRELATION
+                  </span>
+                </div>
+                <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)', marginTop: '2px', margin: 0 }}>
+                  Plate correlation &bull; Spatial trajectory reconstruction &bull; Watchlist matching
+                </p>
+              </div>
+            </div>
+
+          </div>
+
+          {/* Role & Governance Notice */}
+          <div
+            style={{
+              backgroundColor: 'rgba(59, 130, 246, 0.08)',
+              border: '1px solid rgba(59, 130, 246, 0.25)',
+              borderRadius: 'var(--radius-xs)',
+              padding: '6px 12px',
               display: 'flex',
               alignItems: 'center',
               gap: 'var(--space-2)',
-              fontSize: '11px',
+              fontSize: '12px',
               color: 'var(--text-secondary)',
             }}
           >
-            <Shield size={12} color="var(--status-info)" />
+            <Shield size={13} color="#60A5FA" style={{ flexShrink: 0 }} />
             <span>
-              <strong style={{ color: 'var(--status-info)' }}>Investigation access required.</strong> All
-              searches are synchronously audit-logged (VEHICLE_SEARCH). Authorized roles: INVESTIGATOR,
-              DEPARTMENT_ADMIN, SUPER_ADMIN.
+              <strong style={{ color: 'var(--text-primary)' }}>SECURE ACCESS:</strong> All searches logged to immutable audit ledger (<code style={{ fontFamily: 'var(--font-mono)', color: '#60A5FA' }}>VEHICLE_SEARCH</code>). Authorized: INVESTIGATOR, DEPARTMENT_ADMIN, SUPER_ADMIN.
             </span>
           </div>
         </div>
 
-        {/* Search Bar */}
+        {/* Search Bar Component */}
         <VehicleSearchBar
           onSearch={handleSearch}
           isLoading={searchState === 'loading'}
@@ -197,38 +239,38 @@ export default function VehiclesPage() {
         {/* Results Section */}
         {searchState === 'idle' && (
           <div
+            className="netrava-card"
             style={{
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
               justifyContent: 'center',
-              padding: 'var(--space-12)',
+              padding: 'var(--space-10) var(--space-6)',
               gap: 'var(--space-4)',
-              backgroundColor: 'var(--bg-surface)',
-              border: '1px solid var(--border-subtle)',
-              borderRadius: 'var(--radius-lg)',
+              textAlign: 'center',
             }}
           >
             <div
               style={{
-                width: '64px',
-                height: '64px',
+                width: '56px',
+                height: '56px',
                 borderRadius: '50%',
-                backgroundColor: 'var(--accent-subtle)',
-                border: '1px solid var(--accent-border)',
+                backgroundColor: 'var(--accent-primary-subtle)',
+                border: '1px solid var(--accent-primary-border)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
+                boxShadow: 'var(--accent-primary-glow)',
               }}
             >
-              <Search size={28} color="var(--accent-primary)" />
+              <Search size={24} color="var(--accent-primary)" />
             </div>
-            <div style={{ textAlign: 'center' }}>
-              <div style={{ fontWeight: 700, fontSize: 'var(--text-md)', color: 'var(--text-primary)', marginBottom: '6px' }}>
-                Enter a license plate to begin investigation
+            <div>
+              <div style={{ fontWeight: 700, fontSize: 'var(--text-md)', color: 'var(--text-primary)', marginBottom: '4px' }}>
+                Enter License Plate to Begin Investigation
               </div>
-              <div style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)' }}>
-                Search by full plate (GJ01AB1234) or partial prefix (GJ01)
+              <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>
+                Full plate (<span style={{ fontFamily: 'var(--font-mono)', color: 'var(--accent-blue)' }}>GJ01AB1234</span>) or prefix (<span style={{ fontFamily: 'var(--font-mono)', color: 'var(--accent-blue)' }}>GJ01</span>)
               </div>
             </div>
             <div
@@ -242,23 +284,25 @@ export default function VehiclesPage() {
               }}
             >
               {[
-                { icon: Database, text: `${39}+ active plate records` },
-                { icon: ScanLine, text: 'ANPR plate-based correlation only' },
-                { icon: Shield, text: 'Audit-logged investigative access' },
+                { icon: Database, text: '39+ Registered Plate Records' },
+                { icon: ScanLine, text: 'ANPR Plate-Based Correlation' },
+                { icon: Shield, text: 'Audit-Logged Access' },
               ].map(({ icon: Icon, text }) => (
                 <div
                   key={text}
                   style={{
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '4px',
-                    padding: '3px 8px',
-                    backgroundColor: 'var(--bg-secondary)',
-                    border: '1px solid var(--border-subtle)',
+                    gap: '5px',
+                    padding: '4px 10px',
+                    backgroundColor: 'var(--bg-primary)',
+                    border: '1px solid var(--border-default)',
                     borderRadius: 'var(--radius-xs)',
+                    fontFamily: 'var(--font-mono)',
+                    fontSize: '10px',
                   }}
                 >
-                  <Icon size={11} color="var(--text-muted)" />
+                  <Icon size={11} color="var(--accent-blue)" />
                   {text}
                 </div>
               ))}
@@ -267,7 +311,7 @@ export default function VehiclesPage() {
         )}
 
         {searchState === 'loading' && (
-          <div style={{ padding: 'var(--space-12)' }}>
+          <div className="netrava-card" style={{ padding: 'var(--space-10)' }}>
             <LoadingState
               message={`Searching vehicle records for "${searchedPlate}"…`}
               subtext="Querying ANPR plate database and watchlist correlations"
@@ -285,7 +329,7 @@ export default function VehiclesPage() {
 
         {searchState === 'results' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
-            {/* Results header */}
+            {/* Results Header Bar */}
             <div
               style={{
                 display: 'flex',
@@ -293,6 +337,7 @@ export default function VehiclesPage() {
                 justifyContent: 'space-between',
                 flexWrap: 'wrap',
                 gap: 'var(--space-2)',
+                padding: 'var(--space-2) var(--space-1)',
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
@@ -325,13 +370,13 @@ export default function VehiclesPage() {
                     }}
                   >
                     <AlertTriangle size={11} />
-                    {watchlistedCount} watchlisted
+                    {watchlistedCount} Watchlisted Target{watchlistedCount !== 1 ? 's' : ''}
                   </div>
                 )}
               </div>
 
               {pagination && (
-                <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
                   Page {currentPage} of {pagination.total_pages}
                 </span>
               )}
@@ -339,20 +384,18 @@ export default function VehiclesPage() {
 
             {results.length === 0 ? (
               <div
+                className="netrava-card"
                 style={{
                   padding: 'var(--space-10)',
                   textAlign: 'center',
-                  backgroundColor: 'var(--bg-surface)',
-                  border: '1px solid var(--border-subtle)',
-                  borderRadius: 'var(--radius-lg)',
                 }}
               >
-                <Car size={32} color="var(--text-muted)" style={{ margin: '0 auto var(--space-3)' }} />
-                <div style={{ fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '4px' }}>
-                  No vehicles found for "{searchedPlate}"
+                <Car size={32} color="var(--text-dim)" style={{ margin: '0 auto var(--space-3)' }} />
+                <div style={{ fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '4px' }}>
+                  No vehicles found matching "{searchedPlate}"
                 </div>
                 <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>
-                  No camera sightings have been recorded for this plate in the system.
+                  No camera sightings have been recorded for this plate in the active CCTV telemetry feed.
                 </div>
               </div>
             ) : (
@@ -371,7 +414,7 @@ export default function VehiclesPage() {
               </div>
             )}
 
-            {/* Pagination */}
+            {/* Pagination Controls */}
             {pagination && pagination.total_pages > 1 && (
               <div
                 style={{
@@ -386,17 +429,11 @@ export default function VehiclesPage() {
                   id="vehicle-search-prev-page"
                   onClick={() => handlePageChange(currentPage - 1)}
                   disabled={currentPage <= 1}
+                  className="btn-secondary"
                   style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '4px',
-                    padding: 'var(--space-2) var(--space-3)',
-                    backgroundColor: 'var(--bg-surface)',
-                    border: '1px solid var(--border-default)',
-                    borderRadius: 'var(--radius-sm)',
-                    color: currentPage <= 1 ? 'var(--text-disabled)' : 'var(--text-secondary)',
+                    padding: '6px 12px',
                     fontSize: 'var(--text-xs)',
-                    fontWeight: 600,
+                    opacity: currentPage <= 1 ? 0.4 : 1,
                     cursor: currentPage <= 1 ? 'not-allowed' : 'pointer',
                   }}
                 >
@@ -412,17 +449,11 @@ export default function VehiclesPage() {
                   id="vehicle-search-next-page"
                   onClick={() => handlePageChange(currentPage + 1)}
                   disabled={currentPage >= pagination.total_pages}
+                  className="btn-secondary"
                   style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '4px',
-                    padding: 'var(--space-2) var(--space-3)',
-                    backgroundColor: 'var(--bg-surface)',
-                    border: '1px solid var(--border-default)',
-                    borderRadius: 'var(--radius-sm)',
-                    color: currentPage >= pagination.total_pages ? 'var(--text-disabled)' : 'var(--text-secondary)',
+                    padding: '6px 12px',
                     fontSize: 'var(--text-xs)',
-                    fontWeight: 600,
+                    opacity: currentPage >= pagination.total_pages ? 0.4 : 1,
                     cursor: currentPage >= pagination.total_pages ? 'not-allowed' : 'pointer',
                   }}
                 >

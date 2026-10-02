@@ -157,12 +157,11 @@ describe('RouteMap Component — Basemap & GIS Rendering', () => {
       />
     );
 
-    expect(screen.getByText(/SIMULATED/i)).toBeInTheDocument();
-    expect(screen.getByText(/GJ01AB1234 — 2 cameras observed/i)).toBeInTheDocument();
+    expect(screen.getByText(/GJ01AB1234/i)).toBeInTheDocument();
     expect(screen.getByText(DISCLAIMER_TEXT)).toBeInTheDocument();
-    expect(screen.getByText('First sighting')).toBeInTheDocument();
-    expect(screen.getByText('Last sighting')).toBeInTheDocument();
-    expect(screen.getByText('Observed route')).toBeInTheDocument();
+    expect(screen.getByText(/First Sighting/i)).toBeInTheDocument();
+    expect(screen.getByText(/Last Sighting/i)).toBeInTheDocument();
+    expect(screen.getByText(/Observed Trajectory/i)).toBeInTheDocument();
   });
 
   it('adds route polyline layer and markers on load without altering route geometry', async () => {

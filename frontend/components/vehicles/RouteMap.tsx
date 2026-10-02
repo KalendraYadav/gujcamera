@@ -21,7 +21,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { AlertTriangle, Navigation, Target } from 'lucide-react';
 import { TimelineSighting, RouteSegment } from '@/types/vehicle';
-import { SimulatedDataBadge } from '@/components/ui/SimulatedDataBadge';
 
 import {
   Map as MapLibreMap,
@@ -57,7 +56,6 @@ const TACTICAL_DARK_STYLE: any = process.env.NEXT_PUBLIC_MAP_STYLE || {
     },
   ],
 };
-
 
 interface RouteMapProps {
   sightings: TimelineSighting[];
@@ -119,16 +117,16 @@ export function RouteMap({ sightings, routeSegments, disclaimer, plateNormalized
           },
         });
 
-        // Outer glow line (blue)
+        // Outer glow line (operational blue)
         map.addLayer({
           id: 'route-glow',
           type: 'line',
           source: 'route-line',
           layout: { 'line-cap': 'round', 'line-join': 'round' },
           paint: {
-            'line-color': '#2563eb',
+            'line-color': '#3B82F6',
             'line-width': 6,
-            'line-opacity': 0.25,
+            'line-opacity': 0.35,
             'line-blur': 3,
           },
         });
@@ -140,7 +138,7 @@ export function RouteMap({ sightings, routeSegments, disclaimer, plateNormalized
           source: 'route-line',
           layout: { 'line-cap': 'round', 'line-join': 'round' },
           paint: {
-            'line-color': '#3b82f6',
+            'line-color': '#60A5FA',
             'line-width': 2.5,
             'line-opacity': 0.9,
             'line-dasharray': [4, 2],
@@ -173,7 +171,7 @@ export function RouteMap({ sightings, routeSegments, disclaimer, plateNormalized
             source: 'route-implausible',
             layout: { 'line-cap': 'round', 'line-join': 'round' },
             paint: {
-              'line-color': '#ef4444',
+              'line-color': '#EF4444',
               'line-width': 3,
               'line-opacity': 0.85,
               'line-dasharray': [2, 3],
@@ -190,8 +188,8 @@ export function RouteMap({ sightings, routeSegments, disclaimer, plateNormalized
 
           const isFirst = index === 0;
           const isLast = index === sightings.length - 1;
-          const bgColor = isFirst ? '#10b981' : isLast ? '#ef4444' : '#2563eb';
-          const borderColor = isFirst ? '#6ee7b7' : isLast ? '#fca5a5' : '#93c5fd';
+          const bgColor = isFirst ? '#10B981' : isLast ? '#EF4444' : '#3B82F6';
+          const borderColor = isFirst ? '#6EE7B7' : isLast ? '#FCA5A5' : '#93C5FD';
 
           el.style.width = '32px';
           el.style.height = '32px';
@@ -287,11 +285,9 @@ export function RouteMap({ sightings, routeSegments, disclaimer, plateNormalized
   if (sightings.length === 0) {
     return (
       <div
+        className="netrava-card"
         style={{
-          height: '300px',
-          backgroundColor: 'var(--bg-surface)',
-          border: '1px solid var(--border-default)',
-          borderRadius: 'var(--radius-md)',
+          height: '340px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -301,7 +297,7 @@ export function RouteMap({ sightings, routeSegments, disclaimer, plateNormalized
         }}
       >
         <Navigation size={28} opacity={0.4} />
-        <span style={{ fontSize: 'var(--text-sm)' }}>No sightings to map</span>
+        <span style={{ fontSize: 'var(--text-sm)' }}>No surveillance sightings available to map</span>
       </div>
     );
   }
@@ -309,11 +305,10 @@ export function RouteMap({ sightings, routeSegments, disclaimer, plateNormalized
   if (mapError) {
     return (
       <div
+        className="netrava-card"
         style={{
-          height: '300px',
-          backgroundColor: 'var(--bg-surface)',
-          border: '1px solid var(--status-critical-border)',
-          borderRadius: 'var(--radius-md)',
+          height: '340px',
+          borderColor: 'var(--status-critical-border)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -332,20 +327,19 @@ export function RouteMap({ sightings, routeSegments, disclaimer, plateNormalized
 
   return (
     <div
+      className="netrava-card"
       style={{
         position: 'relative',
         width: '100%',
-        height: '380px',
-        borderRadius: 'var(--radius-md)',
+        height: '420px',
         overflow: 'hidden',
-        border: '1px solid var(--border-default)',
-        backgroundColor: '#0a0f1d',
+        backgroundColor: '#070B14',
       }}
     >
       {/* Map canvas */}
       <div ref={mapContainerRef} style={{ width: '100%', height: '100%' }} />
 
-      {/* Top-left overlay: simulated badge + plate */}
+      {/* Top-Left Overlay: Simulated Badge + Target Plate */}
       <div
         style={{
           position: 'absolute',
@@ -358,29 +352,30 @@ export function RouteMap({ sightings, routeSegments, disclaimer, plateNormalized
           pointerEvents: 'none',
         }}
       >
-        <SimulatedDataBadge compact />
         <div
           style={{
-            backgroundColor: 'rgba(11, 15, 25, 0.88)',
-            backdropFilter: 'blur(8px)',
-            border: '1px solid var(--border-subtle)',
+            backgroundColor: 'rgba(11, 17, 32, 0.88)',
+            backdropFilter: 'blur(12px)',
+            WebkitBackdropFilter: 'blur(12px)',
+            border: '1px solid var(--border-default)',
             borderRadius: 'var(--radius-sm)',
-            padding: '4px 10px',
+            padding: '5px 12px',
             fontSize: '11px',
             fontFamily: 'var(--font-mono)',
-            color: 'var(--accent-primary)',
+            color: 'var(--accent-blue)',
             fontWeight: 700,
             display: 'flex',
             alignItems: 'center',
             gap: '6px',
+            boxShadow: 'var(--shadow-card)',
           }}
         >
-          <Target size={11} />
-          {plateNormalized} — {sightings.length} camera{sightings.length !== 1 ? 's' : ''} observed
+          <Target size={12} color="var(--accent-primary)" />
+          {plateNormalized} &bull; {sightings.length} Camera Point{sightings.length !== 1 ? 's' : ''}
         </div>
       </div>
 
-      {/* Implausibility warning badge */}
+      {/* Top-Right Implausibility Warning */}
       {hasImplausible && (
         <div
           style={{
@@ -393,31 +388,34 @@ export function RouteMap({ sightings, routeSegments, disclaimer, plateNormalized
             borderRadius: 'var(--radius-sm)',
             padding: '4px 10px',
             fontSize: '10px',
-            fontWeight: 700,
+            fontWeight: 800,
+            fontFamily: 'var(--font-mono)',
             color: 'var(--status-critical)',
             display: 'flex',
             alignItems: 'center',
             gap: '4px',
-            backdropFilter: 'blur(8px)',
+            backdropFilter: 'blur(12px)',
+            boxShadow: 'var(--accent-primary-glow)',
           }}
         >
           <AlertTriangle size={11} />
-          IMPLAUSIBLE SEGMENT
+          IMPLAUSIBLE SEGMENT FLAGGED
         </div>
       )}
 
-      {/* Bottom disclaimer strip — MANDATORY per architecture */}
+      {/* Bottom Mandatory Disclaimer Strip */}
       <div
         style={{
           position: 'absolute',
           bottom: 0,
           left: 0,
           right: 0,
-          backgroundColor: 'rgba(11, 15, 25, 0.92)',
+          backgroundColor: 'rgba(7, 11, 20, 0.92)',
+          backdropFilter: 'blur(8px)',
           borderTop: '1px solid var(--border-subtle)',
-          padding: '5px 12px',
+          padding: '6px 14px',
           fontSize: '10px',
-          color: 'var(--text-muted)',
+          color: 'var(--text-dim)',
           fontStyle: 'italic',
           zIndex: 10,
           pointerEvents: 'none',
@@ -426,42 +424,44 @@ export function RouteMap({ sightings, routeSegments, disclaimer, plateNormalized
         {disclaimer}
       </div>
 
-      {/* Legend */}
+      {/* Legend Card */}
       <div
         style={{
           position: 'absolute',
-          bottom: '30px',
+          bottom: '36px',
           right: 'var(--space-3)',
           zIndex: 10,
-          backgroundColor: 'rgba(11, 15, 25, 0.88)',
-          backdropFilter: 'blur(8px)',
-          border: '1px solid var(--border-subtle)',
+          backgroundColor: 'rgba(11, 17, 32, 0.90)',
+          backdropFilter: 'blur(12px)',
+          WebkitBackdropFilter: 'blur(12px)',
+          border: '1px solid var(--border-default)',
           borderRadius: 'var(--radius-sm)',
-          padding: '6px 10px',
+          padding: '8px 12px',
           display: 'flex',
           flexDirection: 'column',
-          gap: '3px',
+          gap: '4px',
           fontSize: '10px',
           color: 'var(--text-secondary)',
+          boxShadow: 'var(--shadow-card)',
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <span style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#10b981' }} />
-          <span>First sighting</span>
+          <span style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#10B981', boxShadow: '0 0 6px rgba(16,185,129,0.5)' }} />
+          <span>First Sighting</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <span style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#ef4444' }} />
-          <span>Last sighting</span>
+          <span style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#EF4444', boxShadow: '0 0 6px rgba(239,68,68,0.5)' }} />
+          <span>Last Sighting</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
           <span
             style={{
               width: '22px',
               height: '2px',
-              background: 'repeating-linear-gradient(90deg, #3b82f6 0 4px, transparent 4px 6px)',
+              background: 'repeating-linear-gradient(90deg, #60A5FA 0 4px, transparent 4px 6px)',
             }}
           />
-          <span>Observed route</span>
+          <span>Observed Trajectory</span>
         </div>
         {hasImplausible && (
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -469,21 +469,21 @@ export function RouteMap({ sightings, routeSegments, disclaimer, plateNormalized
               style={{
                 width: '22px',
                 height: '2px',
-                background: 'repeating-linear-gradient(90deg, #ef4444 0 2px, transparent 2px 5px)',
+                background: 'repeating-linear-gradient(90deg, #EF4444 0 2px, transparent 2px 5px)',
               }}
             />
-            <span style={{ color: 'var(--status-critical)' }}>Implausible hop</span>
+            <span style={{ color: 'var(--status-critical)' }}>Implausible Hop</span>
           </div>
         )}
       </div>
 
-      {/* Map loading skeleton */}
+      {/* Map Loading Skeleton */}
       {!mapReady && (
         <div
           style={{
             position: 'absolute',
             inset: 0,
-            backgroundColor: '#0a0f1d',
+            backgroundColor: '#070B14',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -499,8 +499,8 @@ export function RouteMap({ sightings, routeSegments, disclaimer, plateNormalized
               color: 'var(--text-muted)',
             }}
           >
-            <Navigation size={20} style={{ animation: 'pulse 1.5s infinite' }} />
-            <span style={{ fontSize: 'var(--text-xs)' }}>Loading route GIS map…</span>
+            <Navigation size={22} color="var(--accent-blue)" style={{ animation: 'pulse 1.5s infinite' }} />
+            <span style={{ fontSize: 'var(--text-xs)', fontFamily: 'var(--font-mono)' }}>Initializing Route GIS Spatial Model…</span>
           </div>
         </div>
       )}

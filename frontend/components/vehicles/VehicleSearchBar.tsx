@@ -56,15 +56,12 @@ export function VehicleSearchBar({ onSearch, isLoading = false, initialValue = '
   return (
     <form onSubmit={handleSubmit} aria-label="Vehicle license plate search">
       <div
+        className="netrava-card"
         style={{
-          backgroundColor: 'var(--bg-surface)',
-          border: '1px solid var(--border-default)',
-          borderRadius: 'var(--radius-lg)',
-          padding: 'var(--space-5) var(--space-6)',
-          boxShadow: 'var(--shadow-card)',
+          padding: 'var(--space-4) var(--space-5)',
         }}
       >
-        {/* Label */}
+        {/* Label Row */}
         <div
           style={{
             display: 'flex',
@@ -73,23 +70,24 @@ export function VehicleSearchBar({ onSearch, isLoading = false, initialValue = '
             marginBottom: 'var(--space-3)',
           }}
         >
-          <ScanLine size={16} color="var(--accent-primary)" />
+          <ScanLine size={15} color="var(--accent-primary)" />
           <label
             htmlFor="vehicle-plate-search"
             style={{
-              fontSize: 'var(--text-sm)',
+              fontSize: 'var(--text-xs)',
               fontWeight: 700,
               color: 'var(--text-primary)',
-              letterSpacing: '0.04em',
+              letterSpacing: '0.06em',
               textTransform: 'uppercase',
             }}
           >
-            License Plate Search
+            License Plate ANPR Search
           </label>
           <span
             style={{
               fontSize: '10px',
-              color: 'var(--text-muted)',
+              fontFamily: 'var(--font-mono)',
+              color: 'var(--text-dim)',
               fontWeight: 500,
               marginLeft: 'auto',
               display: 'flex',
@@ -98,16 +96,16 @@ export function VehicleSearchBar({ onSearch, isLoading = false, initialValue = '
             }}
           >
             <Keyboard size={11} />
-            Enter to search · Esc to clear
+            ENTER to search &bull; ESC to clear
           </span>
         </div>
 
-        {/* Input row */}
+        {/* Input & Action Row */}
         <div style={{ display: 'flex', gap: 'var(--space-3)', alignItems: 'stretch' }}>
           <div style={{ position: 'relative', flex: 1 }}>
             <Search
               size={16}
-              color="var(--text-muted)"
+              color="var(--text-dim)"
               style={{
                 position: 'absolute',
                 left: '14px',
@@ -121,7 +119,7 @@ export function VehicleSearchBar({ onSearch, isLoading = false, initialValue = '
               ref={inputRef}
               id="vehicle-plate-search"
               type="text"
-              placeholder="GJ 01 AB 1234 or partial prefix GJ01..."
+              placeholder="GJ 01 AB 1234 or prefix GJ01..."
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
               onKeyDown={handleKeyDown}
@@ -131,21 +129,27 @@ export function VehicleSearchBar({ onSearch, isLoading = false, initialValue = '
               spellCheck={false}
               style={{
                 width: '100%',
-                padding: '12px 40px 12px 42px',
+                padding: '11px 40px 11px 42px',
                 fontSize: 'var(--text-md)',
                 fontFamily: 'var(--font-mono)',
                 fontWeight: 700,
                 letterSpacing: '0.12em',
                 textTransform: 'uppercase',
-                backgroundColor: 'var(--bg-secondary)',
-                border: '1px solid var(--border-strong)',
-                borderRadius: 'var(--radius-md)',
+                backgroundColor: 'var(--bg-input)',
+                border: '1px solid var(--border-medium)',
+                borderRadius: 'var(--radius-sm)',
                 color: 'var(--text-primary)',
                 outline: 'none',
-                transition: 'border-color var(--transition-fast)',
+                transition: 'border-color var(--transition-fast), box-shadow var(--transition-fast)',
               }}
-              onFocus={(e) => (e.currentTarget.style.borderColor = 'var(--accent-primary)')}
-              onBlur={(e) => (e.currentTarget.style.borderColor = 'var(--border-strong)')}
+              onFocus={(e) => {
+                e.currentTarget.style.borderColor = 'var(--accent-blue)';
+                e.currentTarget.style.boxShadow = '0 0 0 2px rgba(59, 130, 246, 0.25)';
+              }}
+              onBlur={(e) => {
+                e.currentTarget.style.borderColor = 'var(--border-medium)';
+                e.currentTarget.style.boxShadow = 'none';
+              }}
             />
             {hasInput && (
               <button
@@ -161,7 +165,7 @@ export function VehicleSearchBar({ onSearch, isLoading = false, initialValue = '
                   border: 'none',
                   color: 'var(--text-muted)',
                   cursor: 'pointer',
-                  padding: '2px',
+                  padding: '4px',
                   display: 'flex',
                   alignItems: 'center',
                 }}
@@ -176,40 +180,29 @@ export function VehicleSearchBar({ onSearch, isLoading = false, initialValue = '
             disabled={!hasInput || isLoading}
             aria-label="Search vehicle"
             id="vehicle-search-submit"
+            className="btn-primary"
             style={{
-              padding: '0 var(--space-6)',
-              backgroundColor: hasInput && !isLoading ? 'var(--accent-primary)' : 'var(--bg-elevated)',
-              border: '1px solid',
-              borderColor: hasInput && !isLoading ? 'var(--accent-primary)' : 'var(--border-default)',
-              borderRadius: 'var(--radius-md)',
-              color: hasInput && !isLoading ? '#fff' : 'var(--text-muted)',
-              fontSize: 'var(--text-sm)',
-              fontWeight: 700,
-              cursor: hasInput && !isLoading ? 'pointer' : 'not-allowed',
-              transition: 'all var(--transition-fast)',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 'var(--space-2)',
+              padding: '0 var(--space-5)',
+              opacity: !hasInput || isLoading ? 0.45 : 1,
+              cursor: !hasInput || isLoading ? 'not-allowed' : 'pointer',
               whiteSpace: 'nowrap',
-              letterSpacing: '0.04em',
-              textTransform: 'uppercase',
             }}
           >
             {isLoading ? (
               <>
-                <Search size={14} style={{ animation: 'spin 1s linear infinite' }} />
-                Searching…
+                <Search size={14} className="animate-spin" />
+                <span>Searching…</span>
               </>
             ) : (
               <>
                 <Search size={14} />
-                Search
+                <span>Search</span>
               </>
             )}
           </button>
         </div>
 
-        {/* Normalization preview */}
+        {/* Normalization Preview */}
         {hasInput && normalizedPreview !== inputValue.trim() && (
           <div
             style={{
@@ -221,31 +214,35 @@ export function VehicleSearchBar({ onSearch, isLoading = false, initialValue = '
               gap: '6px',
             }}
           >
-            <span>Will search as:</span>
+            <span>Target:</span>
             <span
               style={{
                 fontFamily: 'var(--font-mono)',
                 fontWeight: 700,
                 color: 'var(--accent-primary)',
-                backgroundColor: 'var(--accent-subtle)',
+                backgroundColor: 'var(--accent-primary-subtle)',
+                border: '1px solid var(--accent-primary-border)',
                 padding: '1px 6px',
                 borderRadius: 'var(--radius-xs)',
               }}
             >
               {normalizedPreview}
             </span>
-            <span style={{ opacity: 0.7 }}>(spaces and hyphens removed, uppercased)</span>
+            <span style={{ opacity: 0.7 }}>(normalized)</span>
           </div>
         )}
 
-        {/* Format hint */}
+        {/* Format Hints */}
         <div
           style={{
-            marginTop: 'var(--space-2)',
+            marginTop: 'var(--space-3)',
+            paddingTop: 'var(--space-2)',
+            borderTop: '1px solid var(--border-subtle)',
             fontSize: '11px',
-            color: 'var(--text-muted)',
+            color: 'var(--text-dim)',
             display: 'flex',
             flexWrap: 'wrap',
+            alignItems: 'center',
             gap: 'var(--space-3)',
           }}
         >
@@ -259,20 +256,22 @@ export function VehicleSearchBar({ onSearch, isLoading = false, initialValue = '
                 style={{
                   background: 'none',
                   border: 'none',
-                  padding: '0 2px',
+                  padding: '0 4px',
                   fontFamily: 'var(--font-mono)',
                   fontSize: '11px',
-                  color: 'var(--accent-primary)',
+                  color: 'var(--accent-blue)',
                   cursor: 'pointer',
                   textDecoration: 'underline',
-                  textDecorationStyle: 'dashed',
+                  textDecorationStyle: 'dotted',
                 }}
               >
                 {ex}
               </button>
             ))}{' '}
           </span>
-          <span>· Partial prefix matching supported</span>
+          <span style={{ marginLeft: 'auto', fontFamily: 'var(--font-mono)', fontSize: '10px' }}>
+            &bull; Prefix matching enabled
+          </span>
         </div>
       </div>
     </form>

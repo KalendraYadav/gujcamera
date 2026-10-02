@@ -14,6 +14,7 @@ interface AppShellProps {
 export function AppShell({ children }: AppShellProps) {
   const { isAuthenticated, isLoading } = useAuth();
   const router = useRouter();
+  const [isMobileNavOpen, setIsMobileNavOpen] = React.useState(false);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -29,7 +30,7 @@ export function AppShell({ children }: AppShellProps) {
           alignItems: 'center',
           justifyContent: 'center',
           minHeight: '100vh',
-          backgroundColor: 'var(--bg-base)',
+          backgroundColor: '#070B14',
         }}
       >
         <LoadingState
@@ -45,23 +46,50 @@ export function AppShell({ children }: AppShellProps) {
   }
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: 'var(--bg-base)' }}>
-      <Sidebar />
-
+    <div
+      style={{
+        display: 'flex',
+        minHeight: '100vh',
+        backgroundColor: '#070B14',
+        position: 'relative',
+        overflow: 'hidden',
+      }}
+    >
+      {/* Subtle Atmospheric Top-Left Gradient — Matches Login Page Cinematic Depth */}
       <div
         style={{
-          flex: 1,
-          marginLeft: 'var(--sidebar-width)',
-          display: 'flex',
-          flexDirection: 'column',
-          minWidth: 0,
+          position: 'fixed',
+          top: '-150px',
+          left: '100px',
+          width: '700px',
+          height: '700px',
+          borderRadius: '50%',
+          background: 'radial-gradient(circle, rgba(215, 25, 63, 0.035) 0%, rgba(59, 130, 246, 0.025) 50%, transparent 80%)',
+          pointerEvents: 'none',
+          zIndex: 0,
         }}
-      >
-        <Header />
+      />
+
+      {/* Main Navigation Sidebar (Desktop Static / Mobile Drawer) */}
+      <Sidebar
+        isOpen={isMobileNavOpen}
+        onClose={() => setIsMobileNavOpen(false)}
+      />
+
+      {/* Mobile Drawer Backdrop */}
+      <div
+        className={`netrava-sidebar-backdrop ${isMobileNavOpen ? 'open' : ''}`}
+        onClick={() => setIsMobileNavOpen(false)}
+        aria-hidden="true"
+      />
+
+      {/* Main App Container */}
+      <div className="netrava-main-layout">
+        <Header onToggleMobileNav={() => setIsMobileNavOpen((prev) => !prev)} />
         <main
           style={{
             flex: 1,
-            padding: 'var(--space-6)',
+            padding: 'var(--page-padding-y) var(--page-padding-x)',
             overflowY: 'auto',
           }}
         >

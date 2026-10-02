@@ -34,7 +34,6 @@ describe('LoginForm Component', () => {
     expect(screen.getByLabelText(/Officer Email \/ Identity/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/Passcode \/ Password/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Authenticate Session/i })).toBeInTheDocument();
-    expect(screen.getByText('SIMULATED DATA')).toBeInTheDocument();
   });
 
   it('validates invalid email before calling login', async () => {

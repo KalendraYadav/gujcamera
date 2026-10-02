@@ -92,8 +92,8 @@ function SightingRow({ sighting, index, isFirst, isLast, onExportEvidence }: Sig
       ? 'var(--status-warning)'
       : 'var(--status-critical)';
 
-  const markerBg = isFirst ? '#10b981' : isLast ? '#ef4444' : '#2563eb';
-  const markerBorder = isFirst ? '#6ee7b7' : isLast ? '#fca5a5' : '#93c5fd';
+  const markerBg = isFirst ? '#10B981' : isLast ? '#EF4444' : '#3B82F6';
+  const markerBorder = isFirst ? 'rgba(16, 185, 129, 0.4)' : isLast ? 'rgba(239, 68, 68, 0.4)' : 'rgba(59, 130, 246, 0.4)';
 
   return (
     <div
@@ -103,7 +103,7 @@ function SightingRow({ sighting, index, isFirst, isLast, onExportEvidence }: Sig
         alignItems: 'flex-start',
       }}
     >
-      {/* Timeline marker */}
+      {/* Timeline Marker */}
       <div
         style={{
           display: 'flex',
@@ -119,16 +119,16 @@ function SightingRow({ sighting, index, isFirst, isLast, onExportEvidence }: Sig
             width: '28px',
             height: '28px',
             borderRadius: '50%',
-            backgroundColor: markerBg,
-            border: `2px solid ${markerBorder}`,
+            backgroundColor: 'var(--bg-primary)',
+            border: `2px solid ${markerBg}`,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            fontSize: '10px',
-            fontWeight: 700,
+            fontSize: '11px',
+            fontWeight: 800,
             fontFamily: 'var(--font-mono)',
-            color: '#fff',
-            boxShadow: `0 0 8px ${markerBg}60`,
+            color: markerBg,
+            boxShadow: `0 0 10px ${markerBg}40`,
             zIndex: 2,
             flexShrink: 0,
           }}
@@ -137,29 +137,27 @@ function SightingRow({ sighting, index, isFirst, isLast, onExportEvidence }: Sig
         </div>
       </div>
 
-      {/* Sighting content */}
+      {/* Sighting Content Card */}
       <div
+        className="netrava-card"
         style={{
           flex: 1,
-          backgroundColor: 'var(--bg-surface)',
-          border: '1px solid var(--border-subtle)',
-          borderRadius: 'var(--radius-md)',
-          padding: 'var(--space-3)',
+          padding: 'var(--space-3) var(--space-4)',
           marginBottom: 'var(--space-1)',
         }}
       >
-        {/* Header row */}
+        {/* Header Row */}
         <div
           style={{
             display: 'flex',
-            alignItems: 'flex-start',
+            alignItems: 'center',
             justifyContent: 'space-between',
             gap: 'var(--space-2)',
             marginBottom: 'var(--space-2)',
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
-            <Camera size={13} color="var(--accent-primary)" style={{ flexShrink: 0 }} />
+            <Camera size={14} color="var(--accent-blue)" style={{ flexShrink: 0 }} />
             <span
               style={{
                 fontSize: 'var(--text-sm)',
@@ -171,34 +169,34 @@ function SightingRow({ sighting, index, isFirst, isLast, onExportEvidence }: Sig
             </span>
           </div>
           {isFirst && (
-            <StatusBadge label="FIRST" variant="success" size="sm" />
+            <StatusBadge label="FIRST OBSERVED" variant="success" size="sm" />
           )}
           {isLast && !isFirst && (
-            <StatusBadge label="LAST" variant="critical" size="sm" />
+            <StatusBadge label="LAST OBSERVED" variant="critical" size="sm" />
           )}
         </div>
 
-        {/* Location */}
+        {/* Location Info */}
         {sighting.location && (
           <div
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: '4px',
+              gap: '5px',
               fontSize: 'var(--text-xs)',
               color: 'var(--text-secondary)',
               marginBottom: 'var(--space-2)',
             }}
           >
-            <MapPin size={11} style={{ flexShrink: 0 }} />
+            <MapPin size={12} color="var(--text-dim)" style={{ flexShrink: 0 }} />
             <span>
               {sighting.location.address}
-              {sighting.location.district ? ` — ${sighting.location.district}` : ''}
+              {sighting.location.district ? ` &bull; ${sighting.location.district}` : ''}
             </span>
           </div>
         )}
 
-        {/* Metrics row */}
+        {/* Metrics Telemetry Row */}
         <div
           style={{
             display: 'flex',
@@ -206,16 +204,18 @@ function SightingRow({ sighting, index, isFirst, isLast, onExportEvidence }: Sig
             gap: 'var(--space-3)',
             fontSize: '11px',
             color: 'var(--text-muted)',
+            paddingTop: 'var(--space-2)',
+            borderTop: '1px solid var(--border-subtle)',
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-            <Clock size={11} />
+            <Clock size={11} color="var(--text-dim)" />
             <span style={{ fontFamily: 'var(--font-mono)' }}>{formatTimestamp(sighting.timestamp)}</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-            <ScanLine size={11} />
+            <ScanLine size={11} color="var(--text-dim)" />
             <span>
-              ANPR Conf:{' '}
+              OCR Conf:{' '}
               <span style={{ color: confColor, fontWeight: 700, fontFamily: 'var(--font-mono)' }}>
                 {confidencePercent}%
               </span>
@@ -223,13 +223,13 @@ function SightingRow({ sighting, index, isFirst, isLast, onExportEvidence }: Sig
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
             <span style={{ fontFamily: 'var(--font-mono)' }}>
-              Frames consensus:{' '}
-              <span style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>
-                {sighting.consensus_frames}
+              Consensus:{' '}
+              <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>
+                {sighting.consensus_frames} frames
               </span>
             </span>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontFamily: 'var(--font-mono)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontFamily: 'var(--font-mono)', color: 'var(--text-dim)' }}>
             <span>
               {sighting.coordinates.lat.toFixed(5)}, {sighting.coordinates.long.toFixed(5)}
             </span>
@@ -237,25 +237,20 @@ function SightingRow({ sighting, index, isFirst, isLast, onExportEvidence }: Sig
         </div>
 
         {onExportEvidence && (
-          <div style={{ marginTop: 'var(--space-2)' }}>
+          <div style={{ marginTop: 'var(--space-2)', paddingTop: 'var(--space-2)', borderTop: '1px solid var(--border-subtle)' }}>
             <button
               id={`verify-evidence-btn-${sighting.id}`}
               onClick={() => onExportEvidence(sighting.id)}
+              className="btn-secondary"
               style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '4px',
-                padding: '3px 8px',
-                backgroundColor: 'var(--bg-surface-elevated)',
-                border: '1px solid var(--border-subtle)',
-                borderRadius: 'var(--radius-xs)',
-                color: 'var(--accent-primary)',
                 fontSize: '11px',
-                fontWeight: 600,
-                cursor: 'pointer',
+                padding: '3px 9px',
+                gap: '4px',
+                color: 'var(--accent-blue)',
+                borderColor: 'var(--accent-blue-border)',
               }}
             >
-              <FileCheck2 size={12} /> Verify & Export Evidence Package
+              <FileCheck2 size={12} /> Verify &amp; Export Evidence Package
             </button>
           </div>
         )}
@@ -275,8 +270,8 @@ function RouteHopRow({ segment, index }: RouteHopRowProps) {
   return (
     <div
       style={{
-        marginLeft: '14px',
-        borderLeft: `2px dashed ${isImplausible ? 'var(--status-critical)' : 'var(--accent-border)'}`,
+        marginLeft: '13px',
+        borderLeft: `2px dashed ${isImplausible ? 'var(--status-critical)' : 'var(--accent-blue-border)'}`,
         padding: 'var(--space-2) 0 var(--space-2) var(--space-3)',
         display: 'flex',
         alignItems: 'flex-start',
@@ -284,14 +279,14 @@ function RouteHopRow({ segment, index }: RouteHopRowProps) {
       }}
     >
       <ArrowRight
-        size={14}
-        color={isImplausible ? 'var(--status-critical)' : 'var(--accent-primary)'}
-        style={{ flexShrink: 0, marginTop: '1px' }}
+        size={13}
+        color={isImplausible ? 'var(--status-critical)' : 'var(--accent-blue)'}
+        style={{ flexShrink: 0, marginTop: '2px' }}
       />
       <div
         style={{
           flex: 1,
-          backgroundColor: isImplausible ? 'var(--status-critical-bg)' : 'var(--bg-secondary)',
+          backgroundColor: isImplausible ? 'var(--status-critical-bg)' : 'var(--bg-primary)',
           border: `1px solid ${isImplausible ? 'var(--status-critical-border)' : 'var(--border-subtle)'}`,
           borderRadius: 'var(--radius-sm)',
           padding: 'var(--space-2) var(--space-3)',
@@ -301,7 +296,7 @@ function RouteHopRow({ segment, index }: RouteHopRowProps) {
           style={{
             display: 'flex',
             alignItems: 'center',
-            gap: 'var(--space-2)',
+            gap: 'var(--space-3)',
             flexWrap: 'wrap',
             fontSize: '11px',
             color: 'var(--text-secondary)',
@@ -310,34 +305,33 @@ function RouteHopRow({ segment, index }: RouteHopRowProps) {
           {isImplausible && (
             <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: 'var(--status-critical)' }}>
               <AlertTriangle size={11} />
-              <span style={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+              <span style={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', fontFamily: 'var(--font-mono)' }}>
                 Requires Review
               </span>
-              <span style={{ fontWeight: 400 }}>—</span>
             </div>
           )}
           {!isImplausible && (
             <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: 'var(--status-success)' }}>
               <CheckCircle2 size={11} />
-              <span style={{ fontWeight: 600 }}>Plausible</span>
+              <span style={{ fontWeight: 600 }}>Plausible Trajectory</span>
             </div>
           )}
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-            <Route size={11} />
+            <Route size={11} color="var(--text-dim)" />
             <span style={{ fontFamily: 'var(--font-mono)' }}>{formatDistance(segment.distance_meters)}</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-            <Timer size={11} />
+            <Timer size={11} color="var(--text-dim)" />
             <span style={{ fontFamily: 'var(--font-mono)' }}>{formatDuration(segment.elapsed_seconds)}</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-            <Gauge size={11} />
+            <Gauge size={11} color="var(--text-dim)" />
             <span
               style={{
                 fontFamily: 'var(--font-mono)',
                 fontWeight: 700,
-                color: isImplausible ? 'var(--status-critical)' : 'var(--text-secondary)',
+                color: isImplausible ? 'var(--status-critical)' : 'var(--text-primary)',
               }}
             >
               {segment.estimated_speed_kmh.toFixed(1)} km/h
@@ -382,11 +376,11 @@ export function SightingsTimeline({
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
-      {/* Summary Stats Row */}
+      {/* Summary Stats Grid */}
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))',
           gap: 'var(--space-2)',
         }}
       >
@@ -425,10 +419,8 @@ export function SightingsTimeline({
         ].map((stat) => (
           <div
             key={stat.label}
+            className="netrava-card"
             style={{
-              backgroundColor: 'var(--bg-surface)',
-              border: '1px solid var(--border-subtle)',
-              borderRadius: 'var(--radius-md)',
               padding: 'var(--space-3)',
               display: 'flex',
               flexDirection: 'column',
@@ -436,15 +428,24 @@ export function SightingsTimeline({
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-              <stat.icon size={11} color="var(--text-muted)" />
-              <span style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+              <stat.icon size={11} color="var(--text-dim)" />
+              <span
+                style={{
+                  fontSize: '10px',
+                  color: 'var(--text-dim)',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.06em',
+                  fontFamily: 'var(--font-mono)',
+                  fontWeight: 700,
+                }}
+              >
                 {stat.label}
               </span>
             </div>
             <span
               style={{
                 fontSize: 'var(--text-md)',
-                fontWeight: 700,
+                fontWeight: 800,
                 fontFamily: stat.mono ? 'var(--font-mono)' : undefined,
                 color: (stat as any).color || 'var(--text-primary)',
               }}
@@ -455,36 +456,36 @@ export function SightingsTimeline({
         ))}
       </div>
 
-      {/* Implausible hops warning */}
+      {/* Implausible Hops Warning */}
       {summary.implausible_hops_count > 0 && (
         <div
           style={{
             backgroundColor: 'var(--status-critical-bg)',
             border: '1px solid var(--status-critical-border)',
             borderRadius: 'var(--radius-md)',
-            padding: 'var(--space-3)',
+            padding: 'var(--space-3) var(--space-4)',
             display: 'flex',
             alignItems: 'flex-start',
-            gap: 'var(--space-2)',
+            gap: 'var(--space-3)',
           }}
         >
-          <AlertTriangle size={16} color="var(--status-critical)" style={{ flexShrink: 0, marginTop: '1px' }} />
+          <AlertTriangle size={16} color="var(--status-critical)" style={{ flexShrink: 0, marginTop: '2px' }} />
           <div>
             <div style={{ fontWeight: 700, fontSize: 'var(--text-sm)', color: 'var(--status-critical)' }}>
-              {summary.implausible_hops_count} route segment{summary.implausible_hops_count > 1 ? 's' : ''} flagged for review
+              {summary.implausible_hops_count} Route Segment{summary.implausible_hops_count > 1 ? 's' : ''} Flagged for Review
             </div>
             <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)', marginTop: '2px' }}>
-              Implied speed exceeds threshold or timestamps indicate physical impossibility. Manual investigative verification required before enforcement action.
+              Implied speed exceeds physical vehicle thresholds or timestamps indicate potential duplicate readings. Manual verification required before enforcement.
             </div>
           </div>
         </div>
       )}
 
-      {/* Correlation governance notice */}
+      {/* Correlation Governance Notice */}
       <div
         style={{
-          backgroundColor: 'var(--status-info-bg)',
-          border: '1px solid var(--status-info-border)',
+          backgroundColor: 'rgba(59, 130, 246, 0.08)',
+          border: '1px solid var(--accent-blue-border)',
           borderRadius: 'var(--radius-sm)',
           padding: 'var(--space-2) var(--space-3)',
           display: 'flex',
@@ -494,15 +495,13 @@ export function SightingsTimeline({
           color: 'var(--text-secondary)',
         }}
       >
-        <ScanLine size={13} color="var(--status-info)" style={{ flexShrink: 0 }} />
+        <ScanLine size={13} color="var(--accent-blue)" style={{ flexShrink: 0 }} />
         <span>
-          <strong style={{ color: 'var(--status-info)' }}>Plate-Based Correlation Only</strong> — Sightings are linked by
-          normalized license plate ANPR reads. This is NOT visual re-identification or face recognition.
-          Each sighting is an independent camera observation event.
+          <strong style={{ color: 'var(--text-primary)' }}>PLATE-BASED CORRELATION ONLY:</strong> Sightings are correlated by normalized license plate reads. This is not facial recognition or biometric identification. Each sighting reflects an autonomous camera detection event.
         </span>
       </div>
 
-      {/* Chronological timeline with hop segments */}
+      {/* Chronological Timeline Feed */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
         {sightings.map((sighting, index) => {
           const segment = routeSegments[index]; // segment[i] connects sighting[i] → sighting[i+1]

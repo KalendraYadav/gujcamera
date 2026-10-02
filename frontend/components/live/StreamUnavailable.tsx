@@ -26,18 +26,16 @@ export const StreamUnavailable: React.FC<StreamUnavailableProps> = ({
   return (
     <div
       data-testid="stream-unavailable-panel"
+      className="netrava-card"
       style={{
         width: '100%',
         height: '100%',
         minHeight: '420px',
-        backgroundColor: 'var(--bg-secondary)',
-        border: '1px solid var(--border-subtle)',
-        borderRadius: '8px',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        padding: '32px',
+        padding: '36px 24px',
         textAlign: 'center',
         position: 'relative',
         overflow: 'hidden',
@@ -54,7 +52,7 @@ export const StreamUnavailable: React.FC<StreamUnavailableProps> = ({
           pointerEvents: 'none',
         }}
       >
-        <ShieldAlert size={280} color="var(--text-muted)" />
+        <ShieldAlert size={280} color="var(--accent-primary)" />
       </div>
 
       <div
@@ -62,15 +60,15 @@ export const StreamUnavailable: React.FC<StreamUnavailableProps> = ({
           width: '56px',
           height: '56px',
           borderRadius: '50%',
-          backgroundColor: 'rgba(239, 68, 68, 0.1)',
-          border: '1px solid rgba(239, 68, 68, 0.3)',
+          backgroundColor: 'rgba(215, 25, 63, 0.12)',
+          border: '1px solid rgba(215, 25, 63, 0.3)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          marginBottom: '20px',
+          marginBottom: '18px',
         }}
       >
-        <AlertCircle size={28} color="var(--color-alert)" />
+        <AlertCircle size={28} color="var(--accent-primary)" />
       </div>
 
       <div
@@ -79,7 +77,7 @@ export const StreamUnavailable: React.FC<StreamUnavailableProps> = ({
           fontWeight: 700,
           letterSpacing: '0.08em',
           textTransform: 'uppercase',
-          color: 'var(--color-alert)',
+          color: 'var(--accent-primary)',
           marginBottom: '8px',
         }}
       >
@@ -88,10 +86,10 @@ export const StreamUnavailable: React.FC<StreamUnavailableProps> = ({
 
       <h3
         style={{
-          fontSize: '20px',
+          fontSize: '18px',
           fontWeight: 700,
           color: 'var(--text-primary)',
-          marginBottom: '12px',
+          marginBottom: '10px',
         }}
       >
         {camera.name} — No Browser-Playable Feed
@@ -99,18 +97,16 @@ export const StreamUnavailable: React.FC<StreamUnavailableProps> = ({
 
       <div
         style={{
-          maxWidth: '540px',
-          fontSize: '14px',
+          maxWidth: '520px',
+          fontSize: '13px',
           color: 'var(--text-secondary)',
           lineHeight: '1.6',
-          marginBottom: '24px',
+          marginBottom: '22px',
         }}
       >
         {reason || (
           <>
-            This camera feed uses protocol <strong>{protocol}</strong> which is not
-            compatible with browser HLS streaming. The MediaMTX gateway requires a
-            valid RTSP or HLS source.
+            Protocol <strong>{protocol}</strong> is not browser-playable via HLS. The gateway requires a valid RTSP or HLS stream source.
           </>
         )}
       </div>
@@ -119,35 +115,36 @@ export const StreamUnavailable: React.FC<StreamUnavailableProps> = ({
       <div
         style={{
           width: '100%',
-          maxWidth: '540px',
-          backgroundColor: 'var(--bg-primary)',
-          border: '1px solid var(--border-default)',
+          maxWidth: '520px',
+          backgroundColor: 'rgba(11, 17, 32, 0.75)',
+          border: '1px solid var(--border-subtle)',
           borderRadius: '6px',
           padding: '12px 16px',
-          marginBottom: '24px',
+          marginBottom: '20px',
           textAlign: 'left',
-          fontSize: '12px',
+          fontSize: '11px',
           fontFamily: 'var(--font-mono)',
         }}
       >
-        <div style={{ color: 'var(--text-muted)', marginBottom: '4px' }}>
-          STREAM DESCRIPTOR:
+        <div style={{ color: 'var(--text-muted)', marginBottom: '4px', fontSize: '10px', letterSpacing: '0.05em' }}>
+          ENDPOINT:
         </div>
         <div
           style={{
             color: 'var(--text-secondary)',
             wordBreak: 'break-all',
-            padding: '4px 8px',
-            backgroundColor: 'var(--bg-secondary)',
+            padding: '6px 10px',
+            backgroundColor: 'rgba(5, 8, 15, 0.6)',
             borderRadius: '4px',
             marginBottom: '8px',
+            border: '1px solid var(--border-subtle)',
           }}
         >
           {streamHandle}
         </div>
         <div style={{ display: 'flex', gap: '16px', color: 'var(--text-muted)' }}>
           <div>Protocol: <span style={{ color: 'var(--text-primary)' }}>{protocol}</span></div>
-          <div>Registry Status: <span style={{ color: 'var(--text-primary)' }}>{camera.operational_status}</span></div>
+          <div>Status: <span style={{ color: 'var(--text-primary)' }}>{camera.operational_status}</span></div>
           <div>Department: <span style={{ color: 'var(--text-primary)' }}>{camera.department_name || camera.department_id}</span></div>
         </div>
       </div>
@@ -155,13 +152,13 @@ export const StreamUnavailable: React.FC<StreamUnavailableProps> = ({
       {/* Platform Governance Notice */}
       <div
         style={{
-          fontSize: '12px',
+          fontSize: '11px',
           color: 'var(--text-muted)',
-          marginBottom: '24px',
+          marginBottom: '22px',
           fontStyle: 'italic',
         }}
       >
-        Strict Governance Rule: Synthetic placeholder footage is never substituted for unplayable live feeds.
+        Governance: Synthetic footage is never substituted for live feeds.
       </div>
 
       {/* Action Buttons */}
@@ -169,42 +166,33 @@ export const StreamUnavailable: React.FC<StreamUnavailableProps> = ({
         {onSelectAlternative && (
           <button
             type="button"
+            className="btn-primary"
             onClick={onSelectAlternative}
             style={{
-              padding: '10px 18px',
-              backgroundColor: 'var(--accent-blue)',
-              color: '#ffffff',
-              border: 'none',
-              borderRadius: '6px',
-              fontSize: '13px',
-              fontWeight: 600,
-              cursor: 'pointer',
+              padding: '9px 18px',
+              fontSize: '12px',
               display: 'flex',
               alignItems: 'center',
               gap: '8px',
             }}
           >
-            Select Live RTSP Camera
+            Select RTSP Camera
           </button>
         )}
         <Link
           href="/cameras"
+          className="btn-secondary"
           style={{
-            padding: '10px 18px',
-            backgroundColor: 'transparent',
-            color: 'var(--text-secondary)',
-            border: '1px solid var(--border-default)',
-            borderRadius: '6px',
-            fontSize: '13px',
-            fontWeight: 500,
+            padding: '9px 18px',
+            fontSize: '12px',
             textDecoration: 'none',
             display: 'flex',
             alignItems: 'center',
             gap: '8px',
           }}
         >
-          <ArrowLeft size={16} />
-          View in Camera Registry
+          <ArrowLeft size={14} />
+          Camera Registry
         </Link>
       </div>
     </div>

@@ -23,44 +23,47 @@ export function ErrorState({
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'flex-start',
-        padding: 'var(--space-5)',
-        backgroundColor: 'var(--status-critical-bg)',
-        border: '1px solid var(--status-critical-border)',
+        padding: '16px 20px',
+        backgroundColor: 'rgba(239, 68, 68, 0.08)',
+        border: '1px solid rgba(239, 68, 68, 0.30)',
         borderRadius: 'var(--radius-md)',
+        boxShadow: 'var(--shadow-none)',
         color: 'var(--text-primary)',
         margin: 'var(--space-4) 0',
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', marginBottom: 'var(--space-2)' }}>
-        <AlertCircle size={20} color="var(--status-critical)" />
-        <h4 style={{ fontSize: 'var(--text-md)', fontWeight: 600, color: 'var(--status-critical)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', flexWrap: 'wrap' }}>
+        <AlertCircle size={16} color="#EF4444" />
+        <h4 style={{ fontSize: 'var(--text-base)', fontWeight: 600, color: '#F87171', margin: 0 }}>
           {title}
         </h4>
         <span
           style={{
-            fontSize: 'var(--text-xs)',
-            padding: '2px 6px',
-            backgroundColor: 'rgba(0,0,0,0.3)',
+            fontSize: '11px',
+            padding: '1px 6px',
+            backgroundColor: 'rgba(0, 0, 0, 0.4)',
+            border: '1px solid rgba(239, 68, 68, 0.35)',
             borderRadius: 'var(--radius-xs)',
             fontFamily: 'var(--font-mono)',
-            color: 'var(--text-muted)',
+            fontWeight: 600,
+            color: '#F87171',
           }}
         >
           {errorCode}
         </span>
       </div>
 
-      <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)', marginBottom: 'var(--space-3)' }}>
+      <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)', marginBottom: '8px', lineHeight: 1.43, margin: '0 0 8px 0' }}>
         {message}
       </p>
 
       {requestId && (
         <div
           style={{
-            fontSize: 'var(--text-xs)',
-            color: 'var(--text-muted)',
+            fontSize: '12px',
+            color: 'var(--text-dim)',
             fontFamily: 'var(--font-mono)',
-            marginBottom: onRetry ? 'var(--space-4)' : '0',
+            marginBottom: onRetry ? 'var(--space-3)' : '0',
           }}
         >
           Correlation ID: <span style={{ color: 'var(--text-secondary)' }}>{requestId}</span>
@@ -70,23 +73,18 @@ export function ErrorState({
       {onRetry && (
         <button
           onClick={onRetry}
+          className="btn-secondary"
           style={{
+            marginTop: '8px',
+            padding: '6px 14px',
+            fontSize: 'var(--text-sm)',
             display: 'inline-flex',
             alignItems: 'center',
             gap: '6px',
-            padding: '6px 12px',
-            backgroundColor: 'var(--bg-surface)',
-            border: '1px solid var(--border-default)',
-            borderRadius: 'var(--radius-sm)',
-            color: 'var(--text-primary)',
-            fontSize: 'var(--text-xs)',
-            fontWeight: 600,
-            cursor: 'pointer',
-            transition: 'background var(--transition-fast)',
           }}
         >
-          <RefreshCw size={13} />
-          Retry Operation
+          <RefreshCw size={14} />
+          <span>Retry Operation</span>
         </button>
       )}
     </div>

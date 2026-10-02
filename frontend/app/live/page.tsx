@@ -1,13 +1,12 @@
 // ==============================================================================
 // Live CCTV Monitoring & Stream Playback Page
-// Gujarat Police Innovation Challenge 2026
-// Source of Truth: master_architecture.md (Section 5.2, Section 14.2)
+// NETRAVA CCTV Intelligence Platform — Unified Interior Design System
 // ==============================================================================
 
 'use client';
 
 import React, { useState, useEffect, useCallback, Suspense } from 'react';
-import { useSearchParams, useRouter } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import {
   Video,
@@ -16,13 +15,10 @@ import {
   Shield,
   Clock,
   Layers,
-  ExternalLink,
   ChevronRight,
-  AlertTriangle,
   Radio,
 } from 'lucide-react';
 import { AppShell } from '@/components/layout/AppShell';
-import { SimulatedDataBadge } from '@/components/ui/SimulatedDataBadge';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { LoadingState } from '@/components/ui/LoadingState';
 import { ErrorState } from '@/components/ui/ErrorState';
@@ -35,7 +31,6 @@ import { Camera } from '@/types/camera';
 
 function LiveMonitoringContent() {
   const searchParams = useSearchParams();
-  const router = useRouter();
 
   const [cameras, setCameras] = useState<Camera[]>([]);
   const [selectedCamera, setSelectedCamera] = useState<Camera | null>(null);
@@ -47,7 +42,7 @@ function LiveMonitoringContent() {
     setPlaybackStatus(st);
   }, []);
 
-  // Load cameras from real backend API
+  // Load cameras from backend API
   const loadCameras = useCallback(async () => {
     setIsLoading(true);
     setError(null);
@@ -91,7 +86,6 @@ function LiveMonitoringContent() {
   // Handle camera selection
   const handleSelectCamera = (camera: Camera) => {
     setSelectedCamera(camera);
-    // Update URL query without full reload
     const newUrl = `/live?camera=${encodeURIComponent(camera.name)}`;
     window.history.replaceState(null, '', newUrl);
   };
@@ -104,17 +98,16 @@ function LiveMonitoringContent() {
       style={{
         display: 'flex',
         flexDirection: 'column',
-        height: 'calc(100vh - 64px)',
+        height: 'calc(100vh - var(--header-height) - 48px)',
         overflow: 'hidden',
-        backgroundColor: 'var(--bg-primary)',
+        gap: '14px',
       }}
     >
       {/* Top Tactical Command Bar */}
       <div
+        className="netrava-card"
         style={{
-          padding: '12px 20px',
-          backgroundColor: 'var(--bg-secondary)',
-          borderBottom: '1px solid var(--border-subtle)',
+          padding: '12px 18px',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
@@ -123,7 +116,7 @@ function LiveMonitoringContent() {
         }}
       >
         {/* Left: Breadcrumb & Title */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <div
             style={{
               display: 'flex',
@@ -131,43 +124,47 @@ function LiveMonitoringContent() {
               justifyContent: 'center',
               width: '32px',
               height: '32px',
-              borderRadius: '6px',
-              backgroundColor: 'rgba(37, 99, 235, 0.15)',
-              border: '1px solid rgba(37, 99, 235, 0.3)',
+              borderRadius: 'var(--radius-xs)',
+              backgroundColor: 'rgba(59, 130, 246, 0.12)',
+              border: '1px solid rgba(59, 130, 246, 0.35)',
+              color: '#60A5FA',
+              flexShrink: 0,
             }}
           >
-            <Video size={18} color="var(--accent-blue)" />
+            <Video size={16} />
           </div>
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: 'var(--text-muted)' }}>
-              <Link href="/" style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: 'var(--text-xs)', color: 'var(--text-dim)', fontFamily: 'var(--font-mono)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+              <Link href="/" style={{ color: 'var(--text-dim)', textDecoration: 'none' }}>
                 Command Center
               </Link>
-              <ChevronRight size={12} />
-              <span style={{ color: 'var(--text-secondary)' }}>Live CCTV Feeds</span>
+              <ChevronRight size={11} />
+              <span style={{ color: 'var(--text-secondary)' }}>Live Surveillance</span>
             </div>
             <h1
               style={{
-                fontSize: '18px',
-                fontWeight: 700,
+                fontSize: 'var(--text-lg)',
+                fontWeight: 600,
                 color: 'var(--text-primary)',
                 margin: 0,
                 display: 'flex',
                 alignItems: 'center',
-                gap: '10px',
+                gap: '8px',
+                letterSpacing: '0.01em',
               }}
             >
-              Live Monitoring & Stream Console
+              Live Video Monitoring
               {selectedCamera && (
                 <span
                   style={{
                     fontSize: '12px',
                     fontFamily: 'var(--font-mono)',
-                    color: 'var(--accent-blue)',
-                    backgroundColor: 'rgba(37, 99, 235, 0.1)',
+                    color: '#60A5FA',
+                    backgroundColor: 'rgba(59, 130, 246, 0.12)',
                     padding: '2px 8px',
-                    borderRadius: '4px',
-                    border: '1px solid rgba(37, 99, 235, 0.25)',
+                    borderRadius: 'var(--radius-xs)',
+                    border: '1px solid rgba(59, 130, 246, 0.30)',
+                    fontWeight: 500,
                   }}
                 >
                   {selectedCamera.name}
@@ -177,51 +174,41 @@ function LiveMonitoringContent() {
           </div>
         </div>
 
-        {/* Right: Simulated Data Banner & Navigation shortcuts */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <SimulatedDataBadge />
-
+        {/* Right: Navigation shortcuts */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           {selectedCamera && (
             <Link
               href={`/map?camera=${encodeURIComponent(selectedCamera.name)}`}
               data-testid="view-on-map-link"
+              className="btn-secondary"
               style={{
-                display: 'flex',
+                padding: '6px 14px',
+                fontSize: 'var(--text-sm)',
+                textDecoration: 'none',
+                display: 'inline-flex',
                 alignItems: 'center',
                 gap: '6px',
-                padding: '6px 12px',
-                fontSize: '12px',
-                fontWeight: 600,
-                color: 'var(--text-secondary)',
-                backgroundColor: 'var(--bg-surface)',
-                border: '1px solid var(--border-default)',
-                borderRadius: '6px',
-                textDecoration: 'none',
               }}
             >
-              <MapPin size={14} />
-              GIS Map
+              <MapPin size={14} color="#60A5FA" />
+              <span>GIS Map</span>
             </Link>
           )}
 
           <Link
             href="/cameras"
+            className="btn-secondary"
             style={{
-              display: 'flex',
+              padding: '6px 14px',
+              fontSize: 'var(--text-sm)',
+              textDecoration: 'none',
+              display: 'inline-flex',
               alignItems: 'center',
               gap: '6px',
-              padding: '6px 12px',
-              fontSize: '12px',
-              fontWeight: 600,
-              color: 'var(--text-secondary)',
-              backgroundColor: 'var(--bg-surface)',
-              border: '1px solid var(--border-default)',
-              borderRadius: '6px',
-              textDecoration: 'none',
             }}
           >
-            <Layers size={14} />
-            Registry
+            <Layers size={14} color="var(--text-secondary)" />
+            <span>Camera Registry</span>
           </Link>
         </div>
       </div>
@@ -231,10 +218,9 @@ function LiveMonitoringContent() {
         style={{
           flex: 1,
           display: 'grid',
-          gridTemplateColumns: '1fr 360px',
+          gridTemplateColumns: '1fr 340px',
           overflow: 'hidden',
-          gap: '16px',
-          padding: '16px',
+          gap: '14px',
         }}
       >
         {/* Left Column: Video Viewport & Telemetry */}
@@ -248,30 +234,26 @@ function LiveMonitoringContent() {
         >
           {isLoading ? (
             <div
+              className="netrava-card"
               style={{
                 flex: 1,
                 minHeight: '440px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                backgroundColor: 'var(--bg-secondary)',
-                borderRadius: '8px',
-                border: '1px solid var(--border-subtle)',
               }}
             >
               <LoadingState message="Initializing CCTV feed gateway & stream registry..." />
             </div>
           ) : error ? (
             <div
+              className="netrava-card"
               style={{
                 flex: 1,
                 minHeight: '440px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                backgroundColor: 'var(--bg-secondary)',
-                borderRadius: '8px',
-                border: '1px solid var(--border-subtle)',
                 padding: '24px',
               }}
             >
@@ -279,15 +261,13 @@ function LiveMonitoringContent() {
             </div>
           ) : !selectedCamera ? (
             <div
+              className="netrava-card"
               style={{
                 flex: 1,
                 minHeight: '440px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                backgroundColor: 'var(--bg-secondary)',
-                borderRadius: '8px',
-                border: '1px solid var(--border-subtle)',
                 color: 'var(--text-muted)',
               }}
             >
@@ -302,7 +282,7 @@ function LiveMonitoringContent() {
               onStatusChange={handlePlaybackStatusChange}
             />
           ) : (
-            /* Honest Non-Playable Fallback */
+            /* Non-Playable Fallback */
             <StreamUnavailable
               camera={selectedCamera}
               reason={streamResolution?.reason}
@@ -319,10 +299,8 @@ function LiveMonitoringContent() {
           {selectedCamera && (
             <div
               data-testid="camera-telemetry-card"
+              className="netrava-card"
               style={{
-                backgroundColor: 'var(--bg-secondary)',
-                border: '1px solid var(--border-subtle)',
-                borderRadius: '8px',
                 padding: '16px 20px',
               }}
             >
@@ -332,7 +310,7 @@ function LiveMonitoringContent() {
                   display: 'flex',
                   justifyContent: 'space-between',
                   alignItems: 'flex-start',
-                  marginBottom: '16px',
+                  marginBottom: '14px',
                   flexWrap: 'wrap',
                   gap: '12px',
                 }}
@@ -340,19 +318,19 @@ function LiveMonitoringContent() {
                 <div>
                   <div
                     style={{
-                      fontSize: '11px',
+                      fontSize: 'var(--text-xs)',
                       fontFamily: 'var(--font-mono)',
-                      color: 'var(--text-muted)',
-                      textTransform: 'uppercase',
+                      color: 'var(--text-dim)',
+                      letterSpacing: '0.04em',
                       marginBottom: '2px',
                     }}
                   >
-                    IDENTIFIER: {selectedCamera.id}
+                    {selectedCamera.id}
                   </div>
                   <div
                     style={{
-                      fontSize: '18px',
-                      fontWeight: 700,
+                      fontSize: 'var(--text-base)',
+                      fontWeight: 600,
                       color: 'var(--text-primary)',
                       display: 'flex',
                       alignItems: 'center',
@@ -362,9 +340,9 @@ function LiveMonitoringContent() {
                     <span>{selectedCamera.name}</span>
                     <span
                       style={{
-                        fontSize: '12px',
+                        fontSize: 'var(--text-xs)',
                         fontWeight: 400,
-                        color: 'var(--text-secondary)',
+                        color: 'var(--text-muted)',
                       }}
                     >
                       ({selectedCamera.location?.address || 'Gujarat Jurisdiction'})
@@ -374,7 +352,6 @@ function LiveMonitoringContent() {
 
                 {/* Status Badges: Distinct Camera Health vs Playback Health */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  {/* PostgreSQL Database Telemetry Status */}
                   <div
                     style={{
                       display: 'flex',
@@ -383,7 +360,7 @@ function LiveMonitoringContent() {
                       gap: '2px',
                     }}
                   >
-                    <span style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 600 }}>
+                    <span style={{ fontSize: '11px', color: 'var(--text-dim)', fontFamily: 'var(--font-mono)', fontWeight: 600 }}>
                       CAMERA HEALTH:
                     </span>
                     <StatusBadge
@@ -393,7 +370,6 @@ function LiveMonitoringContent() {
                     />
                   </div>
 
-                  {/* Browser HLS Playback Status */}
                   <div
                     style={{
                       display: 'flex',
@@ -402,39 +378,21 @@ function LiveMonitoringContent() {
                       gap: '2px',
                     }}
                   >
-                    <span style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 600 }}>
+                    <span style={{ fontSize: '11px', color: 'var(--text-dim)', fontFamily: 'var(--font-mono)', fontWeight: 600 }}>
                       PLAYBACK HEALTH:
                     </span>
-                    <span
-                      data-testid="live-playback-status-pill"
-                      style={{
-                        fontSize: '11px',
-                        fontWeight: 700,
-                        fontFamily: 'var(--font-mono)',
-                        padding: '2px 8px',
-                        borderRadius: '4px',
-                        backgroundColor:
+                    <span data-testid="live-playback-status-pill" style={{ display: 'inline-flex' }}>
+                      <StatusBadge
+                        label={playbackStatus}
+                        variant={
                           playbackStatus === 'PLAYING'
-                            ? 'rgba(16, 185, 129, 0.15)'
+                            ? 'success'
                             : playbackStatus === 'ERROR' || playbackStatus === 'OFFLINE'
-                            ? 'rgba(239, 68, 68, 0.15)'
-                            : 'rgba(59, 130, 246, 0.15)',
-                        color:
-                          playbackStatus === 'PLAYING'
-                            ? '#10b981'
-                            : playbackStatus === 'ERROR' || playbackStatus === 'OFFLINE'
-                            ? '#ef4444'
-                            : '#3b82f6',
-                        border: '1px solid',
-                        borderColor:
-                          playbackStatus === 'PLAYING'
-                            ? 'rgba(16, 185, 129, 0.3)'
-                            : playbackStatus === 'ERROR' || playbackStatus === 'OFFLINE'
-                            ? 'rgba(239, 68, 68, 0.3)'
-                            : 'rgba(59, 130, 246, 0.3)',
-                      }}
-                    >
-                      {playbackStatus}
+                            ? 'critical'
+                            : 'info'
+                        }
+                        size="sm"
+                      />
                     </span>
                   </div>
                 </div>
@@ -444,33 +402,34 @@ function LiveMonitoringContent() {
               <div
                 style={{
                   display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
-                  gap: '12px',
-                  backgroundColor: 'var(--bg-primary)',
-                  padding: '12px 16px',
-                  borderRadius: '6px',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))',
+                  gap: '10px',
+                  backgroundColor: 'rgba(11, 16, 32, 0.75)',
+                  padding: '12px 14px',
+                  borderRadius: 'var(--radius-sm)',
                   border: '1px solid var(--border-subtle)',
                 }}
               >
                 <div>
-                  <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '4px' }}>
+                  <div style={{ fontSize: '11px', color: 'var(--text-dim)', fontFamily: 'var(--font-mono)', marginBottom: '3px', textTransform: 'uppercase' }}>
                     Department
                   </div>
-                  <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                  <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--text-primary)' }}>
                     {selectedCamera.department_name || selectedCamera.department_id}
                   </div>
                 </div>
 
                 <div>
-                  <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '4px' }}>
+                  <div style={{ fontSize: '11px', color: 'var(--text-dim)', fontFamily: 'var(--font-mono)', marginBottom: '3px', textTransform: 'uppercase' }}>
                     Resolution & Codec
                   </div>
                   <div
                     style={{
-                      fontSize: '13px',
+                      fontSize: 'var(--text-sm)',
                       fontWeight: 600,
                       fontFamily: 'var(--font-mono)',
                       color: 'var(--text-primary)',
+                      fontVariantNumeric: 'tabular-nums',
                     }}
                   >
                     {selectedCamera.streams?.[0]?.resolution || '1080p'} (
@@ -479,36 +438,38 @@ function LiveMonitoringContent() {
                 </div>
 
                 <div>
-                  <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '4px' }}>
-                    Telemetry FPS
+                  <div style={{ fontSize: '11px', color: 'var(--text-dim)', fontFamily: 'var(--font-mono)', marginBottom: '3px', textTransform: 'uppercase' }}>
+                    Frame Rate
                   </div>
                   <div
                     style={{
-                      fontSize: '13px',
+                      fontSize: 'var(--text-sm)',
                       fontWeight: 600,
                       fontFamily: 'var(--font-mono)',
-                      color: 'var(--text-primary)',
+                      color: '#34D399',
+                      fontVariantNumeric: 'tabular-nums',
                     }}
                   >
                     {selectedCamera.health?.fps_actual != null
                       ? `${selectedCamera.health.fps_actual.toFixed(1)} FPS`
-                      : `${selectedCamera.streams?.[0]?.fps || 25} FPS (Config)`}
+                      : `${selectedCamera.streams?.[0]?.fps || 25} FPS`}
                   </div>
                 </div>
 
                 <div>
-                  <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '4px' }}>
+                  <div style={{ fontSize: '11px', color: 'var(--text-dim)', fontFamily: 'var(--font-mono)', marginBottom: '3px', textTransform: 'uppercase' }}>
                     Packet Loss
                   </div>
                   <div
                     style={{
-                      fontSize: '13px',
+                      fontSize: 'var(--text-sm)',
                       fontWeight: 600,
                       fontFamily: 'var(--font-mono)',
                       color:
                         selectedCamera.health?.packet_loss && selectedCamera.health.packet_loss > 5.0
-                          ? 'var(--color-alert)'
-                          : 'var(--color-success)',
+                          ? '#F87171'
+                          : '#34D399',
+                      fontVariantNumeric: 'tabular-nums',
                     }}
                   >
                     {selectedCamera.health?.packet_loss != null
@@ -518,14 +479,15 @@ function LiveMonitoringContent() {
                 </div>
 
                 <div>
-                  <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '4px' }}>
+                  <div style={{ fontSize: '11px', color: 'var(--text-dim)', fontFamily: 'var(--font-mono)', marginBottom: '3px', textTransform: 'uppercase' }}>
                     Coordinates
                   </div>
                   <div
                     style={{
-                      fontSize: '12px',
+                      fontSize: 'var(--text-xs)',
                       fontFamily: 'var(--font-mono)',
                       color: 'var(--text-secondary)',
+                      fontVariantNumeric: 'tabular-nums',
                     }}
                   >
                     {selectedCamera.lat.toFixed(4)}°N, {selectedCamera.long.toFixed(4)}°E

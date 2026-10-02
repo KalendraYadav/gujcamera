@@ -62,7 +62,7 @@ describe('EvidenceExportModal Component', () => {
     await waitFor(() => {
       expect(screen.getByText(/SHA-256 INTEGRITY VERIFIED/i)).toBeInTheDocument();
       expect(screen.getByText('GJ01AB1234')).toBeInTheDocument();
-      expect(screen.getByText(/STATUTORY NOTICE:/i)).toBeInTheDocument();
+      expect(screen.getByText(/STATUTORY CERTIFICATE:/i)).toBeInTheDocument();
     });
 
     const exportBtn = screen.getByRole('button', { name: /Export Evidence Package/i });

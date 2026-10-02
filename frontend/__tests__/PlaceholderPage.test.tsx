@@ -27,6 +27,6 @@ describe('PlaceholderPage Component', () => {
     expect(screen.getByText('2x2 tactical video grid')).toBeInTheDocument();
 
     // Verify presence of anti-fake governance notice
-    expect(screen.getByText(/mock data and fabricated UI components are strictly forbidden/i)).toBeInTheDocument();
+    expect(screen.getByText(/Deterministic CCTV synthetic fixtures and simulated video feeds are active/i)).toBeInTheDocument();
   });
 });

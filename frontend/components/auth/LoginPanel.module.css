@@ -1,0 +1,792 @@
+/* ==============================================================================
+   NETRAVA — SECURE ACCESS AUTHENTICATION TERMINAL STYLES
+   Inspired by tactile 3D government & security operational control systems
+   ============================================================================== */
+
+.panelContainer {
+  width: 100%;
+  max-width: 500px;
+  position: relative;
+  background: linear-gradient(135deg, rgba(12, 18, 34, 0.94) 0%, rgba(8, 12, 24, 0.97) 100%);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.75), 0 0 35px rgba(215, 25, 63, 0.08);
+  overflow: visible;
+  color: #F5F7FA;
+  padding: 28px 28px 22px;
+}
+
+/* Dual-Accent Ambient Top Edge Glow */
+.topAmbientGlow {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 60px;
+  border-top-left-radius: 20px;
+  border-top-right-radius: 20px;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 18% 0%, rgba(215, 25, 63, 0.35) 0%, transparent 60%),
+    radial-gradient(circle at 82% 0%, rgba(59, 130, 246, 0.35) 0%, transparent 60%);
+  z-index: 1;
+}
+
+.topHighlightLine {
+  position: absolute;
+  top: 0;
+  left: 10%;
+  right: 10%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent 0%, #D7193F 30%, #3B82F6 70%, transparent 100%);
+  border-radius: 1px;
+  z-index: 2;
+}
+
+/* Header Branding */
+.headerBlock {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  margin-bottom: 18px;
+  position: relative;
+  z-index: 2;
+}
+
+.crestWrapper {
+  margin-bottom: 8px;
+  filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.6));
+}
+
+.brandTitle {
+  font-size: 23px;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  color: #FFFFFF;
+  margin: 0;
+  line-height: 1.1;
+}
+
+.brandSubtitle {
+  font-size: 11px;
+  font-family: var(--font-mono, monospace);
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #CBD5E1;
+  margin-top: 3px;
+}
+
+.dualBrandLine {
+  display: flex;
+  gap: 2px;
+  width: 38px;
+  height: 3px;
+  margin-top: 8px;
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.brandLineRed {
+  flex: 1;
+  background-color: #D7193F;
+}
+
+.brandLineBlue {
+  flex: 1;
+  background-color: #3B82F6;
+}
+
+/* Welcome Row */
+.welcomeRow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  margin-bottom: 18px;
+  position: relative;
+  z-index: 2;
+}
+
+.welcomeHeading {
+  font-size: 20px;
+  font-weight: 800;
+  color: #FFFFFF;
+  margin: 0 0 2px 0;
+  line-height: 1.2;
+}
+
+.welcomeSubtext {
+  font-size: 13px;
+  color: #CBD5E1;
+  margin: 0;
+  line-height: 1.4;
+  font-weight: 400;
+}
+
+.authBadge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  background-color: rgba(15, 23, 42, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 6px;
+  font-size: 11px;
+  font-family: var(--font-mono, monospace);
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #CBD5E1;
+  flex-shrink: 0;
+}
+
+/* Stepper + Form Split Layout */
+.stepperAndFormGrid {
+  display: grid;
+  grid-template-columns: 58px 1fr;
+  gap: 16px;
+  position: relative;
+  z-index: 2;
+}
+
+/* Vertical Stepper Column */
+.stepperCol {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 22px;
+}
+
+.stepItem {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  width: 100%;
+}
+
+.stepCircle {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-family: var(--font-mono, monospace);
+  font-weight: 800;
+  background: rgba(15, 23, 42, 0.85);
+  border: 1.5px solid rgba(255, 255, 255, 0.2);
+  color: #94A3B8;
+  transition: all 0.22s ease;
+}
+
+.stepCircleActive {
+  background: rgba(215, 25, 63, 0.25);
+  border-color: #D7193F;
+  color: #FFFFFF;
+  box-shadow: 0 0 12px rgba(215, 25, 63, 0.5);
+}
+
+.stepCircleCompleted {
+  background: rgba(59, 130, 246, 0.25);
+  border-color: #3B82F6;
+  color: #93C5FD;
+  box-shadow: 0 0 10px rgba(59, 130, 246, 0.4);
+}
+
+.stepLabel {
+  font-size: 9.5px;
+  font-family: var(--font-mono, monospace);
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #94A3B8;
+  margin-top: 5px;
+  line-height: 1.25;
+}
+
+.stepLabelActive {
+  color: #F87171;
+  font-weight: 900;
+}
+
+.stepLabelCompleted {
+  color: #93C5FD;
+  font-weight: 800;
+}
+
+.stepLine {
+  width: 1.5px;
+  height: 40px;
+  border-left: 1.5px dashed rgba(255, 255, 255, 0.2);
+  margin: 4px 0;
+}
+
+.stepLineCompleted {
+  border-left: 1.5px solid rgba(59, 130, 246, 0.6);
+}
+
+/* Form Fields Column */
+.formCol {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+}
+
+.fieldGroup {
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+.fieldLabel {
+  display: block;
+  font-size: 12px;
+  font-family: var(--font-mono, monospace);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #CBD5E1;
+  margin-bottom: 7px;
+}
+
+/* ------------------------------------------------------------------------------
+   3D TACTILE ROLE SELECTOR TRIGGER & DROPDOWN
+   ------------------------------------------------------------------------------ */
+.roleSelectorTrigger {
+  width: 100%;
+  min-height: 60px;
+  padding: 10px 14px;
+  border-radius: 14px;
+  background: linear-gradient(180deg, #1C2B47 0%, #131E33 55%, #0D1627 100%);
+  border: 1px solid rgba(59, 130, 246, 0.35);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.15),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.4),
+    0 4px 12px rgba(0, 0, 0, 0.45),
+    0 0 16px rgba(59, 130, 246, 0.12);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  text-align: left;
+  position: relative;
+  user-select: none;
+  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  outline: none;
+}
+
+.roleSelectorTrigger:hover {
+  border-color: rgba(245, 158, 11, 0.6);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.22),
+    0 4px 14px rgba(0, 0, 0, 0.5),
+    0 0 18px rgba(245, 158, 11, 0.22);
+}
+
+.roleSelectorTrigger:active {
+  transform: translateY(1.5px);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.1),
+    0 2px 6px rgba(0, 0, 0, 0.5);
+}
+
+.roleSelectorTrigger:focus-visible {
+  outline: 2px solid #3B82F6;
+  outline-offset: 2px;
+}
+
+.roleIconBadge {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: radial-gradient(circle, rgba(59, 130, 246, 0.28) 0%, rgba(15, 23, 42, 0.6) 100%);
+  border: 1px solid rgba(59, 130, 246, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #93B3E6;
+  flex-shrink: 0;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+  transition: all 0.18s ease;
+}
+
+.roleSelectorTrigger:hover .roleIconBadge {
+  border-color: rgba(245, 158, 11, 0.5);
+  color: #F59E0B;
+  background: radial-gradient(circle, rgba(245, 158, 11, 0.22) 0%, rgba(15, 23, 42, 0.6) 100%);
+}
+
+.roleTextContainer {
+  min-width: 0;
+  flex: 1;
+}
+
+.rolePrimaryText {
+  font-size: 14px;
+  font-weight: 800;
+  color: #FFFFFF;
+  line-height: 1.25;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.roleSecondaryText {
+  font-size: 11.5px;
+  color: #93C5FD;
+  margin-top: 2px;
+  line-height: 1.25;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 500;
+}
+
+.chevronIcon {
+  color: #94A3B8;
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  flex-shrink: 0;
+}
+
+.chevronOpen {
+  transform: rotate(180deg);
+  color: #3B82F6;
+}
+
+/* Custom Dropdown Menu */
+.roleDropdownMenu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  background: #0B1222;
+  border: 1px solid rgba(59, 130, 246, 0.4);
+  border-radius: 14px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.8), 0 0 22px rgba(59, 130, 246, 0.2);
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  z-index: 50;
+  transition: opacity 0.2s cubic-bezier(0.16, 1, 0.3, 1), transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.roleDropdownMenuClosed {
+  opacity: 0;
+  transform: translateY(-8px);
+  pointer-events: none;
+}
+
+.roleDropdownMenuOpen {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.roleOptionItem {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  cursor: pointer;
+  text-align: left;
+  color: #CBD5E1;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.roleOptionItem:hover:not(.roleOptionSelected):not(.roleOptionActivating) {
+  background: rgba(245, 158, 11, 0.1);
+  border-color: rgba(245, 158, 11, 0.5);
+  box-shadow: 0 0 10px rgba(245, 158, 11, 0.2);
+}
+
+.roleOptionItem:hover:not(.roleOptionSelected):not(.roleOptionActivating) .roleOptionTitle {
+  color: #FFFFFF;
+}
+
+.roleOptionItem:hover:not(.roleOptionSelected):not(.roleOptionActivating) .roleOptionDesc {
+  color: #FDE68A;
+}
+
+.roleOptionSelected {
+  background: rgba(59, 130, 246, 0.15);
+  border-color: #3B82F6;
+  box-shadow: 0 0 10px rgba(59, 130, 246, 0.25);
+}
+
+.roleOptionSelected .roleOptionTitle {
+  color: #FFFFFF;
+}
+
+.roleOptionSelected .roleOptionDesc {
+  color: #93C5FD;
+}
+
+.roleOptionTitle {
+  font-size: 12px;
+  font-weight: 700;
+  color: #E2E8F0;
+  line-height: 1.2;
+}
+
+.roleOptionDesc {
+  font-size: 10.5px;
+  color: #94A3B8;
+  margin-top: 2px;
+  line-height: 1.2;
+  font-weight: 500;
+}
+
+/* Red Sweep Beam for Click Activation in Dropdown */
+.redSweepBeam {
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  pointer-events: none;
+  z-index: 5;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(215, 25, 63, 0) 10%,
+    rgba(215, 25, 63, 0.4) 35%,
+    rgba(239, 68, 68, 0.85) 50%,
+    rgba(254, 202, 202, 0.95) 55%,
+    rgba(215, 25, 63, 0.6) 65%,
+    transparent 100%
+  );
+  animation: sweepLeftToRight 420ms cubic-bezier(0.2, 0, 0.2, 1) forwards;
+}
+
+@keyframes sweepLeftToRight {
+  0% {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+  15% {
+    opacity: 1;
+  }
+  75% {
+    opacity: 0.95;
+  }
+  100% {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+}
+
+/* ------------------------------------------------------------------------------
+   RECESSED TACTILE INPUT FIELDS
+   ------------------------------------------------------------------------------ */
+.inputWrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.inputIconLeft {
+  position: absolute;
+  left: 14px;
+  color: #94A3B8;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  z-index: 2;
+  opacity: 1;
+  transform: translateX(0) scale(1);
+  transition: opacity 160ms cubic-bezier(0.16, 1, 0.3, 1), transform 160ms cubic-bezier(0.16, 1, 0.3, 1), color 160ms ease;
+}
+
+.inputIconHidden {
+  opacity: 0 !important;
+  transform: translateX(-4px) scale(0.92) !important;
+  pointer-events: none !important;
+}
+
+.inputIconRight {
+  position: absolute;
+  right: 12px;
+  display: flex;
+  align-items: center;
+  z-index: 2;
+}
+
+.recessedInput {
+  width: 100%;
+  height: 48px;
+  padding: 0 16px 0 42px;
+  background: #080D18;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  color: #FFFFFF;
+  font-size: 13.5px;
+  font-weight: 500;
+  outline: none;
+  box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.65), inset 0 0 10px rgba(0, 0, 0, 0.35);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, padding-left 160ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.recessedInputPassword {
+  padding-right: 42px;
+}
+
+.recessedInputWithValue {
+  padding-left: 16px;
+}
+
+.recessedInput:focus {
+  border-color: #3B82F6;
+  box-shadow:
+    inset 0 2px 5px rgba(0, 0, 0, 0.65),
+    0 0 0 2px rgba(59, 130, 246, 0.25);
+}
+
+.recessedInput::placeholder {
+  color: #64748B;
+  font-weight: 400;
+}
+
+.togglePasswordBtn {
+  background: none;
+  border: none;
+  color: #94A3B8;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  transition: color 0.15s ease;
+}
+
+.togglePasswordBtn:hover {
+  color: #FFFFFF;
+}
+
+/* Checkbox & Forgot Password Row */
+.optionsRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 0px;
+  margin-bottom: 4px;
+  font-size: 13px;
+}
+
+.checkboxLabel {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  color: #CBD5E1;
+  user-select: none;
+  font-weight: 500;
+}
+
+.customCheckbox {
+  accent-color: #D7193F;
+  width: 15px;
+  height: 15px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.forgotPasswordLink {
+  color: #60A5FA;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 12.5px;
+  transition: color 0.15s ease;
+}
+
+.forgotPasswordLink:hover {
+  color: #93C5FD;
+  text-decoration: underline;
+}
+
+/* ------------------------------------------------------------------------------
+   PRIMARY 3D SIGN IN BUTTON
+   ------------------------------------------------------------------------------ */
+.signInButton3D {
+  width: 100%;
+  min-height: 56px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 18px;
+  background: linear-gradient(180deg, #E11D48 0%, #D7193F 35%, #BE123C 75%, #9F1239 100%);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 14px;
+  color: #FFFFFF;
+  cursor: pointer;
+  position: relative;
+  user-select: none;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.35),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.3),
+    0 4px 0 #70122B,
+    0 8px 24px rgba(215, 25, 63, 0.45);
+  transition: all 0.12s cubic-bezier(0.16, 1, 0.3, 1);
+  outline: none;
+}
+
+.signInButton3D:hover:not(:disabled) {
+  filter: brightness(1.08);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.45),
+    0 5px 0 #70122B,
+    0 10px 28px rgba(215, 25, 63, 0.6);
+}
+
+.signInButton3D:active:not(:disabled) {
+  transform: translateY(2px);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.2),
+    0 2px 0 #70122B,
+    0 4px 14px rgba(215, 25, 63, 0.4);
+}
+
+.signInButton3D:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.15),
+    0 2px 0 #70122B;
+}
+
+.signInButton3D:focus-visible {
+  outline: 2px solid #D7193F;
+  outline-offset: 3px;
+}
+
+.signInButtonContent {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.signInButtonSubtext {
+  font-size: 11.5px;
+  color: rgba(255, 255, 255, 0.85);
+  font-weight: 600;
+  margin-top: 2px;
+}
+
+/* Security Seal Footer */
+.securitySealFooter {
+  margin-top: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 11.5px;
+  color: #94A3B8;
+  font-family: var(--font-mono, monospace);
+  font-weight: 600;
+  position: relative;
+  z-index: 2;
+}
+
+/* Accessibility & Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+  .roleSelectorTrigger,
+  .signInButton3D,
+  .roleOptionItem,
+  .stepCircle {
+    transition: none !important;
+    transform: none !important;
+    animation: none !important;
+  }
+
+  .redSweepBeam {
+    display: none !important;
+  }
+}
+
+/* ------------------------------------------------------------------------------
+   RESPONSIVE DESIGN ADAPTATIONS (TABLET & MOBILE)
+   ------------------------------------------------------------------------------ */
+@media (max-width: 640px) {
+  .panelContainer {
+    padding: 22px 18px 20px;
+    border-radius: 16px;
+  }
+
+  .welcomeRow {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .authBadge {
+    align-self: flex-start;
+  }
+}
+
+@media (max-width: 480px) {
+  .panelContainer {
+    padding: 18px 14px 16px;
+    border-radius: 14px;
+  }
+
+  .stepperAndFormGrid {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+
+  .stepperCol {
+    display: none;
+  }
+
+  .roleDropdownMenu {
+    max-height: 260px;
+    overflow-y: auto;
+  }
+
+  .roleSelectorTrigger {
+    min-height: 52px;
+    padding: 8px 12px;
+  }
+
+  .signInButton3D {
+    min-height: 50px;
+    padding: 8px 14px;
+  }
+}
+
+@media (max-width: 360px) {
+  .panelContainer {
+    padding: 14px 10px 14px;
+    border-radius: 12px;
+  }
+
+  .brandTitle {
+    font-size: 20px;
+  }
+
+  .welcomeHeading {
+    font-size: 18px;
+  }
+}
+

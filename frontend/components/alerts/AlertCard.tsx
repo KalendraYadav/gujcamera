@@ -4,6 +4,7 @@
 // Alert Card Component with Lifecycle Triage Controls
 // Gujarat Police Innovation Challenge 2026
 // Source of Truth: master_architecture.md (Section 6.3, 14.2)
+// Visual Language: Kit8 / Anton Fritsler Police Operations System
 // ==============================================================================
 
 import React, { useState } from 'react';
@@ -118,32 +119,28 @@ export function AlertCard({ alert, onStatusUpdated }: AlertCardProps) {
     }
   };
 
-  // Border and accent styling based on severity
+  // Border and accent styling based on severity (controlled, not garish)
   const getSeverityStyle = (sev: AlertSeverity) => {
     switch (sev) {
       case 'CRITICAL':
         return {
-          borderColor: 'var(--status-danger)',
-          background: 'rgba(239, 68, 68, 0.05)',
+          leftBorder: '3px solid var(--accent-primary)',
           badgeVariant: 'critical' as const,
         };
       case 'HIGH':
         return {
-          borderColor: 'var(--status-warning)',
-          background: 'rgba(245, 158, 11, 0.04)',
+          leftBorder: '3px solid var(--status-warning)',
           badgeVariant: 'warning' as const,
         };
       case 'MEDIUM':
         return {
-          borderColor: 'var(--status-info)',
-          background: 'rgba(59, 130, 246, 0.03)',
+          leftBorder: '3px solid var(--accent-blue)',
           badgeVariant: 'info' as const,
         };
       case 'LOW':
       default:
         return {
-          borderColor: 'var(--border-subtle)',
-          background: 'var(--bg-surface)',
+          leftBorder: '3px solid var(--border-default)',
           badgeVariant: 'neutral' as const,
         };
     }
@@ -152,15 +149,15 @@ export function AlertCard({ alert, onStatusUpdated }: AlertCardProps) {
   const getStatusBadge = (st: AlertStatus) => {
     switch (st) {
       case 'NEW':
-        return <StatusBadge label="NEW" variant="critical" pulse />;
+        return <StatusBadge label="NEW" variant="critical" pulse size="sm" />;
       case 'ACKNOWLEDGED':
-        return <StatusBadge label="ACKNOWLEDGED" variant="warning" />;
+        return <StatusBadge label="ACKNOWLEDGED" variant="warning" size="sm" />;
       case 'INVESTIGATING':
-        return <StatusBadge label="INVESTIGATING" variant="info" />;
+        return <StatusBadge label="INVESTIGATING" variant="info" size="sm" />;
       case 'RESOLVED':
-        return <StatusBadge label="RESOLVED" variant="success" />;
+        return <StatusBadge label="RESOLVED" variant="success" size="sm" />;
       case 'DISMISSED':
-        return <StatusBadge label="DISMISSED" variant="neutral" />;
+        return <StatusBadge label="DISMISSED" variant="neutral" size="sm" />;
     }
   };
 
@@ -169,14 +166,11 @@ export function AlertCard({ alert, onStatusUpdated }: AlertCardProps) {
 
   return (
     <div
+      className="netrava-card"
       style={{
-        backgroundColor: style.background,
-        border: `1px solid ${style.borderColor}`,
-        borderRadius: 'var(--radius-lg)',
-        padding: 'var(--space-4)',
-        marginBottom: 'var(--space-4)',
-        boxShadow: alert.severity === 'CRITICAL' ? '0 0 15px rgba(239, 68, 68, 0.15)' : 'var(--shadow-card)',
-        transition: 'all 0.2s ease',
+        borderLeft: style.leftBorder,
+        padding: '16px 18px',
+        marginBottom: '10px',
       }}
     >
       {/* Top Bar: Severity, Plate, Status, Timestamp */}
@@ -186,29 +180,35 @@ export function AlertCard({ alert, onStatusUpdated }: AlertCardProps) {
           alignItems: 'center',
           justifyContent: 'space-between',
           flexWrap: 'wrap',
-          gap: 'var(--space-3)',
-          marginBottom: 'var(--space-3)',
+          gap: '12px',
+          marginBottom: '12px',
+          paddingBottom: '12px',
+          borderBottom: '1px solid var(--border-subtle)',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
-          <StatusBadge label={alert.severity} variant={style.badgeVariant} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <StatusBadge label={alert.severity} variant={style.badgeVariant} size="sm" />
           {getStatusBadge(alert.status)}
           <span
             style={{
-              fontFamily: 'JetBrains Mono, monospace',
-              fontSize: 'var(--text-lg)',
+              fontFamily: 'var(--font-mono)',
+              fontSize: '13px',
               fontWeight: 700,
               color: 'var(--text-primary)',
-              letterSpacing: '0.05em',
+              letterSpacing: '0.08em',
+              padding: '2px 8px',
+              backgroundColor: 'rgba(5, 8, 15, 0.7)',
+              border: '1px solid var(--border-subtle)',
+              borderRadius: '4px',
             }}
           >
             {plate}
           </span>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>
-          <Clock size={13} />
-          <span>{new Date(alert.timestamp).toLocaleString()}</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
+          <Clock size={12} color="var(--accent-blue)" />
+          <span>{new Date(alert.timestamp).toLocaleString('en-IN', { hour12: false })}</span>
         </div>
       </div>
 
@@ -217,41 +217,41 @@ export function AlertCard({ alert, onStatusUpdated }: AlertCardProps) {
         style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
-          gap: 'var(--space-4)',
-          marginBottom: 'var(--space-3)',
-          padding: 'var(--space-3)',
-          backgroundColor: 'var(--bg-primary)',
-          borderRadius: 'var(--radius-md)',
+          gap: '12px',
+          marginBottom: '12px',
+          padding: '12px 14px',
+          backgroundColor: 'rgba(5, 8, 15, 0.5)',
+          borderRadius: '6px',
           border: '1px solid var(--border-subtle)',
         }}
       >
         <div>
-          <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', marginBottom: 'var(--space-1)' }}>
+          <div style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '3px', fontWeight: 700 }}>
             Watchlist Match
           </div>
-          <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--text-primary)' }}>
+          <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-primary)' }}>
             {alert.watchlist_match?.watchlist?.name || 'Police Watchlist'}
           </div>
-          <div style={{ fontSize: 'var(--text-xs)', color: 'var(--status-danger)', fontWeight: 500, marginTop: '2px' }}>
+          <div style={{ fontSize: '11px', color: 'var(--accent-primary)', fontWeight: 700, marginTop: '2px', fontFamily: 'var(--font-mono)' }}>
             {alert.watchlist_match?.category || 'FLAGGED_VEHICLE'}
           </div>
           {alert.watchlist_match?.reason && (
-            <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)', marginTop: 'var(--space-1)' }}>
+            <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '2px' }}>
               {alert.watchlist_match.reason}
             </div>
           )}
         </div>
 
         <div>
-          <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', marginBottom: 'var(--space-1)' }}>
+          <div style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '3px', fontWeight: 700 }}>
             Observed On CCTV
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--text-primary)' }}>
-            <Camera size={14} color="var(--accent-primary)" />
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: 700, color: 'var(--text-primary)' }}>
+            <Camera size={13} color="var(--accent-blue)" />
             <span>{alert.sighting?.camera?.name || 'CCTV Camera'}</span>
           </div>
           {alert.sighting?.camera?.location && (
-            <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)', marginTop: 'var(--space-1)' }}>
+            <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '2px' }}>
               {alert.sighting.camera.location.address}, {alert.sighting.camera.location.district}
             </div>
           )}
@@ -262,13 +262,13 @@ export function AlertCard({ alert, onStatusUpdated }: AlertCardProps) {
       {errorMessage && (
         <div
           style={{
-            padding: 'var(--space-2) var(--space-3)',
-            backgroundColor: 'rgba(239, 68, 68, 0.1)',
-            border: '1px solid var(--status-danger)',
-            borderRadius: 'var(--radius-sm)',
-            color: 'var(--status-danger)',
-            fontSize: 'var(--text-xs)',
-            marginBottom: 'var(--space-3)',
+            padding: '8px 12px',
+            backgroundColor: 'rgba(215, 25, 63, 0.1)',
+            border: '1px solid rgba(215, 25, 63, 0.3)',
+            borderRadius: '4px',
+            color: 'var(--accent-primary)',
+            fontSize: '11px',
+            marginBottom: '10px',
           }}
         >
           {errorMessage}
@@ -279,45 +279,42 @@ export function AlertCard({ alert, onStatusUpdated }: AlertCardProps) {
       {alert.status === 'DISMISSED' && alert.dismissal_reason && (
         <div
           style={{
-            padding: 'var(--space-2) var(--space-3)',
-            backgroundColor: 'var(--bg-secondary)',
-            borderRadius: 'var(--radius-sm)',
-            fontSize: 'var(--text-xs)',
+            padding: '8px 12px',
+            backgroundColor: 'rgba(255, 255, 255, 0.02)',
+            border: '1px solid var(--border-subtle)',
+            borderRadius: '4px',
+            fontSize: '11px',
             color: 'var(--text-muted)',
-            marginBottom: 'var(--space-3)',
+            marginBottom: '10px',
           }}
         >
           <strong>Dismissal Reason:</strong> {alert.dismissal_reason}
         </div>
       )}
 
-      {/* Actions & Triage Controls */}
+      {/* Action Rail: Triage Workflow */}
       <div
         style={{
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
           flexWrap: 'wrap',
-          gap: 'var(--space-3)',
-          paddingTop: 'var(--space-2)',
-          borderTop: '1px solid var(--border-subtle)',
+          gap: '10px',
+          marginTop: '6px',
         }}
       >
-        {/* Left: Triage State Transitions */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
+        {/* Left: Triage Action Buttons */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
           {canAcknowledge && (
             <button
               onClick={handleAcknowledge}
               disabled={isSubmitting}
+              className="btn-primary"
               style={{
-                padding: 'var(--space-2) var(--space-4)',
-                backgroundColor: 'var(--status-warning)',
-                color: '#000',
-                border: 'none',
-                borderRadius: 'var(--radius-md)',
-                fontSize: 'var(--text-xs)',
-                fontWeight: 600,
-                cursor: 'pointer',
+                height: '30px',
+                padding: '0 12px',
+                fontSize: '11px',
+                letterSpacing: '0.03em',
                 opacity: isSubmitting ? 0.6 : 1,
               }}
             >
@@ -329,15 +326,12 @@ export function AlertCard({ alert, onStatusUpdated }: AlertCardProps) {
             <button
               onClick={handleInvestigate}
               disabled={isSubmitting}
+              className="btn-secondary"
               style={{
-                padding: 'var(--space-2) var(--space-4)',
-                backgroundColor: 'var(--status-info)',
-                color: '#fff',
-                border: 'none',
-                borderRadius: 'var(--radius-md)',
-                fontSize: 'var(--text-xs)',
-                fontWeight: 600,
-                cursor: 'pointer',
+                height: '30px',
+                padding: '0 12px',
+                fontSize: '11px',
+                letterSpacing: '0.03em',
                 opacity: isSubmitting ? 0.6 : 1,
               }}
             >
@@ -350,13 +344,15 @@ export function AlertCard({ alert, onStatusUpdated }: AlertCardProps) {
               onClick={handleResolve}
               disabled={isSubmitting}
               style={{
-                padding: 'var(--space-2) var(--space-4)',
-                backgroundColor: 'var(--status-success)',
-                color: '#fff',
-                border: 'none',
-                borderRadius: 'var(--radius-md)',
-                fontSize: 'var(--text-xs)',
+                height: '30px',
+                padding: '0 12px',
+                backgroundColor: 'var(--status-success-bg)',
+                color: 'var(--status-success)',
+                border: '1px solid var(--status-success-border)',
+                borderRadius: '4px',
+                fontSize: '11px',
                 fontWeight: 600,
+                letterSpacing: '0.03em',
                 cursor: 'pointer',
                 opacity: isSubmitting ? 0.6 : 1,
               }}
@@ -369,14 +365,11 @@ export function AlertCard({ alert, onStatusUpdated }: AlertCardProps) {
             <button
               onClick={() => setShowDismissModal(true)}
               disabled={isSubmitting}
+              className="btn-secondary"
               style={{
-                padding: 'var(--space-2) var(--space-3)',
-                backgroundColor: 'transparent',
-                color: 'var(--text-muted)',
-                border: '1px solid var(--border-default)',
-                borderRadius: 'var(--radius-md)',
-                fontSize: 'var(--text-xs)',
-                cursor: 'pointer',
+                height: '30px',
+                padding: '0 12px',
+                fontSize: '11px',
               }}
             >
               Dismiss
@@ -384,31 +377,31 @@ export function AlertCard({ alert, onStatusUpdated }: AlertCardProps) {
           )}
 
           {!canAcknowledge && !canInvestigate && !canResolve && !canDismiss && (
-            <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>
+            <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
               {alert.status === 'RESOLVED' ? 'Case Resolved' : alert.status === 'DISMISSED' ? 'Dismissed' : 'No pending actions'}
             </span>
           )}
         </div>
 
         {/* Right: Link to Vehicle Investigation & Detail Toggle */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           {canInvestigateVehicle && (
             <Link
               href={`/vehicles/${plate}`}
               id={`investigate-vehicle-${alert.id}`}
+              className="btn-secondary"
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: 'var(--space-1)',
-                fontSize: 'var(--text-xs)',
-                color: 'var(--accent-primary)',
+                gap: '5px',
+                fontSize: '11px',
                 textDecoration: 'none',
-                fontWeight: 600,
+                padding: '5px 10px',
               }}
             >
-              <Search size={13} />
+              <Search size={12} color="var(--accent-blue)" />
               <span>Investigate Vehicle</span>
-              <ArrowRight size={13} />
+              <ArrowRight size={12} />
             </Link>
           )}
 
@@ -417,16 +410,17 @@ export function AlertCard({ alert, onStatusUpdated }: AlertCardProps) {
             id={`toggle-alert-detail-${alert.id}`}
             style={{
               background: 'none',
-              border: 'none',
+              border: '1px solid var(--border-subtle)',
+              borderRadius: '4px',
               color: 'var(--text-muted)',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
-              padding: 'var(--space-1)',
+              padding: '5px 8px',
             }}
             title="Toggle Audit & Evidence Details"
           >
-            {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+            {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
           </button>
         </div>
       </div>
@@ -435,29 +429,30 @@ export function AlertCard({ alert, onStatusUpdated }: AlertCardProps) {
       {isExpanded && (
         <div
           style={{
-            marginTop: 'var(--space-3)',
-            paddingTop: 'var(--space-3)',
-            borderTop: '1px dashed var(--border-subtle)',
-            fontSize: 'var(--text-xs)',
+            marginTop: '12px',
+            paddingTop: '12px',
+            borderTop: '1px solid var(--border-subtle)',
+            fontSize: '11px',
             color: 'var(--text-muted)',
             display: 'grid',
             gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-            gap: 'var(--space-2)',
+            gap: '8px',
+            fontFamily: 'var(--font-mono)',
           }}
         >
           <div>
-            <strong>Alert ID:</strong> {alert.id}
+            <strong>Alert ID:</strong> <span style={{ color: 'var(--text-secondary)' }}>{alert.id}</span>
           </div>
           <div>
-            <strong>Sighting ID:</strong> {alert.sighting?.id || 'N/A'}
+            <strong>Sighting ID:</strong> <span style={{ color: 'var(--text-secondary)' }}>{alert.sighting?.id || 'N/A'}</span>
           </div>
           <div>
-            <strong>Acknowledged By:</strong> {alert.acknowledged_by?.email || 'None'}
+            <strong>Acknowledged By:</strong> <span style={{ color: 'var(--text-secondary)' }}>{alert.acknowledged_by?.email || 'None'}</span>
           </div>
           <div>
-            <strong>Resolved By:</strong> {alert.resolved_by?.email || 'None'}
+            <strong>Resolved By:</strong> <span style={{ color: 'var(--text-secondary)' }}>{alert.resolved_by?.email || 'None'}</span>
           </div>
-          <div style={{ gridColumn: '1 / -1', marginTop: 'var(--space-1)', color: 'var(--text-muted)', fontStyle: 'italic' }}>
+          <div style={{ gridColumn: '1 / -1', marginTop: '4px', color: 'var(--text-muted)', fontStyle: 'italic', fontFamily: 'var(--font-sans)' }}>
             Disclaimer: {alert.disclaimer || 'Watchlist plate match does not confirm suspect guilt; corroborating physical evidence required.'}
           </div>
         </div>
@@ -469,64 +464,57 @@ export function AlertCard({ alert, onStatusUpdated }: AlertCardProps) {
           style={{
             position: 'fixed',
             inset: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.75)',
+            backgroundColor: 'rgba(5, 8, 15, 0.85)',
+            backdropFilter: 'blur(12px)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             zIndex: 1000,
-            padding: 'var(--space-4)',
+            padding: '16px',
           }}
         >
           <div
+            className="netrava-card"
             style={{
-              backgroundColor: 'var(--bg-surface)',
-              border: '1px solid var(--border-default)',
-              borderRadius: 'var(--radius-lg)',
-              maxWidth: '460px',
+              padding: '24px',
+              maxWidth: '440px',
               width: '100%',
-              padding: 'var(--space-6)',
-              boxShadow: 'var(--shadow-xl)',
+              boxShadow: 'var(--shadow-modal)',
             }}
           >
-            <h3 style={{ fontSize: 'var(--text-lg)', fontWeight: 600, color: 'var(--text-primary)', marginBottom: 'var(--space-2)' }}>
-              Dismiss Alert
+            <h3 style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '8px', margin: 0 }}>
+              Mandatory Dismissal Reason
             </h3>
-            <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', marginBottom: 'var(--space-4)' }}>
-              Gujarat Police compliance policy requires a recorded justification for dismissing flagged vehicle alerts.
+            <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '16px', marginTop: '6px' }}>
+              Per Gujarat Police Audit Regulation, all dismissed watchlist hits must have a documented reason recorded in the immutable audit ledger.
             </p>
 
             <textarea
-              rows={3}
               value={dismissReason}
               onChange={(e) => setDismissReason(e.target.value)}
-              placeholder="Enter official reason (e.g., False positive OCR misread, verified innocent vehicle, resolved FIR)..."
+              placeholder="e.g., False positive plate OCR read, authorized vehicle convoy..."
+              rows={3}
+              className="netrava-input"
               style={{
                 width: '100%',
-                padding: 'var(--space-3)',
-                backgroundColor: 'var(--bg-primary)',
-                border: '1px solid var(--border-default)',
-                borderRadius: 'var(--radius-md)',
-                color: 'var(--text-primary)',
-                fontSize: 'var(--text-sm)',
-                marginBottom: 'var(--space-4)',
-                resize: 'vertical',
+                padding: '10px 12px',
+                fontSize: '12px',
+                resize: 'none',
+                marginBottom: '16px',
               }}
             />
 
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 'var(--space-3)' }}>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
               <button
                 onClick={() => {
                   setShowDismissModal(false);
-                  setErrorMessage(null);
+                  setDismissReason('');
                 }}
                 disabled={isSubmitting}
+                className="btn-secondary"
                 style={{
-                  padding: 'var(--space-2) var(--space-4)',
-                  backgroundColor: 'transparent',
-                  color: 'var(--text-secondary)',
-                  border: '1px solid var(--border-default)',
-                  borderRadius: 'var(--radius-md)',
-                  cursor: 'pointer',
+                  padding: '7px 14px',
+                  fontSize: '12px',
                 }}
               >
                 Cancel
@@ -534,15 +522,11 @@ export function AlertCard({ alert, onStatusUpdated }: AlertCardProps) {
               <button
                 onClick={handleConfirmDismiss}
                 disabled={isSubmitting || !dismissReason.trim()}
+                className="btn-primary"
                 style={{
-                  padding: 'var(--space-2) var(--space-4)',
-                  backgroundColor: 'var(--status-danger)',
-                  color: '#fff',
-                  border: 'none',
-                  borderRadius: 'var(--radius-md)',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  opacity: isSubmitting || !dismissReason.trim() ? 0.6 : 1,
+                  padding: '7px 16px',
+                  fontSize: '12px',
+                  opacity: isSubmitting || !dismissReason.trim() ? 0.5 : 1,
                 }}
               >
                 {isSubmitting ? 'Recording...' : 'Confirm Dismissal'}

@@ -14,7 +14,6 @@ export interface NavItemConfig {
   iconName: string;
   allowedRoles: PoliceRole[];
   badge?: string;
-  phase: string;
 }
 
 export const NAV_ITEMS: NavItemConfig[] = [
@@ -24,7 +23,6 @@ export const NAV_ITEMS: NavItemConfig[] = [
     path: '/',
     iconName: 'LayoutDashboard',
     allowedRoles: ['SUPER_ADMIN', 'DEPARTMENT_ADMIN', 'INVESTIGATOR', 'OPERATOR', 'SYSTEM_AUDITOR', 'VIEWER'],
-    phase: 'Phase 4A (Foundation)',
   },
   {
     id: 'live',
@@ -33,7 +31,6 @@ export const NAV_ITEMS: NavItemConfig[] = [
     iconName: 'Video',
     allowedRoles: ['SUPER_ADMIN', 'DEPARTMENT_ADMIN', 'INVESTIGATOR', 'OPERATOR'],
     badge: 'HLS',
-    phase: 'Phase 4C',
   },
   {
     id: 'map',
@@ -41,7 +38,6 @@ export const NAV_ITEMS: NavItemConfig[] = [
     path: '/map',
     iconName: 'MapPin',
     allowedRoles: ['SUPER_ADMIN', 'DEPARTMENT_ADMIN', 'INVESTIGATOR', 'OPERATOR', 'SYSTEM_AUDITOR', 'VIEWER'],
-    phase: 'Phase 4B',
   },
   {
     id: 'cameras',
@@ -49,7 +45,6 @@ export const NAV_ITEMS: NavItemConfig[] = [
     path: '/cameras',
     iconName: 'Camera',
     allowedRoles: ['SUPER_ADMIN', 'DEPARTMENT_ADMIN', 'INVESTIGATOR', 'OPERATOR', 'SYSTEM_AUDITOR', 'VIEWER'],
-    phase: 'Phase 4B',
   },
   {
     id: 'vehicles',
@@ -57,7 +52,6 @@ export const NAV_ITEMS: NavItemConfig[] = [
     path: '/vehicles',
     iconName: 'Car',
     allowedRoles: ['SUPER_ADMIN', 'DEPARTMENT_ADMIN', 'INVESTIGATOR'],
-    phase: 'Phase 4D',
   },
   {
     id: 'alerts',
@@ -65,7 +59,6 @@ export const NAV_ITEMS: NavItemConfig[] = [
     path: '/alerts',
     iconName: 'BellRing',
     allowedRoles: ['SUPER_ADMIN', 'DEPARTMENT_ADMIN', 'INVESTIGATOR', 'OPERATOR'],
-    phase: 'Phase 4E',
   },
   {
     id: 'watchlist',
@@ -73,7 +66,6 @@ export const NAV_ITEMS: NavItemConfig[] = [
     path: '/watchlist',
     iconName: 'ListFilter',
     allowedRoles: ['SUPER_ADMIN', 'DEPARTMENT_ADMIN', 'INVESTIGATOR', 'OPERATOR'],
-    phase: 'Phase 4E',
   },
   {
     id: 'audit',
@@ -81,7 +73,6 @@ export const NAV_ITEMS: NavItemConfig[] = [
     path: '/audit',
     iconName: 'ShieldAlert',
     allowedRoles: ['SUPER_ADMIN', 'SYSTEM_AUDITOR'],
-    phase: 'Phase 4F',
   },
   {
     id: 'admin',
@@ -89,7 +80,6 @@ export const NAV_ITEMS: NavItemConfig[] = [
     path: '/admin',
     iconName: 'Settings',
     allowedRoles: ['SUPER_ADMIN', 'DEPARTMENT_ADMIN'],
-    phase: 'Phase 4F',
   },
 ];
 

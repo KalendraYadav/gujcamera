@@ -27,7 +27,6 @@ import {
   Info,
 } from 'lucide-react';
 import { AppShell } from '@/components/layout/AppShell';
-import { SimulatedDataBadge } from '@/components/ui/SimulatedDataBadge';
 import { StatusBadge, BadgeVariant } from '@/components/ui/StatusBadge';
 import { LoadingState } from '@/components/ui/LoadingState';
 import { ErrorState } from '@/components/ui/ErrorState';
@@ -54,7 +53,7 @@ function formatTimestamp(iso: string): string {
 
 function getActionBadgeVariant(action: string): BadgeVariant {
   const upper = action.toUpperCase();
-  if (upper.includes('BREACH') || upper.includes('FAILED') || upper.includes('DELETE')) {
+  if (upper.includes('BREACH') || upper.includes('FAILED') || upper.includes('DELETE') || upper.includes('FAILURE')) {
     return 'critical';
   }
   if (upper.includes('EXPORT') || upper.includes('STATUS') || upper.includes('DISMISS')) {
@@ -98,13 +97,13 @@ export default function AuditPage() {
       }
       setLogs(list);
       setTotalPages(response.meta?.totalPages || 1);
-      setTotalCount(response.meta?.total || 0);
+      setTotalCount(response.meta?.total || list.length);
     } catch (err: any) {
-      setError(err.message || 'Failed to retrieve audit trail records.');
+      setError(err?.message || 'Failed to retrieve immutable audit ledger records.');
     } finally {
       setLoading(false);
     }
-  }, [page, actionFilter, resourceFilter, statusFilter]);
+  }, [actionFilter, resourceFilter, statusFilter, page]);
 
   useEffect(() => {
     fetchLogs();
@@ -119,91 +118,132 @@ export default function AuditPage() {
 
   return (
     <AppShell>
-      <div style={{ padding: 'var(--space-6)', maxWidth: '1440px', margin: '0 auto' }}>
-        {/* Header section */}
+      <div style={{ maxWidth: '1280px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+        {/* Page Header Card */}
         <div
+          className="netrava-card"
           style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'flex-start',
-            flexWrap: 'wrap',
-            gap: 'var(--space-4)',
-            marginBottom: 'var(--space-6)',
+            padding: '16px 20px',
+            position: 'relative',
           }}
         >
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', marginBottom: 'var(--space-1)' }}>
-              <ShieldCheck size={24} color="var(--accent-primary)" />
-              <h1 style={{ fontSize: 'var(--text-2xl)', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
-                System Security & Compliance Audit Trail
-              </h1>
+          <div
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              height: '2px',
+              background: 'var(--highlight-gradient)',
+            }}
+          />
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: 'var(--space-3)',
+            }}
+          >
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', marginBottom: '4px' }}>
+                <div
+                  style={{
+                    width: '32px',
+                    height: '32px',
+                    borderRadius: 'var(--radius-xs)',
+                    backgroundColor: 'rgba(245, 158, 11, 0.12)',
+                    border: '1px solid rgba(245, 158, 11, 0.3)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#FBBF24',
+                    flexShrink: 0,
+                  }}
+                >
+                  <ShieldAlert size={16} />
+                </div>
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+                    <h1 style={{ fontSize: 'var(--text-lg)', fontWeight: 600, color: 'var(--text-primary)', letterSpacing: '0.01em', margin: 0 }}>
+                      System Security &amp; Compliance Audit Trail
+                    </h1>
+                    <span
+                      style={{
+                        fontSize: '11px',
+                        fontFamily: 'var(--font-mono)',
+                        fontWeight: 600,
+                        color: '#60A5FA',
+                        backgroundColor: 'rgba(59, 130, 246, 0.12)',
+                        border: '1px solid rgba(59, 130, 246, 0.3)',
+                        padding: '1px 6px',
+                        borderRadius: 'var(--radius-xs)',
+                      }}
+                    >
+                      IMMUTABLE LEDGER
+                    </span>
+                  </div>
+                  <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)', marginTop: '2px', margin: 0 }}>
+                    Cryptographically indexed records of officer actions, plate lookups, and evidence chain of custody.
+                  </p>
+                </div>
+              </div>
             </div>
-            <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)', margin: 0 }}>
-              Immutable legal audit logs tracking officer actions, alert status transitions, and evidence access.
-            </p>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
-            <SimulatedDataBadge />
-            <button
-              id="refresh-audit-btn"
-              onClick={fetchLogs}
-              disabled={loading}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 'var(--space-2)',
-                padding: 'var(--space-2) var(--space-4)',
-                backgroundColor: 'var(--bg-surface)',
-                border: '1px solid var(--border-default)',
-                borderRadius: 'var(--radius-sm)',
-                color: 'var(--text-primary)',
-                fontSize: 'var(--text-sm)',
-                fontWeight: 600,
-                cursor: loading ? 'not-allowed' : 'pointer',
-              }}
-            >
-              <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
-              Refresh
-            </button>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
+              <button
+                onClick={fetchLogs}
+                disabled={loading}
+                className="btn-secondary"
+                style={{
+                  padding: '6px 14px',
+                  fontSize: 'var(--text-sm)',
+                  gap: '6px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  cursor: loading ? 'not-allowed' : 'pointer',
+                }}
+              >
+                <RefreshCw size={13} className={loading ? 'animate-spin' : ''} />
+                <span>Refresh Ledger</span>
+              </button>
+            </div>
           </div>
         </div>
 
-        {/* Accountability notice */}
+        {/* Accountability & Statutory Governance Banner */}
         <div
           style={{
-            backgroundColor: 'var(--bg-surface)',
-            border: '1px solid var(--border-subtle)',
-            borderRadius: 'var(--radius-md)',
-            padding: 'var(--space-3) var(--space-4)',
-            marginBottom: 'var(--space-6)',
+            backgroundColor: 'rgba(59, 130, 246, 0.08)',
+            border: '1px solid rgba(59, 130, 246, 0.25)',
+            borderRadius: 'var(--radius-xs)',
+            padding: '8px 14px',
             display: 'flex',
             alignItems: 'center',
             gap: 'var(--space-3)',
           }}
         >
-          <Info size={16} color="var(--accent-primary)" style={{ flexShrink: 0 }} />
-          <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)' }}>
-            <strong>STATUTORY AUDIT GOVERNANCE:</strong> In compliance with Section 7.2 of the master architecture and police oversight standards, every alert triage decision, vehicle lookup, and evidence package export is recorded synchronously with officer credentials. These records are write-once and cryptographically indexed.
+          <Info size={16} color="#60A5FA" style={{ flexShrink: 0 }} />
+          <div style={{ fontSize: '12px', color: 'var(--text-secondary)', lineHeight: 1.4 }}>
+            <strong style={{ color: 'var(--text-primary)' }}>STATUTORY AUDIT GOVERNANCE:</strong> All alert triage dispositions, vehicle license plate lookups, and evidentiary exports are recorded synchronously alongside the authenticated officer badge and client IP. Records are append-only and cryptographically indexed.
           </div>
         </div>
 
-        {/* Filter bar */}
+        {/* Filter Toolbar */}
         <div
+          className="netrava-card"
           style={{
             display: 'flex',
             flexWrap: 'wrap',
             gap: 'var(--space-3)',
-            backgroundColor: 'var(--bg-surface)',
-            border: '1px solid var(--border-default)',
-            borderRadius: 'var(--radius-md)',
-            padding: 'var(--space-3)',
-            marginBottom: 'var(--space-4)',
+            padding: 'var(--space-3) var(--space-4)',
             alignItems: 'center',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
-            <Filter size={14} color="var(--text-muted)" />
-            <span style={{ fontSize: 'var(--text-xs)', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <Filter size={13} color="var(--text-dim)" />
+            <span style={{ fontSize: '10px', fontWeight: 700, color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.08em', fontFamily: 'var(--font-mono)' }}>
               Filters:
             </span>
           </div>
@@ -217,27 +257,24 @@ export default function AuditPage() {
               setPage(1);
             }}
             style={{
-              padding: 'var(--space-1) var(--space-2)',
-              fontSize: 'var(--text-xs)',
-              backgroundColor: 'var(--bg-surface-elevated)',
-              border: '1px solid var(--border-subtle)',
-              borderRadius: 'var(--radius-xs)',
-              color: 'var(--text-primary)',
+              padding: '4px 10px',
+              fontSize: '11px',
+              fontFamily: 'var(--font-mono)',
               colorScheme: 'dark',
             }}
           >
-            <option value="" style={{ backgroundColor: 'var(--bg-surface)', color: 'var(--text-primary)' }}>All Actions</option>
-            <option value="USER_LOGIN_SUCCESS" style={{ backgroundColor: 'var(--bg-surface)', color: 'var(--text-primary)' }}>USER_LOGIN_SUCCESS</option>
-            <option value="LOGIN_SUCCESS" style={{ backgroundColor: 'var(--bg-surface)', color: 'var(--text-primary)' }}>LOGIN_SUCCESS</option>
-            <option value="LOGIN_FAILURE" style={{ backgroundColor: 'var(--bg-surface)', color: 'var(--text-primary)' }}>LOGIN_FAILURE</option>
-            <option value="VEHICLE_SEARCH" style={{ backgroundColor: 'var(--bg-surface)', color: 'var(--text-primary)' }}>VEHICLE_SEARCH</option>
-            <option value="VEHICLE_DETAIL_VIEW" style={{ backgroundColor: 'var(--bg-surface)', color: 'var(--text-primary)' }}>VEHICLE_DETAIL_VIEW</option>
-            <option value="VEHICLE_TIMELINE_SEARCH" style={{ backgroundColor: 'var(--bg-surface)', color: 'var(--text-primary)' }}>VEHICLE_TIMELINE_SEARCH</option>
-            <option value="ALERT_STATUS_CHANGED" style={{ backgroundColor: 'var(--bg-surface)', color: 'var(--text-primary)' }}>ALERT_STATUS_CHANGED</option>
-            <option value="EVIDENCE_EXPORTED" style={{ backgroundColor: 'var(--bg-surface)', color: 'var(--text-primary)' }}>EVIDENCE_EXPORTED</option>
-            <option value="EVIDENCE_TAMPER_ALERT" style={{ backgroundColor: 'var(--bg-surface)', color: 'var(--text-primary)' }}>EVIDENCE_TAMPER_ALERT</option>
-            <option value="WATCHLIST_PLATE_ADDED" style={{ backgroundColor: 'var(--bg-surface)', color: 'var(--text-primary)' }}>WATCHLIST_PLATE_ADDED</option>
-            <option value="SYSTEM_INITIALIZATION" style={{ backgroundColor: 'var(--bg-surface)', color: 'var(--text-primary)' }}>SYSTEM_INITIALIZATION</option>
+            <option value="">All Actions</option>
+            <option value="USER_LOGIN_SUCCESS">USER_LOGIN_SUCCESS</option>
+            <option value="LOGIN_SUCCESS">LOGIN_SUCCESS</option>
+            <option value="LOGIN_FAILURE">LOGIN_FAILURE</option>
+            <option value="VEHICLE_SEARCH">VEHICLE_SEARCH</option>
+            <option value="VEHICLE_DETAIL_VIEW">VEHICLE_DETAIL_VIEW</option>
+            <option value="VEHICLE_TIMELINE_SEARCH">VEHICLE_TIMELINE_SEARCH</option>
+            <option value="ALERT_STATUS_CHANGED">ALERT_STATUS_CHANGED</option>
+            <option value="EVIDENCE_EXPORTED">EVIDENCE_EXPORTED</option>
+            <option value="EVIDENCE_TAMPER_ALERT">EVIDENCE_TAMPER_ALERT</option>
+            <option value="WATCHLIST_PLATE_ADDED">WATCHLIST_PLATE_ADDED</option>
+            <option value="SYSTEM_INITIALIZATION">SYSTEM_INITIALIZATION</option>
           </select>
 
           {/* Resource Filter */}
@@ -249,23 +286,19 @@ export default function AuditPage() {
               setPage(1);
             }}
             style={{
-              padding: 'var(--space-1) var(--space-2)',
-              fontSize: 'var(--text-xs)',
-              backgroundColor: 'var(--bg-surface-elevated)',
-              border: '1px solid var(--border-subtle)',
-              borderRadius: 'var(--radius-xs)',
-              color: 'var(--text-primary)',
+              padding: '4px 10px',
+              fontSize: '11px',
               colorScheme: 'dark',
             }}
           >
-            <option value="" style={{ backgroundColor: 'var(--bg-surface)', color: 'var(--text-primary)' }}>All Resources</option>
-            <option value="Vehicle" style={{ backgroundColor: 'var(--bg-surface)', color: 'var(--text-primary)' }}>Vehicle</option>
-            <option value="Auth" style={{ backgroundColor: 'var(--bg-surface)', color: 'var(--text-primary)' }}>Auth</option>
-            <option value="Alert" style={{ backgroundColor: 'var(--bg-surface)', color: 'var(--text-primary)' }}>Alert</option>
-            <option value="Evidence" style={{ backgroundColor: 'var(--bg-surface)', color: 'var(--text-primary)' }}>Evidence</option>
-            <option value="Watchlist" style={{ backgroundColor: 'var(--bg-surface)', color: 'var(--text-primary)' }}>Watchlist</option>
-            <option value="Camera" style={{ backgroundColor: 'var(--bg-surface)', color: 'var(--text-primary)' }}>Camera</option>
-            <option value="System" style={{ backgroundColor: 'var(--bg-surface)', color: 'var(--text-primary)' }}>System</option>
+            <option value="">All Resources</option>
+            <option value="Vehicle">Vehicle</option>
+            <option value="Auth">Auth</option>
+            <option value="Alert">Alert</option>
+            <option value="Evidence">Evidence</option>
+            <option value="Watchlist">Watchlist</option>
+            <option value="Camera">Camera</option>
+            <option value="System">System</option>
           </select>
 
           {/* Status Filter */}
@@ -277,18 +310,14 @@ export default function AuditPage() {
               setPage(1);
             }}
             style={{
-              padding: 'var(--space-1) var(--space-2)',
-              fontSize: 'var(--text-xs)',
-              backgroundColor: 'var(--bg-surface-elevated)',
-              border: '1px solid var(--border-subtle)',
-              borderRadius: 'var(--radius-xs)',
-              color: 'var(--text-primary)',
+              padding: '4px 10px',
+              fontSize: '11px',
               colorScheme: 'dark',
             }}
           >
-            <option value="" style={{ backgroundColor: 'var(--bg-surface)', color: 'var(--text-primary)' }}>All Statuses</option>
-            <option value="SUCCESS" style={{ backgroundColor: 'var(--bg-surface)', color: 'var(--text-primary)' }}>SUCCESS</option>
-            <option value="FAILURE" style={{ backgroundColor: 'var(--bg-surface)', color: 'var(--text-primary)' }}>FAILURE</option>
+            <option value="">All Statuses</option>
+            <option value="SUCCESS">SUCCESS</option>
+            <option value="FAILURE">FAILURE</option>
           </select>
 
           {(actionFilter || resourceFilter || statusFilter) && (
@@ -297,24 +326,27 @@ export default function AuditPage() {
               style={{
                 background: 'none',
                 border: 'none',
-                color: 'var(--accent-primary)',
-                fontSize: 'var(--text-xs)',
+                color: 'var(--accent-blue)',
+                fontSize: '11px',
                 cursor: 'pointer',
                 textDecoration: 'underline',
+                fontWeight: 600,
               }}
             >
               Reset Filters
             </button>
           )}
 
-          <div style={{ marginLeft: 'auto', fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>
+          <div style={{ marginLeft: 'auto', fontSize: '11px', color: 'var(--text-dim)', fontFamily: 'var(--font-mono)' }}>
             Showing {logs.length} of {totalCount} events
           </div>
         </div>
 
         {/* Content View */}
         {loading ? (
-          <LoadingState message="Retrieving compliance audit records..." />
+          <div className="netrava-card" style={{ padding: 'var(--space-10)' }}>
+            <LoadingState message="Retrieving compliance audit records..." />
+          </div>
         ) : error ? (
           <ErrorState
             title="Failed to Load Audit Logs"
@@ -332,109 +364,89 @@ export default function AuditPage() {
           />
         ) : (
           <div
+            className="netrava-card"
             style={{
-              backgroundColor: 'var(--bg-surface)',
-              border: '1px solid var(--border-default)',
-              borderRadius: 'var(--radius-md)',
               overflow: 'hidden',
             }}
           >
             <table
               id="audit-logs-table"
-              style={{
-                width: '100%',
-                borderCollapse: 'collapse',
-                textAlign: 'left',
-                fontSize: 'var(--text-xs)',
-              }}
+              className="netrava-table"
             >
               <thead>
-                <tr
-                  style={{
-                    backgroundColor: 'var(--bg-surface-elevated)',
-                    borderBottom: '1px solid var(--border-subtle)',
-                    color: 'var(--text-muted)',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.06em',
-                    fontSize: '10px',
-                  }}
-                >
-                  <th style={{ padding: 'var(--space-3) var(--space-4)' }}>Timestamp</th>
-                  <th style={{ padding: 'var(--space-3) var(--space-4)' }}>Action</th>
-                  <th style={{ padding: 'var(--space-3) var(--space-4)' }}>Actor / Officer</th>
-                  <th style={{ padding: 'var(--space-3) var(--space-4)' }}>Resource</th>
-                  <th style={{ padding: 'var(--space-3) var(--space-4)' }}>IP Address</th>
-                  <th style={{ padding: 'var(--space-3) var(--space-4)' }}>Status</th>
-                  <th style={{ padding: 'var(--space-3) var(--space-4)', textAlign: 'right' }}>Details</th>
+                <tr>
+                  <th style={{ padding: '10px 14px' }}>Timestamp</th>
+                  <th style={{ padding: '10px 14px' }}>Action</th>
+                  <th style={{ padding: '10px 14px' }}>Officer / Actor</th>
+                  <th style={{ padding: '10px 14px' }}>Resource Target</th>
+                  <th style={{ padding: '10px 14px' }}>Origin IP</th>
+                  <th style={{ padding: '10px 14px' }}>Status</th>
+                  <th style={{ padding: '10px 14px', textAlign: 'right' }}>Payload</th>
                 </tr>
               </thead>
               <tbody>
                 {logs.map((log) => (
-                  <tr
-                    key={log.id}
-                    style={{
-                      borderBottom: '1px solid var(--border-subtle)',
-                      transition: 'background-color var(--transition-fast)',
-                    }}
-                  >
-                    <td style={{ padding: 'var(--space-3) var(--space-4)', fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)' }}>
+                  <tr key={log.id}>
+                    <td style={{ padding: '10px 14px', fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)', fontSize: '11px' }}>
                       {formatTimestamp(log.timestamp)}
                     </td>
-                    <td style={{ padding: 'var(--space-3) var(--space-4)' }}>
+                    <td style={{ padding: '10px 14px' }}>
                       <StatusBadge
                         label={log.action}
                         variant={getActionBadgeVariant(log.action)}
                         size="sm"
                       />
                     </td>
-                    <td style={{ padding: 'var(--space-3) var(--space-4)' }}>
+                    <td style={{ padding: '10px 14px' }}>
                       {log.user ? (
                         <div>
-                          <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
+                          <div style={{ fontWeight: 700, color: 'var(--text-primary)', fontSize: '12px' }}>
                             {log.user.name}
                           </div>
-                          <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>
-                            Badge: {log.user.badge_number} • {log.user.role}
+                          <div style={{ fontSize: '10px', color: 'var(--text-dim)', fontFamily: 'var(--font-mono)' }}>
+                            Badge: {log.user.badge_number} &bull; {log.user.role}
                           </div>
                         </div>
                       ) : (
-                        <span style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>System Pipeline</span>
+                        <span style={{ color: 'var(--text-dim)', fontStyle: 'italic', fontSize: '11px', fontFamily: 'var(--font-mono)' }}>
+                          System Pipeline
+                        </span>
                       )}
                     </td>
-                    <td style={{ padding: 'var(--space-3) var(--space-4)' }}>
-                      <div style={{ color: 'var(--text-primary)', fontWeight: 600 }}>
+                    <td style={{ padding: '10px 14px' }}>
+                      <div style={{ color: 'var(--text-primary)', fontWeight: 600, fontSize: '12px' }}>
                         {log.resource_type}
                       </div>
                       {log.resource_id && (
-                        <div style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', color: 'var(--text-muted)' }}>
+                        <div style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', color: 'var(--text-dim)' }}>
                           {log.resource_id.length > 18 ? `${log.resource_id.substring(0, 18)}...` : log.resource_id}
                         </div>
                       )}
                     </td>
-                    <td style={{ padding: 'var(--space-3) var(--space-4)', fontFamily: 'var(--font-mono)', color: 'var(--text-muted)' }}>
-                      {log.ip_address || '—'}
+                    <td style={{ padding: '10px 14px', fontFamily: 'var(--font-mono)', color: 'var(--text-dim)', fontSize: '11px' }}>
+                      {log.ip_address || 'Internal RPC'}
                     </td>
-                    <td style={{ padding: 'var(--space-3) var(--space-4)' }}>
+                    <td style={{ padding: '10px 14px' }}>
                       <span
                         style={{
-                          fontWeight: 700,
+                          fontWeight: 800,
+                          fontSize: '11px',
+                          fontFamily: 'var(--font-mono)',
                           color: log.status === 'SUCCESS' ? 'var(--status-success)' : 'var(--status-critical)',
                         }}
                       >
                         {log.status}
                       </span>
                     </td>
-                    <td style={{ padding: 'var(--space-3) var(--space-4)', textAlign: 'right' }}>
+                    <td style={{ padding: '10px 14px', textAlign: 'right' }}>
                       <button
                         onClick={() => setSelectedLog(log)}
+                        className="btn-secondary"
                         style={{
-                          padding: '4px 8px',
-                          backgroundColor: 'var(--bg-surface-elevated)',
-                          border: '1px solid var(--border-subtle)',
-                          borderRadius: 'var(--radius-xs)',
-                          color: 'var(--accent-primary)',
+                          padding: '3px 10px',
                           fontSize: '11px',
-                          cursor: 'pointer',
+                          color: 'var(--accent-blue)',
+                          borderColor: 'var(--accent-blue-border)',
                         }}
                       >
                         Inspect
@@ -445,74 +457,67 @@ export default function AuditPage() {
               </tbody>
             </table>
 
-            {/* Pagination footer */}
+            {/* Pagination Controls */}
             <div
               style={{
                 display: 'flex',
-                justifyContent: 'space-between',
                 alignItems: 'center',
+                justifyContent: 'space-between',
                 padding: 'var(--space-3) var(--space-4)',
-                backgroundColor: 'var(--bg-surface-elevated)',
+                backgroundColor: 'var(--bg-primary)',
                 borderTop: '1px solid var(--border-subtle)',
+                fontSize: '11px',
+                color: 'var(--text-muted)',
               }}
             >
-              <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>
-                Page {page} of {totalPages}
+              <div>
+                Page <span style={{ color: 'var(--text-primary)', fontWeight: 700, fontFamily: 'var(--font-mono)' }}>{page}</span> of{' '}
+                <span style={{ color: 'var(--text-primary)', fontWeight: 700, fontFamily: 'var(--font-mono)' }}>{totalPages}</span>
               </div>
+
               <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
                 <button
-                  id="audit-prev-page"
-                  disabled={page <= 1}
                   onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  disabled={page <= 1}
+                  className="btn-secondary"
                   style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '4px',
                     padding: '4px 10px',
-                    backgroundColor: 'var(--bg-surface)',
-                    border: '1px solid var(--border-subtle)',
-                    borderRadius: 'var(--radius-xs)',
-                    color: page <= 1 ? 'var(--text-muted)' : 'var(--text-primary)',
+                    fontSize: '11px',
+                    opacity: page <= 1 ? 0.4 : 1,
                     cursor: page <= 1 ? 'not-allowed' : 'pointer',
-                    fontSize: 'var(--text-xs)',
                   }}
                 >
-                  <ChevronLeft size={14} /> Previous
+                  <ChevronLeft size={13} />
+                  <span>Previous</span>
                 </button>
                 <button
-                  id="audit-next-page"
-                  disabled={page >= totalPages}
                   onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={page >= totalPages}
+                  className="btn-secondary"
                   style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '4px',
                     padding: '4px 10px',
-                    backgroundColor: 'var(--bg-surface)',
-                    border: '1px solid var(--border-subtle)',
-                    borderRadius: 'var(--radius-xs)',
-                    color: page >= totalPages ? 'var(--text-muted)' : 'var(--text-primary)',
+                    fontSize: '11px',
+                    opacity: page >= totalPages ? 0.4 : 1,
                     cursor: page >= totalPages ? 'not-allowed' : 'pointer',
-                    fontSize: 'var(--text-xs)',
                   }}
                 >
-                  Next <ChevronRight size={14} />
+                  <span>Next</span>
+                  <ChevronRight size={13} />
                 </button>
               </div>
             </div>
           </div>
         )}
 
-        {/* Modal: Audit Log Details & Diff Inspector */}
+        {/* Audit Event Payload Inspector Modal */}
         {selectedLog && (
           <div
             style={{
               position: 'fixed',
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              backgroundColor: 'rgba(0, 0, 0, 0.75)',
+              inset: 0,
+              backgroundColor: 'var(--bg-overlay)',
+              backdropFilter: 'blur(8px)',
+              WebkitBackdropFilter: 'blur(8px)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -521,117 +526,101 @@ export default function AuditPage() {
             }}
           >
             <div
+              className="netrava-card"
               style={{
-                backgroundColor: 'var(--bg-surface)',
-                border: '1px solid var(--border-default)',
-                borderRadius: 'var(--radius-lg)',
-                maxWidth: '680px',
+                maxWidth: '640px',
                 width: '100%',
-                maxHeight: '90vh',
-                overflow: 'hidden',
-                display: 'flex',
-                flexDirection: 'column',
+                maxHeight: '85vh',
+                overflowY: 'auto',
+                boxShadow: 'var(--shadow-elevated)',
+                padding: 'var(--space-5)',
               }}
             >
-              {/* Modal header */}
               <div
                 style={{
                   display: 'flex',
-                  justifyContent: 'space-between',
                   alignItems: 'center',
-                  padding: 'var(--space-4)',
+                  justifyContent: 'space-between',
+                  marginBottom: 'var(--space-4)',
+                  paddingBottom: 'var(--space-3)',
                   borderBottom: '1px solid var(--border-subtle)',
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
-                  <FileCode size={18} color="var(--accent-primary)" />
-                  <h3 style={{ fontSize: 'var(--text-base)', fontWeight: 700, margin: 0 }}>
+                  <FileCode size={18} color="var(--accent-blue)" />
+                  <h3 style={{ fontSize: 'var(--text-sm)', fontWeight: 700, color: 'var(--text-primary)' }}>
                     Audit Event Payload Inspector
                   </h3>
                 </div>
                 <button
                   onClick={() => setSelectedLog(null)}
-                  style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: 'var(--text-muted)',
+                    cursor: 'pointer',
+                    padding: '2px',
+                  }}
                 >
-                  <X size={18} />
+                  <X size={16} />
                 </button>
               </div>
 
-              {/* Modal body */}
-              <div style={{ padding: 'var(--space-4)', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-2)', fontSize: 'var(--text-xs)' }}>
-                  <div>
-                    <span style={{ color: 'var(--text-muted)' }}>Event ID: </span>
-                    <span style={{ fontFamily: 'var(--font-mono)' }}>{selectedLog.id}</span>
-                  </div>
-                  <div>
-                    <span style={{ color: 'var(--text-muted)' }}>Timestamp: </span>
-                    <span>{formatTimestamp(selectedLog.timestamp)}</span>
-                  </div>
-                  <div>
-                    <span style={{ color: 'var(--text-muted)' }}>Action: </span>
-                    <strong>{selectedLog.action}</strong>
-                  </div>
-                  <div>
-                    <span style={{ color: 'var(--text-muted)' }}>Resource: </span>
-                    <span>{selectedLog.resource_type} ({selectedLog.resource_id || 'Global'})</span>
-                  </div>
-                  <div>
-                    <span style={{ color: 'var(--text-muted)' }}>Officer / Actor: </span>
-                    <span>{selectedLog.user?.name || selectedLog.actor_email || 'System Pipeline'} ({selectedLog.user?.badge_number || selectedLog.actor_role || 'N/A'})</span>
-                  </div>
-                  <div>
-                    <span style={{ color: 'var(--text-muted)' }}>Department: </span>
-                    <span>{selectedLog.user?.department || selectedLog.actor_department || 'System Internal'}</span>
-                  </div>
-                  <div>
-                    <span style={{ color: 'var(--text-muted)' }}>IP / Correlation ID: </span>
-                    <span style={{ fontFamily: 'var(--font-mono)' }}>{selectedLog.correlation_id || selectedLog.ip_address || 'Internal Service'}</span>
-                  </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)', fontSize: 'var(--text-xs)' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '130px 1fr', gap: 'var(--space-2)' }}>
+                  <span style={{ color: 'var(--text-dim)', fontFamily: 'var(--font-mono)' }}>Event ID:</span>
+                  <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-primary)' }}>{selectedLog.id}</span>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '130px 1fr', gap: 'var(--space-2)' }}>
+                  <span style={{ color: 'var(--text-dim)', fontFamily: 'var(--font-mono)' }}>Action:</span>
+                  <span>
+                    <StatusBadge label={selectedLog.action} variant={getActionBadgeVariant(selectedLog.action)} size="sm" />
+                  </span>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '130px 1fr', gap: 'var(--space-2)' }}>
+                  <span style={{ color: 'var(--text-dim)', fontFamily: 'var(--font-mono)' }}>Officer Identity:</span>
+                  <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>
+                    {selectedLog.user ? `${selectedLog.user.name} (${selectedLog.user.badge_number})` : 'System Pipeline'}
+                  </span>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '130px 1fr', gap: 'var(--space-2)' }}>
+                  <span style={{ color: 'var(--text-dim)', fontFamily: 'var(--font-mono)' }}>IP / Socket:</span>
+                  <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-primary)' }}>{selectedLog.ip_address || 'Internal RPC'}</span>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '130px 1fr', gap: 'var(--space-2)' }}>
+                  <span style={{ color: 'var(--text-dim)', fontFamily: 'var(--font-mono)' }}>Timestamp:</span>
+                  <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-primary)' }}>{selectedLog.timestamp}</span>
                 </div>
 
-                <div>
-                  <div style={{ fontSize: 'var(--text-xs)', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '4px' }}>
-                    Raw Context & Payload Details
-                  </div>
+                <div style={{ marginTop: 'var(--space-2)' }}>
+                  <span style={{ color: 'var(--text-dim)', display: 'block', marginBottom: 'var(--space-1)', fontFamily: 'var(--font-mono)', fontSize: '10px', textTransform: 'uppercase' }}>
+                    Cryptographic Payload &amp; Context:
+                  </span>
                   <pre
                     style={{
-                      backgroundColor: 'var(--bg-base)',
-                      border: '1px solid var(--border-subtle)',
-                      borderRadius: 'var(--radius-sm)',
                       padding: 'var(--space-3)',
-                      fontSize: '11px',
+                      backgroundColor: 'var(--bg-primary)',
+                      border: '1px solid var(--border-medium)',
+                      borderRadius: 'var(--radius-xs)',
                       fontFamily: 'var(--font-mono)',
-                      color: 'var(--text-primary)',
+                      fontSize: '11px',
+                      color: 'var(--text-secondary)',
                       overflowX: 'auto',
-                      maxHeight: '300px',
+                      maxHeight: '220px',
                     }}
                   >
-                    {JSON.stringify(selectedLog.details || { before: selectedLog.before, after: selectedLog.after }, null, 2) || '// No additional payload metadata'}
+                    {JSON.stringify(selectedLog.details, null, 2)}
                   </pre>
                 </div>
               </div>
 
-              {/* Modal footer */}
-              <div
-                style={{
-                  padding: 'var(--space-3) var(--space-4)',
-                  backgroundColor: 'var(--bg-surface-elevated)',
-                  borderTop: '1px solid var(--border-subtle)',
-                  display: 'flex',
-                  justifyContent: 'flex-end',
-                }}
-              >
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 'var(--space-4)' }}>
                 <button
                   onClick={() => setSelectedLog(null)}
+                  className="btn-secondary"
                   style={{
-                    padding: 'var(--space-2) var(--space-4)',
-                    backgroundColor: 'var(--bg-surface)',
-                    border: '1px solid var(--border-default)',
-                    borderRadius: 'var(--radius-sm)',
-                    color: 'var(--text-primary)',
+                    padding: '6px 16px',
                     fontSize: 'var(--text-xs)',
-                    cursor: 'pointer',
                   }}
                 >
                   Close

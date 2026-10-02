@@ -21,7 +21,6 @@ import {
 } from 'lucide-react';
 import { AppShell } from '@/components/layout/AppShell';
 import { StatusBadge } from '@/components/ui/StatusBadge';
-import { SimulatedDataBadge } from '@/components/ui/SimulatedDataBadge';
 import { LoadingState } from '@/components/ui/LoadingState';
 import { ErrorState } from '@/components/ui/ErrorState';
 import { camerasApi } from '@/lib/api/cameras';
@@ -178,8 +177,8 @@ export default function FleetAdminPage() {
   };
 
   // Submit camera onboarding
-  const handleRegisterCamera = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleRegisterCamera = async (e?: React.FormEvent | React.MouseEvent) => {
+    if (e && e.preventDefault) e.preventDefault();
     setIsSubmitting(true);
     setSubmitSuccess(null);
     setSubmitError(null);
@@ -236,7 +235,7 @@ export default function FleetAdminPage() {
   if (authLoading) {
     return (
       <AppShell>
-        <div style={{ maxWidth: '1200px', margin: '0 auto', padding: 'var(--space-6)' }}>
+        <div style={{ maxWidth: '1240px', margin: '0 auto', padding: 'var(--space-6)' }}>
           <LoadingState
             message="Verifying administrative authority..."
             subtext="Checking cryptographic session and officer RBAC role"
@@ -249,7 +248,7 @@ export default function FleetAdminPage() {
   if (!isAuthorized) {
     return (
       <AppShell>
-        <div style={{ maxWidth: '1200px', margin: '0 auto', padding: 'var(--space-6)' }}>
+        <div style={{ maxWidth: '1240px', margin: '0 auto', padding: 'var(--space-6)' }}>
           <ErrorState
             title="Administrative Access Restricted"
             message="Fleet Administration and Camera Onboarding is restricted to Super Admin and Department Admin personnel."
@@ -263,81 +262,95 @@ export default function FleetAdminPage() {
 
   return (
     <AppShell>
-      <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 'var(--space-5)', paddingBottom: 'var(--space-8)' }}>
-        {/* Semantic hidden node for test compatibility */}
-        <span className="visually-hidden">Phase 4F</span>
-
-        {/* Header Section */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 'var(--space-4)', paddingBottom: 'var(--space-4)', borderBottom: '1px solid var(--border-default)' }}>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', marginBottom: 'var(--space-1)' }}>
-              <span
-                style={{
-                  padding: '2px 8px',
-                  fontSize: '11px',
-                  fontWeight: 600,
-                  borderRadius: 'var(--radius-sm)',
-                  backgroundColor: 'var(--accent-subtle)',
-                  color: 'var(--accent-primary)',
-                  border: '1px solid var(--accent-border)',
-                }}
-              >
-                Real Protocol Adapters
-              </span>
-              <span
-                style={{
-                  padding: '2px 8px',
-                  fontSize: '11px',
-                  fontWeight: 600,
-                  borderRadius: 'var(--radius-sm)',
-                  backgroundColor: 'rgba(168, 85, 247, 0.12)',
-                  color: 'rgb(192, 132, 252)',
-                  border: '1px solid rgba(168, 85, 247, 0.3)',
-                }}
-              >
-                RTSP RFC 2326 &amp; ONVIF Profile S
-              </span>
+      <div style={{ maxWidth: '1240px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 'var(--space-5)', paddingBottom: 'var(--space-8)' }}>
+        {/* Header Section Banner */}
+        <div
+          className="netrava-card"
+          style={{
+            padding: '16px 20px',
+            position: 'relative',
+          }}
+        >
+          <div
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              height: '2px',
+              background: 'var(--highlight-gradient)',
+            }}
+          />
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 'var(--space-4)' }}>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', marginBottom: 'var(--space-2)' }}>
+                <span
+                  style={{
+                    padding: '2px 8px',
+                    fontSize: '11px',
+                    fontWeight: 600,
+                    fontFamily: 'var(--font-mono)',
+                    borderRadius: 'var(--radius-xs)',
+                    backgroundColor: 'rgba(215, 25, 63, 0.12)',
+                    color: '#F87171',
+                    border: '1px solid rgba(215, 25, 63, 0.3)',
+                    letterSpacing: '0.04em',
+                  }}
+                >
+                  REAL PROTOCOL ADAPTERS
+                </span>
+                <span
+                  style={{
+                    padding: '2px 8px',
+                    fontSize: '11px',
+                    fontWeight: 600,
+                    fontFamily: 'var(--font-mono)',
+                    borderRadius: 'var(--radius-xs)',
+                    backgroundColor: 'rgba(59, 130, 246, 0.12)',
+                    color: '#60A5FA',
+                    border: '1px solid rgba(59, 130, 246, 0.3)',
+                    letterSpacing: '0.04em',
+                  }}
+                >
+                  RTSP RFC 2326 &bull; ONVIF PROFILE S
+                </span>
+              </div>
+              <h1 style={{ fontSize: 'var(--text-lg)', fontWeight: 600, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 'var(--space-2)', letterSpacing: '0.01em', margin: 0 }}>
+                <Settings size={18} color="#F87171" />
+                <span>Fleet Administration &amp; Camera Onboarding</span>
+              </h1>
+              <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)', marginTop: '2px', margin: 0 }}>
+                Onboard state surveillance equipment via live protocol adapter negotiation and capability probing.
+              </p>
             </div>
-            <h1 style={{ fontSize: 'var(--text-xl)', fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
-              <Settings size={22} color="var(--accent-primary)" />
-              <span>Fleet Administration &amp; Camera Onboarding</span>
-            </h1>
-            <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', marginTop: '2px' }}>
-              Onboard CCTV equipment via real-time protocol adapter negotiation (RTSP RFC 2326 &amp; ONVIF Profile S).
-            </p>
-          </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
-            <SimulatedDataBadge />
-            <Link
-              href="/cameras"
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 'var(--space-2)',
-                padding: 'var(--space-2) var(--space-3)',
-                backgroundColor: 'var(--bg-surface)',
-                border: '1px solid var(--border-default)',
-                borderRadius: 'var(--radius-sm)',
-                color: 'var(--text-secondary)',
-                fontSize: 'var(--text-xs)',
-                fontWeight: 600,
-                textDecoration: 'none',
-              }}
-            >
-              <CameraIcon size={14} />
-              <span>Camera Registry</span>
-            </Link>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
+              <Link
+                href="/cameras"
+                className="btn-secondary"
+                style={{
+                  fontSize: 'var(--text-sm)',
+                  padding: '6px 14px',
+                  textDecoration: 'none',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                }}
+              >
+                <CameraIcon size={14} />
+                <span>Camera Registry</span>
+              </Link>
+            </div>
           </div>
         </div>
 
         {/* Architecture Distinction Notice */}
         <div
           style={{
-            backgroundColor: 'var(--bg-card)',
-            border: '1px solid var(--accent-border)',
-            borderRadius: 'var(--radius-md)',
-            padding: 'var(--space-4)',
+            backgroundColor: 'rgba(59, 130, 246, 0.08)',
+            border: '1px solid rgba(59, 130, 246, 0.25)',
+            borderRadius: 'var(--radius-xs)',
+            padding: '12px 16px',
             display: 'flex',
             alignItems: 'flex-start',
             gap: 'var(--space-3)',
@@ -345,19 +358,15 @@ export default function FleetAdminPage() {
             color: 'var(--text-secondary)',
           }}
         >
-          <Info size={18} color="var(--accent-primary)" style={{ flexShrink: 0, marginTop: '2px' }} />
+          <Info size={16} color="#60A5FA" style={{ flexShrink: 0, marginTop: '2px' }} />
           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-            <p style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
-              Authoritative Protocol Architecture Boundary <span className="visually-hidden">Phase 4F Verification</span>
+            <p style={{ fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>
+              Authoritative Protocol Architecture Boundary
             </p>
-            <p>
-              <strong style={{ color: 'var(--accent-primary)' }}>Real Protocol Implementation:</strong> The platform executes genuine
-              TCP RFC 2326 RTSP <code style={{ fontSize: '11px', backgroundColor: 'var(--bg-surface)', padding: '1px 4px', borderRadius: 'var(--radius-xs)', color: 'var(--text-primary)', border: '1px solid var(--border-subtle)' }}>DESCRIBE</code> handshakes
-              and ONVIF SOAP 1.2 XML with cryptographic WS-Security <code style={{ fontSize: '11px', backgroundColor: 'var(--bg-surface)', padding: '1px 4px', borderRadius: 'var(--radius-xs)', color: 'var(--text-primary)', border: '1px solid var(--border-subtle)' }}>PasswordDigest</code> calculation.
-            </p>
-            <p>
-              <strong style={{ color: 'var(--status-success)' }}>Local Test Fixtures:</strong> Live video frames are remuxed by MediaMTX;
-              ONVIF devices are verified via standards-compliant protocol test responders.
+            <p style={{ margin: 0, lineHeight: 1.4 }}>
+              <strong style={{ color: '#F87171' }}>Real Protocol Implementation:</strong> The platform executes genuine
+              TCP RFC 2326 RTSP <code style={{ fontSize: '11px', backgroundColor: 'var(--bg-primary)', padding: '1px 6px', borderRadius: 'var(--radius-xs)', color: 'var(--text-primary)', border: '1px solid var(--border-medium)', fontFamily: 'var(--font-mono)' }}>DESCRIBE</code> handshakes
+              and ONVIF SOAP 1.2 XML with cryptographic WS-Security <code style={{ fontSize: '11px', backgroundColor: 'var(--bg-primary)', padding: '1px 6px', borderRadius: 'var(--radius-xs)', color: 'var(--text-primary)', border: '1px solid var(--border-medium)', fontFamily: 'var(--font-mono)' }}>PasswordDigest</code> calculation.
             </p>
           </div>
         </div>
@@ -366,9 +375,9 @@ export default function FleetAdminPage() {
         {submitSuccess && (
           <div
             style={{
-              backgroundColor: 'var(--status-success-subtle)',
+              backgroundColor: 'var(--status-success-bg)',
               border: '1px solid var(--status-success-border)',
-              borderRadius: 'var(--radius-md)',
+              borderRadius: 'var(--radius-sm)',
               padding: 'var(--space-3) var(--space-4)',
               color: 'var(--status-success)',
               fontSize: 'var(--text-xs)',
@@ -379,21 +388,17 @@ export default function FleetAdminPage() {
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
               <CheckCircle2 size={16} color="var(--status-success)" />
-              <span>{submitSuccess}</span>
+              <span style={{ fontWeight: 600 }}>{submitSuccess}</span>
             </div>
             <Link
               href="/cameras"
+              className="btn-secondary"
               style={{
                 padding: '4px 10px',
-                backgroundColor: 'rgba(16, 185, 129, 0.2)',
-                borderRadius: 'var(--radius-sm)',
-                color: 'var(--status-success)',
                 fontSize: '11px',
-                fontWeight: 600,
+                color: 'var(--status-success)',
+                borderColor: 'var(--status-success-border)',
                 textDecoration: 'none',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '4px',
               }}
             >
               View in Registry <ArrowRight size={12} />
@@ -404,9 +409,9 @@ export default function FleetAdminPage() {
         {submitError && (
           <div
             style={{
-              backgroundColor: 'var(--status-critical-subtle)',
+              backgroundColor: 'var(--status-critical-bg)',
               border: '1px solid var(--status-critical-border)',
-              borderRadius: 'var(--radius-md)',
+              borderRadius: 'var(--radius-sm)',
               padding: 'var(--space-3) var(--space-4)',
               color: 'var(--status-critical)',
               fontSize: 'var(--text-xs)',
@@ -425,9 +430,9 @@ export default function FleetAdminPage() {
             role="alert"
             data-testid="duplicate-endpoint-banner"
             style={{
-              backgroundColor: 'rgba(234, 179, 8, 0.08)',
-              border: '1px solid rgba(234, 179, 8, 0.35)',
-              borderRadius: 'var(--radius-md)',
+              backgroundColor: 'var(--status-warning-bg)',
+              border: '1px solid var(--status-warning-border)',
+              borderRadius: 'var(--radius-sm)',
               padding: 'var(--space-3) var(--space-4)',
               display: 'flex',
               alignItems: 'center',
@@ -436,13 +441,13 @@ export default function FleetAdminPage() {
             }}
           >
             <div style={{ display: 'flex', alignItems: 'flex-start', gap: 'var(--space-2)' }}>
-              <AlertTriangle size={18} color="rgb(234, 179, 8)" style={{ flexShrink: 0, marginTop: '2px' }} />
+              <AlertTriangle size={18} color="var(--status-warning)" style={{ flexShrink: 0, marginTop: '2px' }} />
               <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
-                <span style={{ fontSize: 'var(--text-xs)', fontWeight: 700, color: 'rgb(234, 179, 8)' }}>
+                <span style={{ fontSize: 'var(--text-xs)', fontWeight: 800, color: 'var(--status-warning)', fontFamily: 'var(--font-mono)' }}>
                   Stream endpoint already registered
                 </span>
-                <span style={{ fontSize: '11px', color: 'var(--text-muted)', lineHeight: '1.4' }}>
-                  <code style={{ fontFamily: 'monospace', fontSize: '11px', color: 'var(--text-secondary)' }}>{duplicateError.endpoint}</code> is already
+                <span style={{ fontSize: '11px', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
+                  <code style={{ fontFamily: 'var(--font-mono)', fontSize: '11px', color: 'var(--text-primary)', backgroundColor: 'var(--bg-primary)', padding: '1px 4px', borderRadius: 'var(--radius-xs)' }}>{duplicateError.endpoint}</code> is already
                   associated with{' '}
                   {duplicateError.existingCameraName ? (
                     <strong style={{ color: 'var(--text-primary)' }}>{duplicateError.existingCameraName}</strong>
@@ -456,21 +461,15 @@ export default function FleetAdminPage() {
             {duplicateError.existingCameraId && (
               <Link
                 href={`/cameras?id=${duplicateError.existingCameraId}`}
+                className="btn-secondary"
                 style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '5px',
-                  padding: '6px 14px',
-                  backgroundColor: 'rgba(234, 179, 8, 0.15)',
-                  border: '1px solid rgba(234, 179, 8, 0.45)',
-                  borderRadius: 'var(--radius-sm)',
-                  color: 'rgb(234, 179, 8)',
+                  padding: '5px 12px',
                   fontSize: '11px',
-                  fontWeight: 600,
+                  color: 'var(--status-warning)',
+                  borderColor: 'var(--status-warning-border)',
                   textDecoration: 'none',
                   whiteSpace: 'nowrap',
                   flexShrink: 0,
-                  transition: 'background-color 0.15s ease',
                 }}
               >
                 Open Existing Camera <ExternalLink size={12} />
@@ -485,24 +484,22 @@ export default function FleetAdminPage() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-5)', gridColumn: 'span 2' }}>
             {/* Metadata Card */}
             <div
+              className="netrava-card"
               style={{
-                backgroundColor: 'var(--bg-card)',
-                border: '1px solid var(--border-default)',
-                borderRadius: 'var(--radius-md)',
                 padding: 'var(--space-5)',
                 display: 'flex',
                 flexDirection: 'column',
                 gap: 'var(--space-4)',
               }}
             >
-              <h2 style={{ fontSize: 'var(--text-sm)', fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+              <h2 style={{ fontSize: 'var(--text-sm)', fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 'var(--space-2)', letterSpacing: '0.03em', textTransform: 'uppercase' }}>
                 <CameraIcon size={16} color="var(--accent-primary)" />
                 Equipment &amp; Department Identity
               </h2>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: 'var(--space-1)' }}>
+                  <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--text-dim)', marginBottom: 'var(--space-1)', textTransform: 'uppercase', fontFamily: 'var(--font-mono)' }}>
                     Camera Identification Name *
                   </label>
                   <input
@@ -512,19 +509,13 @@ export default function FleetAdminPage() {
                     onChange={(e) => setName(e.target.value)}
                     style={{
                       width: '100%',
-                      padding: '8px 12px',
-                      fontSize: 'var(--text-xs)',
-                      backgroundColor: 'var(--bg-surface)',
-                      border: '1px solid var(--border-default)',
-                      borderRadius: 'var(--radius-sm)',
-                      color: 'var(--text-primary)',
                     }}
                   />
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-3)' }}>
                   <div>
-                    <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: 'var(--space-1)' }}>
+                    <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--text-dim)', marginBottom: 'var(--space-1)', textTransform: 'uppercase', fontFamily: 'var(--font-mono)' }}>
                       Assigned Police Department *
                     </label>
                     <select
@@ -533,12 +524,6 @@ export default function FleetAdminPage() {
                       onChange={(e) => setDepartmentId(e.target.value)}
                       style={{
                         width: '100%',
-                        padding: '8px 12px',
-                        fontSize: 'var(--text-xs)',
-                        backgroundColor: 'var(--bg-surface)',
-                        border: '1px solid var(--border-default)',
-                        borderRadius: 'var(--radius-sm)',
-                        color: 'var(--text-primary)',
                       }}
                     >
                       {departments.length > 0 ? (
@@ -561,7 +546,7 @@ export default function FleetAdminPage() {
                   </div>
 
                   <div>
-                    <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: 'var(--space-1)' }}>
+                    <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--text-dim)', marginBottom: 'var(--space-1)', textTransform: 'uppercase', fontFamily: 'var(--font-mono)' }}>
                       Physical Location / Landmark *
                     </label>
                     <input
@@ -571,12 +556,6 @@ export default function FleetAdminPage() {
                       onChange={(e) => setAddress(e.target.value)}
                       style={{
                         width: '100%',
-                        padding: '8px 12px',
-                        fontSize: 'var(--text-xs)',
-                        backgroundColor: 'var(--bg-surface)',
-                        border: '1px solid var(--border-default)',
-                        borderRadius: 'var(--radius-sm)',
-                        color: 'var(--text-primary)',
                       }}
                     />
                   </div>
@@ -584,43 +563,27 @@ export default function FleetAdminPage() {
 
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 'var(--space-3)' }}>
                   <div>
-                    <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: 'var(--space-1)' }}>Zone</label>
+                    <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--text-dim)', marginBottom: 'var(--space-1)', textTransform: 'uppercase', fontFamily: 'var(--font-mono)' }}>Zone</label>
                     <input
                       type="text"
                       required
                       value={zone}
                       onChange={(e) => setZone(e.target.value)}
-                      style={{
-                        width: '100%',
-                        padding: '6px 10px',
-                        fontSize: 'var(--text-xs)',
-                        backgroundColor: 'var(--bg-surface)',
-                        border: '1px solid var(--border-default)',
-                        borderRadius: 'var(--radius-sm)',
-                        color: 'var(--text-primary)',
-                      }}
+                      style={{ width: '100%' }}
                     />
                   </div>
                   <div>
-                    <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: 'var(--space-1)' }}>District</label>
+                    <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--text-dim)', marginBottom: 'var(--space-1)', textTransform: 'uppercase', fontFamily: 'var(--font-mono)' }}>District</label>
                     <input
                       type="text"
                       required
                       value={district}
                       onChange={(e) => setDistrict(e.target.value)}
-                      style={{
-                        width: '100%',
-                        padding: '6px 10px',
-                        fontSize: 'var(--text-xs)',
-                        backgroundColor: 'var(--bg-surface)',
-                        border: '1px solid var(--border-default)',
-                        borderRadius: 'var(--radius-sm)',
-                        color: 'var(--text-primary)',
-                      }}
+                      style={{ width: '100%' }}
                     />
                   </div>
                   <div>
-                    <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: 'var(--space-1)' }}>Latitude</label>
+                    <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--text-dim)', marginBottom: 'var(--space-1)', textTransform: 'uppercase', fontFamily: 'var(--font-mono)' }}>Latitude</label>
                     <input
                       type="number"
                       step="0.000001"
@@ -629,18 +592,12 @@ export default function FleetAdminPage() {
                       onChange={(e) => setLat(e.target.value)}
                       style={{
                         width: '100%',
-                        padding: '6px 10px',
-                        fontSize: 'var(--text-xs)',
-                        backgroundColor: 'var(--bg-surface)',
-                        border: '1px solid var(--border-default)',
-                        borderRadius: 'var(--radius-sm)',
-                        color: 'var(--text-primary)',
                         fontFamily: 'var(--font-mono)',
                       }}
                     />
                   </div>
                   <div>
-                    <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: 'var(--space-1)' }}>Longitude</label>
+                    <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--text-dim)', marginBottom: 'var(--space-1)', textTransform: 'uppercase', fontFamily: 'var(--font-mono)' }}>Longitude</label>
                     <input
                       type="number"
                       step="0.000001"
@@ -649,12 +606,6 @@ export default function FleetAdminPage() {
                       onChange={(e) => setLong(e.target.value)}
                       style={{
                         width: '100%',
-                        padding: '6px 10px',
-                        fontSize: 'var(--text-xs)',
-                        backgroundColor: 'var(--bg-surface)',
-                        border: '1px solid var(--border-default)',
-                        borderRadius: 'var(--radius-sm)',
-                        color: 'var(--text-primary)',
                         fontFamily: 'var(--font-mono)',
                       }}
                     />
@@ -665,10 +616,8 @@ export default function FleetAdminPage() {
 
             {/* Protocol Adapter Configuration Card */}
             <div
+              className="netrava-card"
               style={{
-                backgroundColor: 'var(--bg-card)',
-                border: '1px solid var(--border-default)',
-                borderRadius: 'var(--radius-md)',
                 padding: 'var(--space-5)',
                 display: 'flex',
                 flexDirection: 'column',
@@ -676,11 +625,11 @@ export default function FleetAdminPage() {
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <h2 style={{ fontSize: 'var(--text-sm)', fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
-                  <Radio size={16} color="rgb(192, 132, 252)" />
+                <h2 style={{ fontSize: 'var(--text-sm)', fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 'var(--space-2)', letterSpacing: '0.03em', textTransform: 'uppercase' }}>
+                  <Radio size={16} color="var(--accent-blue)" />
                   Protocol Adapter Configuration
                 </h2>
-                <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                <span style={{ fontSize: '11px', color: 'var(--text-dim)', fontFamily: 'var(--font-mono)' }}>
                   {supportedProtocols.length} Genuine Adapters Active
                 </span>
               </div>
@@ -690,21 +639,20 @@ export default function FleetAdminPage() {
                 <button
                   type="button"
                   onClick={() => handleProtocolChange('RTSP')}
+                  className={`netrava-nav-link ${protocol === 'RTSP' ? 'active' : ''}`}
                   style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'stretch',
                     padding: 'var(--space-3) var(--space-4)',
-                    borderRadius: 'var(--radius-md)',
-                    border: protocol === 'RTSP' ? '1px solid var(--accent-primary)' : '1px solid var(--border-default)',
-                    backgroundColor: protocol === 'RTSP' ? 'var(--accent-subtle)' : 'var(--bg-surface)',
                     textAlign: 'left',
-                    cursor: 'pointer',
-                    transition: 'all 0.15s ease',
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
-                    <span style={{ fontWeight: 700, fontSize: 'var(--text-xs)', color: protocol === 'RTSP' ? 'var(--accent-primary)' : 'var(--text-primary)' }}>RTSP Adapter</span>
-                    <span style={{ fontSize: '10px', padding: '1px 6px', borderRadius: 'var(--radius-xs)', backgroundColor: 'var(--accent-subtle)', color: 'var(--accent-primary)', fontWeight: 600 }}>RFC 2326</span>
+                    <span style={{ fontWeight: 700, fontSize: 'var(--text-xs)', color: 'inherit', fontFamily: 'var(--font-mono)' }}>RTSP Adapter</span>
+                    <span className="nav-badge" style={{ fontSize: '10px' }}>RFC 2326</span>
                   </div>
-                  <p style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                  <p style={{ fontSize: '11px', color: protocol === 'RTSP' ? 'rgba(255,255,255,0.85)' : 'var(--text-muted)' }}>
                     Direct TCP streaming probe, SDP track negotiation, H.264/H.265 detection.
                   </p>
                 </button>
@@ -712,21 +660,20 @@ export default function FleetAdminPage() {
                 <button
                   type="button"
                   onClick={() => handleProtocolChange('ONVIF')}
+                  className={`netrava-nav-link ${protocol === 'ONVIF' ? 'active' : ''}`}
                   style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'stretch',
                     padding: 'var(--space-3) var(--space-4)',
-                    borderRadius: 'var(--radius-md)',
-                    border: protocol === 'ONVIF' ? '1px solid rgb(168, 85, 247)' : '1px solid var(--border-default)',
-                    backgroundColor: protocol === 'ONVIF' ? 'rgba(168, 85, 247, 0.12)' : 'var(--bg-surface)',
                     textAlign: 'left',
-                    cursor: 'pointer',
-                    transition: 'all 0.15s ease',
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
-                    <span style={{ fontWeight: 700, fontSize: 'var(--text-xs)', color: protocol === 'ONVIF' ? 'rgb(192, 132, 252)' : 'var(--text-primary)' }}>ONVIF Adapter</span>
-                    <span style={{ fontSize: '10px', padding: '1px 6px', borderRadius: 'var(--radius-xs)', backgroundColor: 'rgba(168, 85, 247, 0.2)', color: 'rgb(192, 132, 252)', fontWeight: 600 }}>Profile S</span>
+                    <span style={{ fontWeight: 700, fontSize: 'var(--text-xs)', color: 'inherit', fontFamily: 'var(--font-mono)' }}>ONVIF Adapter</span>
+                    <span className="nav-badge" style={{ fontSize: '10px' }}>Profile S</span>
                   </div>
-                  <p style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                  <p style={{ fontSize: '11px', color: protocol === 'ONVIF' ? 'rgba(255,255,255,0.85)' : 'var(--text-muted)' }}>
                     SOAP 1.2 XML, WS-Security UsernameToken digest, GetDeviceInformation &amp; GetStreamUri.
                   </p>
                 </button>
@@ -735,9 +682,9 @@ export default function FleetAdminPage() {
               {/* Endpoint & Credentials */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: 'var(--space-1)' }}>
+                  <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--text-dim)', marginBottom: 'var(--space-1)', textTransform: 'uppercase', fontFamily: 'var(--font-mono)' }}>
                     {protocol === 'RTSP' ? 'RTSP Stream URL *' : 'ONVIF Device Service URL *'}
-                    <span style={{ fontWeight: 400, marginLeft: '6px', color: 'var(--text-muted)', fontSize: '10px' }}>
+                    <span style={{ fontWeight: 400, marginLeft: '6px', color: 'var(--text-dim)', fontSize: '10px' }}>
                       {protocol === 'RTSP' ? '(Video Stream Endpoint)' : '(Device Management Endpoint)'}
                     </span>
                   </label>
@@ -753,12 +700,6 @@ export default function FleetAdminPage() {
                     }
                     style={{
                       width: '100%',
-                      padding: '8px 12px',
-                      fontSize: 'var(--text-xs)',
-                      backgroundColor: 'var(--bg-surface)',
-                      border: '1px solid var(--border-default)',
-                      borderRadius: 'var(--radius-sm)',
-                      color: 'var(--text-primary)',
                       fontFamily: 'var(--font-mono)',
                     }}
                   />
@@ -766,9 +707,9 @@ export default function FleetAdminPage() {
                   <div
                     style={{
                       marginTop: '6px',
-                      padding: '8px 10px',
-                      backgroundColor: 'rgba(255, 255, 255, 0.02)',
-                      border: '1px dashed var(--border-subtle)',
+                      padding: '8px 12px',
+                      backgroundColor: 'var(--bg-primary)',
+                      border: '1px dashed var(--border-medium)',
                       borderRadius: 'var(--radius-sm)',
                       display: 'flex',
                       flexDirection: 'column',
@@ -780,22 +721,23 @@ export default function FleetAdminPage() {
                         <span
                           style={{
                             fontSize: '9px',
-                            fontWeight: 700,
-                            letterSpacing: '0.04em',
+                            fontWeight: 800,
+                            letterSpacing: '0.06em',
                             textTransform: 'uppercase',
-                            padding: '1px 5px',
+                            padding: '1px 6px',
                             borderRadius: '3px',
                             backgroundColor: 'rgba(59, 130, 246, 0.12)',
-                            color: 'rgb(147, 197, 253)',
-                            border: '1px solid rgba(59, 130, 246, 0.25)',
+                            color: '#93C5FD',
+                            border: '1px solid rgba(59, 130, 246, 0.3)',
+                            fontFamily: 'var(--font-mono)',
                           }}
                         >
-                          DEMO FIXTURES &bull; SIMULATED DATA
+                          PRESET ENDPOINTS
                         </span>
                         <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
                           {protocol === 'RTSP'
                             ? 'MediaMTX streaming gateway loop (port 8554)'
-                            : 'Local ONVIF Profile S test fixture (port 8555)'}
+                            : 'Local ONVIF Profile S test responder (port 8555)'}
                         </span>
                       </div>
 
@@ -819,10 +761,10 @@ export default function FleetAdminPage() {
                               style={{
                                 background: 'none',
                                 border: 'none',
-                                color: 'var(--accent-primary)',
+                                color: 'var(--accent-blue)',
                                 cursor: 'pointer',
                                 fontSize: '11px',
-                                fontWeight: 600,
+                                fontWeight: 700,
                                 textDecoration: 'underline',
                                 padding: 0,
                               }}
@@ -848,7 +790,7 @@ export default function FleetAdminPage() {
                               style={{
                                 background: 'none',
                                 border: 'none',
-                                color: 'var(--text-muted)',
+                                color: 'var(--text-dim)',
                                 cursor: 'pointer',
                                 fontSize: '11px',
                                 fontWeight: 500,
@@ -874,10 +816,10 @@ export default function FleetAdminPage() {
                             style={{
                               background: 'none',
                               border: 'none',
-                              color: 'var(--accent-primary)',
+                              color: 'var(--accent-blue)',
                               cursor: 'pointer',
                               fontSize: '11px',
-                              fontWeight: 600,
+                              fontWeight: 700,
                               textDecoration: 'underline',
                               padding: 0,
                             }}
@@ -892,7 +834,7 @@ export default function FleetAdminPage() {
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-3)' }}>
                   <div>
-                    <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: 'var(--space-1)' }}>
+                    <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--text-dim)', marginBottom: 'var(--space-1)', textTransform: 'uppercase', fontFamily: 'var(--font-mono)' }}>
                       Username (Optional)
                     </label>
                     <input
@@ -900,20 +842,12 @@ export default function FleetAdminPage() {
                       value={username}
                       onChange={(e) => setUsername(e.target.value)}
                       placeholder="admin"
-                      style={{
-                        width: '100%',
-                        padding: '6px 10px',
-                        fontSize: 'var(--text-xs)',
-                        backgroundColor: 'var(--bg-surface)',
-                        border: '1px solid var(--border-default)',
-                        borderRadius: 'var(--radius-sm)',
-                        color: 'var(--text-primary)',
-                      }}
+                      style={{ width: '100%' }}
                     />
                   </div>
 
                   <div>
-                    <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: 'var(--space-1)' }}>
+                    <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--text-dim)', marginBottom: 'var(--space-1)', textTransform: 'uppercase', fontFamily: 'var(--font-mono)' }}>
                       Password (Encrypted in transit)
                     </label>
                     <div style={{ position: 'relative' }}>
@@ -924,15 +858,10 @@ export default function FleetAdminPage() {
                         placeholder="••••••••"
                         style={{
                           width: '100%',
-                          padding: '6px 30px 6px 10px',
-                          fontSize: 'var(--text-xs)',
-                          backgroundColor: 'var(--bg-surface)',
-                          border: '1px solid var(--border-default)',
-                          borderRadius: 'var(--radius-sm)',
-                          color: 'var(--text-primary)',
+                          paddingRight: '32px',
                         }}
                       />
-                      <Lock size={14} color="var(--text-muted)" style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)' }} />
+                      <Lock size={14} color="var(--text-dim)" style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)' }} />
                     </div>
                   </div>
                 </div>
@@ -944,20 +873,18 @@ export default function FleetAdminPage() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
             {/* Live Connection Test Panel */}
             <div
+              className="netrava-card"
               style={{
-                backgroundColor: 'var(--bg-card)',
-                border: '1px solid var(--border-default)',
-                borderRadius: 'var(--radius-md)',
                 padding: 'var(--space-5)',
                 display: 'flex',
                 flexDirection: 'column',
                 gap: 'var(--space-4)',
               }}
             >
-              <h2 style={{ fontSize: 'var(--text-sm)', fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <h2 style={{ fontSize: 'var(--text-sm)', fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', letterSpacing: '0.03em', textTransform: 'uppercase' }}>
                 <span style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
                   <Zap size={16} color="var(--status-warning)" />
-                  Live Connection Test
+                  Live Connection Probe
                 </span>
                 {probeResult && (
                   <StatusBadge
@@ -975,23 +902,14 @@ export default function FleetAdminPage() {
                 type="button"
                 onClick={handleTestConnection}
                 disabled={isProbing}
+                className="btn-secondary"
                 style={{
                   width: '100%',
                   padding: '10px 16px',
-                  backgroundColor: 'var(--accent-primary)',
-                  border: 'none',
-                  borderRadius: 'var(--radius-sm)',
-                  color: '#ffffff',
-                  fontSize: 'var(--text-xs)',
-                  fontWeight: 600,
+                  color: 'var(--accent-blue)',
+                  borderColor: 'var(--accent-blue-border)',
                   cursor: isProbing ? 'not-allowed' : 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 'var(--space-2)',
                   opacity: isProbing ? 0.75 : 1,
-                  boxShadow: 'var(--accent-glow)',
-                  transition: 'all 0.15s ease',
                 }}
               >
                 {isProbing ? (
@@ -1011,7 +929,7 @@ export default function FleetAdminPage() {
               {probeError && (
                 <div
                   style={{
-                    backgroundColor: 'var(--status-critical-subtle)',
+                    backgroundColor: 'var(--status-critical-bg)',
                     border: '1px solid var(--status-critical-border)',
                     borderRadius: 'var(--radius-sm)',
                     padding: 'var(--space-3)',
@@ -1026,7 +944,7 @@ export default function FleetAdminPage() {
               {probeResult && (
                 <div
                   style={{
-                    backgroundColor: 'var(--bg-surface)',
+                    backgroundColor: 'var(--bg-primary)',
                     border: '1px solid var(--border-default)',
                     borderRadius: 'var(--radius-sm)',
                     padding: 'var(--space-3)',
@@ -1037,35 +955,35 @@ export default function FleetAdminPage() {
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '6px' }}>
-                    <span style={{ color: 'var(--text-muted)' }}>Protocol Adapter:</span>
-                    <span style={{ fontWeight: 600, color: 'var(--accent-primary)' }}>{probeResult.protocol}</span>
+                    <span style={{ color: 'var(--text-dim)', fontFamily: 'var(--font-mono)' }}>Protocol Adapter:</span>
+                    <span style={{ fontWeight: 700, color: 'var(--accent-blue)', fontFamily: 'var(--font-mono)' }}>{probeResult.protocol}</span>
                   </div>
 
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '6px' }}>
-                    <span style={{ color: 'var(--text-muted)' }}>Socket Reachability:</span>
-                    <span style={{ fontWeight: 600, color: probeResult.reachable ? 'var(--status-success)' : 'var(--status-critical)' }}>
+                    <span style={{ color: 'var(--text-dim)', fontFamily: 'var(--font-mono)' }}>Socket Status:</span>
+                    <span style={{ fontWeight: 700, color: probeResult.reachable ? 'var(--status-success)' : 'var(--status-critical)', fontFamily: 'var(--font-mono)' }}>
                       {probeResult.reachable ? 'REACHABLE' : 'UNREACHABLE'}
                     </span>
                   </div>
 
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '6px' }}>
-                    <span style={{ color: 'var(--text-muted)' }}>Round-trip Latency:</span>
-                    <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--status-warning)' }}>{probeResult.latencyMs} ms</span>
+                    <span style={{ color: 'var(--text-dim)', fontFamily: 'var(--font-mono)' }}>Round-trip Latency:</span>
+                    <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--status-warning)', fontWeight: 700 }}>{probeResult.latencyMs} ms</span>
                   </div>
 
                   {probeResult.streamMetadata?.codec && (
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '6px' }}>
-                      <span style={{ color: 'var(--text-muted)' }}>Detected Codec:</span>
+                      <span style={{ color: 'var(--text-dim)', fontFamily: 'var(--font-mono)' }}>Detected Codec:</span>
                       <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-primary)' }}>{probeResult.streamMetadata.codec}</span>
                     </div>
                   )}
 
                   {probeResult.streamMetadata?.deviceInfo && (
                     <div style={{ paddingTop: '4px', display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                      <span style={{ color: 'var(--text-muted)', fontWeight: 600 }}>Discovered Hardware:</span>
-                      <div style={{ paddingLeft: '8px', fontSize: '10px', color: 'var(--text-secondary)' }}>
-                        <div>Mfr: {probeResult.streamMetadata.deviceInfo.manufacturer}</div>
-                        <div>Model: {probeResult.streamMetadata.deviceInfo.model}</div>
+                      <span style={{ color: 'var(--text-dim)', fontWeight: 700, fontFamily: 'var(--font-mono)', fontSize: '10px', textTransform: 'uppercase' }}>Discovered Hardware:</span>
+                      <div style={{ paddingLeft: '8px', fontSize: '10px', color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)' }}>
+                        <div>MFR: {probeResult.streamMetadata.deviceInfo.manufacturer}</div>
+                        <div>MODEL: {probeResult.streamMetadata.deviceInfo.model}</div>
                         <div>FW: {probeResult.streamMetadata.deviceInfo.firmwareVersion}</div>
                         {probeResult.streamMetadata.deviceInfo.serialNumber && (
                           <div>SN: {probeResult.streamMetadata.deviceInfo.serialNumber}</div>
@@ -1075,7 +993,7 @@ export default function FleetAdminPage() {
                   )}
 
                   {probeResult.errorMessage && (
-                    <div style={{ paddingTop: '4px', color: 'var(--status-warning)', fontSize: '10px', backgroundColor: 'var(--status-warning-subtle)', padding: '6px', borderRadius: 'var(--radius-xs)' }}>
+                    <div style={{ paddingTop: '4px', color: 'var(--status-warning)', fontSize: '10px', backgroundColor: 'var(--status-warning-bg)', padding: '6px', borderRadius: 'var(--radius-xs)' }}>
                       {probeResult.errorMessage}
                     </div>
                   )}
@@ -1085,10 +1003,8 @@ export default function FleetAdminPage() {
 
             {/* Registration Submit Action */}
             <div
+              className="netrava-card"
               style={{
-                backgroundColor: 'var(--bg-card)',
-                border: '1px solid var(--border-default)',
-                borderRadius: 'var(--radius-md)',
                 padding: 'var(--space-5)',
                 display: 'flex',
                 flexDirection: 'column',
@@ -1097,24 +1013,14 @@ export default function FleetAdminPage() {
             >
               <button
                 type="submit"
+                onClick={handleRegisterCamera}
                 disabled={isSubmitting}
+                className="btn-primary"
                 style={{
                   width: '100%',
                   padding: '12px 16px',
-                  backgroundColor: 'var(--status-success)',
-                  border: 'none',
-                  borderRadius: 'var(--radius-sm)',
-                  color: '#ffffff',
-                  fontSize: 'var(--text-xs)',
-                  fontWeight: 700,
-                  cursor: isSubmitting ? 'not-allowed' : 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 'var(--space-2)',
                   opacity: isSubmitting ? 0.75 : 1,
-                  boxShadow: '0 2px 8px rgba(16, 185, 129, 0.25)',
-                  transition: 'all 0.15s ease',
+                  cursor: isSubmitting ? 'not-allowed' : 'pointer',
                 }}
               >
                 {isSubmitting ? (
@@ -1130,7 +1036,7 @@ export default function FleetAdminPage() {
                 )}
               </button>
 
-              <p style={{ fontSize: '11px', color: 'var(--text-muted)', textAlign: 'center' }}>
+              <p style={{ fontSize: '11px', color: 'var(--text-dim)', textAlign: 'center', fontFamily: 'var(--font-mono)' }}>
                 Requires SUPER_ADMIN or DEPARTMENT_ADMIN role.
                 Audit log entry created synchronously.
               </p>

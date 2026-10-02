@@ -140,25 +140,22 @@ describe('Camera Registry UI Component (Phase 4B)', () => {
     render(<CameraRegistryPage />);
 
     // Check title
+    expect(screen.getByText('CCTV Camera Registry')).toBeInTheDocument();
+
     await waitFor(() => {
-      expect(screen.getByText('CCTV Camera Registry')).toBeInTheDocument();
+      // Check health summary metrics
+      expect(screen.getByText('Total Registered Cameras')).toBeInTheDocument();
+      expect(screen.getByText('Online & Operational')).toBeInTheDocument();
+      expect(screen.getByText('Degraded Performance')).toBeInTheDocument();
+
+      // Check cameras in table
+      expect(screen.getByText('CAM-AHM-01: SG Highway - Pakwan Crossroad')).toBeInTheDocument();
+      expect(screen.getByText('CAM-GND-02: CH-0 Circle')).toBeInTheDocument();
+
+      // Check status badges
+      expect(screen.getByText('ONLINE')).toBeInTheDocument();
+      expect(screen.getByText('DEGRADED')).toBeInTheDocument();
     });
-
-    // Check health summary metrics
-    expect(screen.getByText('Total Registered Cameras')).toBeInTheDocument();
-    expect(screen.getByText('Online & Operational')).toBeInTheDocument();
-    expect(screen.getByText('Degraded Performance')).toBeInTheDocument();
-
-    // Check cameras in table
-    expect(screen.getByText('CAM-AHM-01: SG Highway - Pakwan Crossroad')).toBeInTheDocument();
-    expect(screen.getByText('CAM-GND-02: CH-0 Circle')).toBeInTheDocument();
-
-    // Check status badges
-    expect(screen.getByText('ONLINE')).toBeInTheDocument();
-    expect(screen.getByText('DEGRADED')).toBeInTheDocument();
-
-    // Check persistent simulated data notice
-    expect(screen.getAllByText(/SIMULATED DATA/i).length).toBeGreaterThanOrEqual(1);
   });
 
   it('filters cameras dynamically by search text', async () => {
@@ -225,7 +222,7 @@ describe('Camera Registry UI Component (Phase 4B)', () => {
     expect(screen.getByText(/Physical Location & GIS Coordinates/i)).toBeInTheDocument();
     expect(screen.getAllByText('Pakwan Crossroad, SG Highway').length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText(/Hardware & Stream Configuration/i)).toBeInTheDocument();
-    expect(screen.getByText(/Live Video Preview Disabled/i)).toBeInTheDocument();
+    expect(screen.getByText(/Equipment Health & Telemetry/i)).toBeInTheDocument();
   });
 
   it('displays EmptyState when search yields no matches', async () => {

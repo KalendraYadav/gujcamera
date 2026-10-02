@@ -1,64 +1,132 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
-import { Shield, Activity, Wifi } from 'lucide-react';
+import { Shield, Wifi, Clock, Server, Bell, Activity, Menu } from 'lucide-react';
 import { useAuth } from '@/lib/auth/context';
 import { NAV_ITEMS } from '@/lib/auth/rbac';
-import { SimulatedDataBadge } from '@/components/ui/SimulatedDataBadge';
 
-export function Header() {
+export interface HeaderProps {
+  onToggleMobileNav?: () => void;
+}
+
+export function Header({ onToggleMobileNav }: HeaderProps = {}) {
   const { user } = useAuth();
   const pathname = usePathname();
+  const [timeStr, setTimeStr] = useState<string>('');
 
-  const currentNav = NAV_ITEMS.find((item) => item.path === pathname) || {
+  useEffect(() => {
+    const updateTime = () => {
+      const now = new Date();
+      setTimeStr(
+        now.toLocaleTimeString('en-IN', {
+          hour12: false,
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+          timeZone: 'Asia/Kolkata',
+        }) + ' IST'
+      );
+    };
+    updateTime();
+    const interval = setInterval(updateTime, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const currentNav = NAV_ITEMS.find((item) => item.path === pathname || (item.path !== '/' && pathname.startsWith(item.path))) || {
     label: 'Command Center',
-    phase: 'Phase 4A Foundation',
   };
 
   return (
     <header
       style={{
         height: 'var(--header-height)',
-        backgroundColor: 'var(--bg-primary)',
+        backgroundColor: 'rgba(7, 11, 20, 0.95)',
+        backdropFilter: 'blur(12px)',
+        WebkitBackdropFilter: 'blur(12px)',
         borderBottom: '1px solid var(--border-default)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        padding: '0 var(--space-6)',
+        padding: '0 var(--page-padding-x)',
         position: 'sticky',
         top: 0,
         zIndex: 90,
+        gap: '10px',
       }}
     >
-      {/* Active Screen Title & Subsystem Breadcrumb */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
-          <span style={{ color: 'var(--text-muted)', fontSize: 'var(--text-xs)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-            Unified Platform /
+      {/* Left: Mobile Menu Button + Active Screen Title & Subsystem Breadcrumb */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+        {/* Mobile Hamburger Toggle Button */}
+        <button
+          type="button"
+          onClick={onToggleMobileNav}
+          className="netrava-menu-toggle-btn"
+          aria-label="Open navigation menu"
+          id="netrava-mobile-menu-trigger"
+        >
+          <Menu size={18} />
+        </button>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0 }}>
+          <span
+            style={{
+              color: 'var(--text-dim)',
+              fontSize: 'var(--text-xs)',
+              fontFamily: 'var(--font-mono)',
+              textTransform: 'uppercase',
+              letterSpacing: '0.08em',
+              fontWeight: 600,
+              whiteSpace: 'nowrap',
+            }}
+          >
+            NETRAVA /
           </span>
-          <h2 style={{ fontSize: 'var(--text-md)', fontWeight: 700, color: 'var(--text-primary)' }}>
+          <h2
+            style={{
+              fontSize: 'clamp(13px, 3.5vw, 16px)',
+              fontWeight: 600,
+              color: '#FFFFFF',
+              letterSpacing: '0.02em',
+              margin: 0,
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+            }}
+          >
             {currentNav.label}
           </h2>
         </div>
-
-        <span
-          style={{
-            fontSize: '10px',
-            fontFamily: 'var(--font-mono)',
-            padding: '2px 6px',
-            backgroundColor: 'var(--bg-surface)',
-            border: '1px solid var(--border-subtle)',
-            borderRadius: 'var(--radius-xs)',
-            color: 'var(--text-muted)',
-          }}
-        >
-          {currentNav.phase}
-        </span>
       </div>
 
       {/* Center/Right Status Indicators */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-4)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
+        {/* Tactical Clock in IST */}
+        {timeStr && (
+          <div
+            className="tactical-clock-indicator"
+            title="State Command Center Operational Clock (IST)"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              fontSize: 'var(--text-xs)',
+              color: 'var(--text-secondary)',
+              fontFamily: 'var(--font-mono)',
+              fontWeight: 500,
+              padding: '2px 8px',
+              backgroundColor: 'var(--bg-surface)',
+              border: '1px solid var(--border-default)',
+              borderRadius: 'var(--radius-xs)',
+              letterSpacing: '0.04em',
+              fontVariantNumeric: 'tabular-nums',
+            }}
+          >
+            <Clock size={13} color="#60A5FA" />
+            <span>{timeStr}</span>
+          </div>
+        )}
+
         {/* Backend API Connectivity Indicator */}
         <div
           title="Connected to Backend REST API (http://localhost:4000/api/v1)"
@@ -67,15 +135,25 @@ export function Header() {
             alignItems: 'center',
             gap: '6px',
             fontSize: 'var(--text-xs)',
-            color: 'var(--status-success)',
-            backgroundColor: 'var(--status-success-bg)',
-            border: '1px solid var(--status-success-border)',
-            padding: '3px 8px',
-            borderRadius: 'var(--radius-sm)',
+            color: '#34D399',
+            backgroundColor: 'rgba(16, 185, 129, 0.12)',
+            border: '1px solid rgba(16, 185, 129, 0.30)',
+            padding: '2px 8px',
+            borderRadius: 'var(--radius-xs)',
             fontFamily: 'var(--font-mono)',
+            fontWeight: 600,
+            letterSpacing: '0.04em',
           }}
         >
-          <Wifi size={12} />
+          <span
+            style={{
+              width: '5px',
+              height: '5px',
+              borderRadius: '50%',
+              backgroundColor: '#10B981',
+              flexShrink: 0,
+            }}
+          />
           <span>API 200 OK</span>
         </div>
 
@@ -87,16 +165,15 @@ export function Header() {
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: '6px',
-              color: 'var(--accent-primary)',
+              gap: '5px',
+              color: '#60A5FA',
               backgroundColor: 'rgba(59, 130, 246, 0.12)',
-              border: '1px solid rgba(59, 130, 246, 0.3)',
-              padding: '3px 8px',
-              borderRadius: 'var(--radius-sm)',
+              border: '1px solid rgba(59, 130, 246, 0.32)',
+              padding: '2px 8px',
+              borderRadius: 'var(--radius-xs)',
               fontWeight: 600,
-              letterSpacing: '0.04em',
-              textTransform: 'uppercase',
-              fontSize: '10px',
+              letterSpacing: '0.02em',
+              fontSize: 'var(--text-xs)',
               fontFamily: 'var(--font-mono)',
             }}
           >
@@ -104,10 +181,8 @@ export function Header() {
             <span>Read-Only Oversight</span>
           </div>
         )}
-
-        {/* Mandatory Hackathon Simulated Data Label */}
-        <SimulatedDataBadge compact />
       </div>
     </header>
   );
 }
+

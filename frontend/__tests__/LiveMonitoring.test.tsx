@@ -190,9 +190,8 @@ describe('Live CCTV Monitoring Page & Components', () => {
   it('renders live monitoring console and loads cameras', async () => {
     render(<LiveMonitoringPage />);
 
-    // Check header and simulated badge
-    expect(screen.getByText('Live Monitoring & Stream Console')).toBeInTheDocument();
-    expect(screen.getAllByText(/SIMULATED DATA/).length).toBeGreaterThan(0);
+    // Check header
+    expect(screen.getByText('Live Video Monitoring')).toBeInTheDocument();
 
     // Wait for cameras to load
     await waitFor(() => {

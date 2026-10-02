@@ -156,7 +156,6 @@ describe('Alerts Live Console Page (Phase 4E)', () => {
     render(<AlertsPage />);
 
     expect(screen.getByText('Live Alert Feed & Triage')).toBeInTheDocument();
-    expect(screen.getAllByText('SIMULATED DATA').length).toBeGreaterThanOrEqual(1);
 
     await waitFor(() => {
       expect(alertsApi.listAlerts).toHaveBeenCalled();

@@ -20,7 +20,6 @@ import {
 import { Camera, OperationalStatus } from '@/types/camera';
 import { camerasApi } from '@/lib/api/cameras';
 import { CameraDetailDrawer } from './CameraDetailDrawer';
-import { SimulatedDataBadge } from '@/components/ui/SimulatedDataBadge';
 import { StatusBadge, BadgeVariant } from '@/components/ui/StatusBadge';
 import { ErrorState } from '@/components/ui/ErrorState';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -131,7 +130,7 @@ export function GisCameraMap() {
         const isOffline = camera.operational_status === 'OFFLINE';
         const isError = camera.operational_status === 'ERROR';
 
-        let statusColor = '#3b82f6'; // Connecting / default
+        let statusColor = '#93B3E6'; // Connecting / operational default
         if (isOnline) statusColor = '#10b981';
         else if (isDegraded) statusColor = '#f59e0b';
         else if (isOffline) statusColor = '#64748b';
@@ -375,7 +374,7 @@ export function GisCameraMap() {
           height: '100%',
           width: '100%',
           position: 'relative',
-          backgroundColor: '#0a0f1d',
+          backgroundColor: '#070B14',
         }}
       />
 
@@ -383,34 +382,26 @@ export function GisCameraMap() {
       <div
         style={{
           position: 'absolute',
-          top: 'var(--space-3)',
-          left: 'var(--space-3)',
+          top: '14px',
+          left: '14px',
           zIndex: 10,
           display: 'flex',
           flexDirection: 'column',
-          gap: 'var(--space-2)',
+          gap: '8px',
           maxWidth: '380px',
         }}
       >
-        {/* Persistent Simulated Data Warning */}
-        <SimulatedDataBadge />
-
-        {/* Tactical Status Pill */}
         <div
+          className="netrava-card"
           style={{
-            backgroundColor: 'rgba(15, 23, 42, 0.85)',
-            backdropFilter: 'blur(8px)',
-            border: '1px solid var(--border-subtle)',
-            borderRadius: 'var(--radius-sm)',
-            padding: 'var(--space-2) var(--space-3)',
+            padding: '8px 14px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            gap: 'var(--space-3)',
-            boxShadow: 'var(--shadow-md)',
+            gap: '12px',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <span
               style={{
                 width: '8px',
@@ -420,13 +411,13 @@ export function GisCameraMap() {
                 animation: isLoading ? 'pulse 1s infinite' : 'none',
               }}
             />
-            <span style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--text-primary)' }}>
+            <span style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.06em', color: 'var(--text-primary)' }}>
               GIS COMMAND MAP
             </span>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
-            <span style={{ fontSize: '11px', fontFamily: 'var(--font-mono)', color: 'var(--accent-primary)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ fontSize: '11px', fontFamily: 'var(--font-mono)', color: 'var(--accent-primary)', fontWeight: 600 }}>
               {cameras.length} Active in View
             </span>
             <button
@@ -452,10 +443,11 @@ export function GisCameraMap() {
         {mapBoundsText && (
           <div
             style={{
-              backgroundColor: 'rgba(15, 23, 42, 0.75)',
+              backgroundColor: 'rgba(11, 17, 32, 0.85)',
+              backdropFilter: 'blur(8px)',
               border: '1px solid var(--border-subtle)',
-              borderRadius: 'var(--radius-xs)',
-              padding: '2px 8px',
+              borderRadius: '4px',
+              padding: '3px 8px',
               fontSize: '10px',
               fontFamily: 'var(--font-mono)',
               color: 'var(--text-muted)',
@@ -473,73 +465,66 @@ export function GisCameraMap() {
       <div
         style={{
           position: 'absolute',
-          top: 'var(--space-3)',
-          right: isSidePanelOpen ? '390px' : 'var(--space-3)',
+          top: '14px',
+          right: isSidePanelOpen ? '394px' : '14px',
           zIndex: 10,
           display: 'flex',
-          gap: 'var(--space-2)',
+          gap: '8px',
           transition: 'right var(--transition-normal)',
         }}
       >
         <button
           onClick={() => setIsSidePanelOpen(!isSidePanelOpen)}
           aria-label={isSidePanelOpen ? 'Collapse accessible camera panel' : 'Expand accessible camera panel'}
+          className="netrava-card"
           style={{
-            backgroundColor: 'rgba(15, 23, 42, 0.85)',
-            backdropFilter: 'blur(8px)',
-            border: '1px solid var(--border-default)',
             color: 'var(--text-primary)',
-            padding: 'var(--space-2) var(--space-3)',
-            borderRadius: 'var(--radius-sm)',
-            fontSize: 'var(--text-xs)',
+            padding: '8px 14px',
+            fontSize: '11px',
             fontWeight: 600,
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
-            gap: 'var(--space-2)',
-            boxShadow: 'var(--shadow-sm)',
+            gap: '8px',
           }}
         >
-          <Layers size={14} color="var(--accent-primary)" />
-          <span>{isSidePanelOpen ? 'Hide Camera List' : 'Show Camera List'}</span>
+          <Layers size={14} color="var(--accent-blue)" />
+          <span>{isSidePanelOpen ? 'Hide List' : 'Show List'}</span>
           {isSidePanelOpen ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
         </button>
       </div>
 
       {/* 4. Bottom-Left Map Legend */}
       <div
+        className="netrava-card"
         style={{
           position: 'absolute',
-          bottom: 'var(--space-3)',
-          left: 'var(--space-3)',
+          bottom: '14px',
+          left: '14px',
           zIndex: 10,
-          backgroundColor: 'rgba(15, 23, 42, 0.85)',
-          backdropFilter: 'blur(8px)',
-          border: '1px solid var(--border-subtle)',
-          borderRadius: 'var(--radius-sm)',
-          padding: 'var(--space-2) var(--space-3)',
+          padding: '6px 12px',
           display: 'flex',
           alignItems: 'center',
-          gap: 'var(--space-3)',
+          gap: '12px',
           fontSize: '11px',
         }}
       >
-        <span style={{ fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Legend:</span>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-          <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#10b981' }} />
-          <span style={{ color: 'var(--text-secondary)' }}>Online</span>
+        <span style={{ fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', fontSize: '10px', letterSpacing: '0.05em' }}>Legend:</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+          <span style={{ width: '7px', height: '7px', borderRadius: '50%', backgroundColor: '#10b981' }} />
+          <span style={{ color: 'var(--text-secondary)', fontSize: '11px' }}>Online</span>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-          <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#f59e0b' }} />
-          <span style={{ color: 'var(--text-secondary)' }}>Degraded</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+          <span style={{ width: '7px', height: '7px', borderRadius: '50%', backgroundColor: '#f59e0b' }} />
+          <span style={{ color: 'var(--text-secondary)', fontSize: '11px' }}>Degraded</span>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-          <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#64748b' }} />
-          <span style={{ color: 'var(--text-secondary)' }}>Offline</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+          <span style={{ width: '7px', height: '7px', borderRadius: '50%', backgroundColor: '#64748b' }} />
+          <span style={{ color: 'var(--text-secondary)', fontSize: '11px' }}>Offline</span>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-          <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#ef4444' }} />
-          <span style={{ color: 'var(--text-secondary)' }}>Error</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+          <span style={{ width: '7px', height: '7px', borderRadius: '50%', backgroundColor: '#ef4444' }} />
+          <span style={{ color: 'var(--text-secondary)', fontSize: '11px' }}>Error</span>
         </div>
       </div>
 
@@ -550,7 +535,8 @@ export function GisCameraMap() {
           style={{
             width: '380px',
             height: '100%',
-            backgroundColor: 'var(--bg-card)',
+            backgroundColor: 'rgba(11, 17, 32, 0.95)',
+            backdropFilter: 'blur(16px)',
             borderLeft: '1px solid var(--border-default)',
             display: 'flex',
             flexDirection: 'column',
@@ -561,15 +547,15 @@ export function GisCameraMap() {
           {/* Side Panel Header */}
           <div
             style={{
-              padding: 'var(--space-3) var(--space-4)',
+              padding: '14px 16px',
               borderBottom: '1px solid var(--border-subtle)',
-              backgroundColor: 'var(--bg-secondary)',
+              backgroundColor: 'rgba(5, 8, 15, 0.5)',
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
-                <MapPin size={16} color="var(--accent-primary)" />
-                <h4 style={{ fontSize: 'var(--text-sm)', fontWeight: 700, color: 'var(--text-primary)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <MapPin size={15} color="var(--accent-primary)" />
+                <h4 style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
                   Viewport Cameras
                 </h4>
               </div>
@@ -577,64 +563,63 @@ export function GisCameraMap() {
                 style={{
                   fontSize: '11px',
                   fontWeight: 600,
-                  backgroundColor: 'var(--accent-subtle)',
-                  color: 'var(--accent-primary)',
-                  padding: '2px 6px',
-                  borderRadius: 'var(--radius-xs)',
+                  backgroundColor: 'rgba(215, 25, 63, 0.12)',
+                  color: '#FFFFFF',
+                  border: '1px solid rgba(215, 25, 63, 0.3)',
+                  padding: '2px 8px',
+                  borderRadius: '4px',
                   fontFamily: 'var(--font-mono)',
                 }}
               >
-                {filteredCameras.length} found
+                {filteredCameras.length}
               </span>
             </div>
 
             {/* Search and Status Filters */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               <div style={{ position: 'relative' }}>
                 <Search
-                  size={14}
+                  size={13}
                   color="var(--text-muted)"
-                  style={{ position: 'absolute', left: '8px', top: '50%', transform: 'translateY(-50%)' }}
+                  style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)' }}
                 />
                 <input
                   type="text"
+                  className="netrava-input"
                   placeholder="Filter cameras in view..."
                   value={searchFilter}
                   onChange={(e) => setSearchFilter(e.target.value)}
                   aria-label="Filter cameras in current view"
                   style={{
                     width: '100%',
-                    padding: '6px 8px 6px 28px',
-                    fontSize: 'var(--text-xs)',
-                    backgroundColor: 'var(--bg-surface)',
-                    border: '1px solid var(--border-default)',
-                    borderRadius: 'var(--radius-sm)',
-                    color: 'var(--text-primary)',
+                    paddingLeft: '32px',
+                    paddingTop: '6px',
+                    paddingBottom: '6px',
+                    fontSize: '11px',
                   }}
                 />
               </div>
 
               <div style={{ display: 'flex', gap: '4px' }}>
-                {['ALL', 'ONLINE', 'DEGRADED', 'OFFLINE'].map((status) => (
-                  <button
-                    key={status}
-                    onClick={() => setStatusFilter(status)}
-                    style={{
-                      flex: 1,
-                      padding: '3px 6px',
-                      fontSize: '10px',
-                      fontWeight: 600,
-                      borderRadius: 'var(--radius-xs)',
-                      border: '1px solid',
-                      borderColor: statusFilter === status ? 'var(--accent-border)' : 'var(--border-subtle)',
-                      backgroundColor: statusFilter === status ? 'var(--accent-subtle)' : 'var(--bg-surface)',
-                      color: statusFilter === status ? 'var(--accent-primary)' : 'var(--text-secondary)',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    {status}
-                  </button>
-                ))}
+                {['ALL', 'ONLINE', 'DEGRADED', 'OFFLINE'].map((status) => {
+                  const isActive = statusFilter === status;
+                  return (
+                    <button
+                      key={status}
+                      id={`gis-filter-${status.toLowerCase()}`}
+                      onClick={() => setStatusFilter(status)}
+                      className={`netrava-tab-button ${isActive ? 'active' : ''}`}
+                      style={{
+                        flex: 1,
+                        padding: '4px 6px',
+                        fontSize: '10px',
+                        fontWeight: isActive ? 700 : 600,
+                      }}
+                    >
+                      {status}
+                    </button>
+                  );
+                })}
               </div>
             </div>
           </div>
@@ -646,27 +631,27 @@ export function GisCameraMap() {
             style={{
               flex: 1,
               overflowY: 'auto',
-              padding: 'var(--space-2)',
+              padding: '8px',
               display: 'flex',
               flexDirection: 'column',
-              gap: 'var(--space-2)',
+              gap: '6px',
             }}
           >
             {isLoading && cameras.length === 0 && (
-              <div style={{ padding: 'var(--space-6)', textAlign: 'center' }}>
+              <div style={{ padding: '32px', textAlign: 'center' }}>
                 <Activity
                   size={24}
                   color="var(--accent-primary)"
-                  style={{ animation: 'pulse 1.5s infinite', margin: '0 auto var(--space-2)' }}
+                  style={{ animation: 'pulse 1.5s infinite', margin: '0 auto 8px' }}
                 />
-                <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>
-                  Querying spatial camera registry...
+                <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                  Loading cameras...
                 </div>
               </div>
             )}
 
             {errorMessage && (
-              <div style={{ padding: 'var(--space-2)' }}>
+              <div style={{ padding: '8px' }}>
                 <ErrorState
                   title="Spatial Query Failed"
                   message={errorMessage}
@@ -677,13 +662,13 @@ export function GisCameraMap() {
             )}
 
             {!isLoading && !errorMessage && filteredCameras.length === 0 && (
-              <div style={{ padding: 'var(--space-4)' }}>
+              <div style={{ padding: '16px' }}>
                 <EmptyState
                   title="No Cameras in View"
                   message="Pan or zoom out the map to inspect adjacent police zones."
-                  subtext="Only cameras located inside the visible geographic viewport are returned by the spatial database."
+                  subtext="Cameras outside the current viewport are excluded."
                   action={{
-                    label: 'Reset to Ahmedabad Hub',
+                    label: 'Reset View',
                     onClick: () => {
                       if (mapInstanceRef.current) {
                         mapInstanceRef.current.flyTo({ center: DEFAULT_CENTER, zoom: DEFAULT_ZOOM });
@@ -714,28 +699,25 @@ export function GisCameraMap() {
                     }
                   }}
                   style={{
-                    padding: 'var(--space-3)',
-                    backgroundColor: isSelected ? 'var(--accent-subtle)' : 'var(--bg-surface)',
-                    border: isSelected ? '1px solid var(--accent-border)' : '1px solid var(--border-subtle)',
-                    borderRadius: 'var(--radius-sm)',
+                    padding: '10px 12px',
+                    backgroundColor: isSelected ? 'rgba(215, 25, 63, 0.08)' : 'rgba(15, 23, 42, 0.5)',
+                    border: '1px solid',
+                    borderColor: isSelected ? 'rgba(215, 25, 63, 0.4)' : 'var(--border-subtle)',
+                    borderLeft: isSelected ? '3px solid var(--accent-primary)' : '1px solid var(--border-subtle)',
+                    borderRadius: '6px',
                     cursor: 'pointer',
                     transition: 'all var(--transition-fast)',
                     outline: 'none',
                   }}
-                  onMouseEnter={(e) => {
-                    if (!isSelected) e.currentTarget.style.borderColor = 'var(--border-default)';
-                  }}
-                  onMouseLeave={(e) => {
-                    if (!isSelected) e.currentTarget.style.borderColor = 'var(--border-subtle)';
-                  }}
                 >
                   <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '6px' }}>
-                    <div style={{ fontWeight: 600, fontSize: 'var(--text-xs)', color: 'var(--text-primary)', lineHeight: 1.3 }}>
+                    <div style={{ fontWeight: 600, fontSize: '12px', color: 'var(--text-primary)', lineHeight: 1.3 }}>
                       {cam.name}
                     </div>
                     <StatusBadge
+                      status={cam.operational_status}
                       label={cam.operational_status}
-                      variant={getStatusBadgeVariant(cam.operational_status)}
+                      size="sm"
                     />
                   </div>
 
@@ -765,9 +747,9 @@ export function GisCameraMap() {
           {/* Panel Accessibility Footer */}
           <div
             style={{
-              padding: 'var(--space-2) var(--space-4)',
+              padding: '8px 16px',
               borderTop: '1px solid var(--border-subtle)',
-              backgroundColor: 'var(--bg-secondary)',
+              backgroundColor: 'rgba(5, 8, 15, 0.6)',
               fontSize: '10px',
               color: 'var(--text-muted)',
               display: 'flex',

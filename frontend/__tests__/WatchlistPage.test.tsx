@@ -120,9 +120,8 @@ describe('Watchlist Management Page (Phase 4E)', () => {
   it('renders watchlist catalog and handles selection of a watchlist', async () => {
     render(<WatchlistPage />);
 
-    // Verify header and simulated data badge
+    // Verify header
     expect(screen.getByText('Watchlist Registry')).toBeInTheDocument();
-    expect(screen.getAllByText('SIMULATED DATA').length).toBeGreaterThanOrEqual(1);
 
     expect(watchlistsApi.listWatchlists).toHaveBeenCalled();
 

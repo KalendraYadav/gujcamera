@@ -100,11 +100,12 @@ export function CameraDetailDrawer({ camera, onClose, onCenterOnMap }: CameraDet
         top: 0,
         right: 0,
         bottom: 0,
-        width: '440px',
+        width: '450px',
         maxWidth: '100vw',
-        backgroundColor: 'var(--bg-card)',
+        backgroundColor: 'rgba(11, 17, 32, 0.98)',
+        backdropFilter: 'blur(20px)',
         borderLeft: '1px solid var(--border-default)',
-        boxShadow: 'var(--shadow-lg)',
+        boxShadow: 'var(--shadow-modal)',
         zIndex: 500,
         display: 'flex',
         flexDirection: 'column',
@@ -115,23 +116,23 @@ export function CameraDetailDrawer({ camera, onClose, onCenterOnMap }: CameraDet
       {/* Header */}
       <div
         style={{
-          padding: 'var(--space-4) var(--space-5)',
+          padding: '16px 20px',
           borderBottom: '1px solid var(--border-subtle)',
-          backgroundColor: 'var(--bg-secondary)',
+          backgroundColor: 'rgba(5, 8, 15, 0.6)',
           display: 'flex',
           alignItems: 'flex-start',
           justifyContent: 'space-between',
-          gap: 'var(--space-3)',
+          gap: '12px',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 'var(--space-3)' }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
           <div
             style={{
               width: '36px',
               height: '36px',
-              borderRadius: 'var(--radius-sm)',
-              backgroundColor: 'var(--accent-subtle)',
-              border: '1px solid var(--accent-border)',
+              borderRadius: '6px',
+              backgroundColor: 'rgba(215, 25, 63, 0.12)',
+              border: '1px solid rgba(215, 25, 63, 0.3)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -140,23 +141,23 @@ export function CameraDetailDrawer({ camera, onClose, onCenterOnMap }: CameraDet
               marginTop: '2px',
             }}
           >
-            <CameraIcon size={20} />
+            <CameraIcon size={18} />
           </div>
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', marginBottom: '4px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
               <StatusBadge
+                status={camera.operational_status}
                 label={camera.operational_status}
-                variant={getStatusBadgeVariant(camera.operational_status)}
-                pulse={camera.operational_status === 'ONLINE'}
+                size="sm"
               />
               <span
                 style={{
-                  fontSize: '11px',
+                  fontSize: '10px',
                   color: 'var(--text-muted)',
                   fontFamily: 'var(--font-mono)',
-                  backgroundColor: 'var(--bg-surface)',
+                  backgroundColor: 'rgba(255, 255, 255, 0.04)',
                   padding: '2px 6px',
-                  borderRadius: 'var(--radius-xs)',
+                  borderRadius: '3px',
                   border: '1px solid var(--border-subtle)',
                 }}
               >
@@ -166,10 +167,11 @@ export function CameraDetailDrawer({ camera, onClose, onCenterOnMap }: CameraDet
             <h3
               id="camera-detail-title"
               style={{
-                fontSize: 'var(--text-md)',
+                fontSize: '15px',
                 fontWeight: 700,
                 color: 'var(--text-primary)',
                 lineHeight: 1.3,
+                margin: 0,
               }}
             >
               {camera.name}
@@ -185,8 +187,8 @@ export function CameraDetailDrawer({ camera, onClose, onCenterOnMap }: CameraDet
             border: 'none',
             color: 'var(--text-muted)',
             cursor: 'pointer',
-            padding: 'var(--space-1)',
-            borderRadius: 'var(--radius-xs)',
+            padding: '4px',
+            borderRadius: '4px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -195,7 +197,7 @@ export function CameraDetailDrawer({ camera, onClose, onCenterOnMap }: CameraDet
           onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--text-primary)')}
           onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-muted)')}
         >
-          <X size={20} />
+          <X size={18} />
         </button>
       </div>
 
@@ -204,20 +206,18 @@ export function CameraDetailDrawer({ camera, onClose, onCenterOnMap }: CameraDet
         style={{
           flex: 1,
           overflowY: 'auto',
-          padding: 'var(--space-5)',
+          padding: '16px 20px',
           display: 'flex',
           flexDirection: 'column',
-          gap: 'var(--space-5)',
+          gap: '14px',
         }}
       >
         {/* Section 1: Location & GIS */}
         <section
           aria-labelledby="section-location-title"
+          className="netrava-card"
           style={{
-            backgroundColor: 'var(--bg-surface)',
-            border: '1px solid var(--border-subtle)',
-            borderRadius: 'var(--radius-md)',
-            padding: 'var(--space-4)',
+            padding: '14px 16px',
           }}
         >
           <div
@@ -225,37 +225,37 @@ export function CameraDetailDrawer({ camera, onClose, onCenterOnMap }: CameraDet
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: 'var(--space-2)',
-              fontSize: 'var(--text-xs)',
+              gap: '8px',
+              fontSize: '11px',
               fontWeight: 700,
               textTransform: 'uppercase',
-              letterSpacing: '0.05em',
+              letterSpacing: '0.06em',
               color: 'var(--text-muted)',
-              marginBottom: 'var(--space-3)',
+              marginBottom: '12px',
             }}
           >
-            <MapPin size={14} color="var(--accent-primary)" />
+            <MapPin size={14} color="var(--accent-blue)" />
             <span>Physical Location & GIS Coordinates</span>
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             <div>
-              <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Physical Address</div>
-              <div style={{ fontSize: 'var(--text-sm)', fontWeight: 500, color: 'var(--text-primary)' }}>
+              <div style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Physical Address</div>
+              <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', marginTop: '2px' }}>
                 {camera.location?.address || 'Street address unassigned'}
               </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-2)', marginTop: '4px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginTop: '4px' }}>
               <div>
-                <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Police Zone</div>
-                <div style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--text-secondary)' }}>
+                <div style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Police Zone</div>
+                <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', marginTop: '2px' }}>
                   {camera.location?.zone || 'N/A'}
                 </div>
               </div>
               <div>
-                <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>District</div>
-                <div style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--text-secondary)' }}>
+                <div style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>District</div>
+                <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', marginTop: '2px' }}>
                   {camera.location?.district || 'N/A'}
                 </div>
               </div>
@@ -263,40 +263,36 @@ export function CameraDetailDrawer({ camera, onClose, onCenterOnMap }: CameraDet
 
             <div
               style={{
-                marginTop: 'var(--space-2)',
-                padding: 'var(--space-2) var(--space-3)',
-                backgroundColor: 'var(--bg-card)',
-                borderRadius: 'var(--radius-sm)',
-                border: '1px solid var(--border-default)',
+                marginTop: '8px',
+                padding: '8px 12px',
+                backgroundColor: 'rgba(5, 8, 15, 0.6)',
+                borderRadius: '6px',
+                border: '1px solid var(--border-subtle)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
               }}
             >
               <div>
-                <div style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+                <div style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                   WGS-84 Coordinates
                 </div>
-                <div style={{ fontSize: 'var(--text-xs)', fontFamily: 'var(--font-mono)', color: 'var(--text-primary)' }}>
+                <div style={{ fontSize: '12px', fontFamily: 'var(--font-mono)', color: 'var(--text-primary)', marginTop: '2px' }}>
                   {camera.lat.toFixed(6)}, {camera.long.toFixed(6)}
                 </div>
               </div>
 
-              <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
+              <div style={{ display: 'flex', gap: '6px' }}>
                 <button
                   onClick={() => copyToClipboard(`${camera.lat},${camera.long}`, 'coords')}
                   title="Copy Coordinates"
+                  className="btn-secondary"
                   style={{
-                    background: 'transparent',
-                    border: '1px solid var(--border-subtle)',
                     padding: '4px 8px',
-                    borderRadius: 'var(--radius-xs)',
-                    color: 'var(--text-secondary)',
-                    cursor: 'pointer',
+                    fontSize: '11px',
                     display: 'flex',
                     alignItems: 'center',
                     gap: '4px',
-                    fontSize: '11px',
                   }}
                 >
                   {copiedField === 'coords' ? <Check size={12} color="var(--status-success)" /> : <Copy size={12} />}
@@ -307,18 +303,13 @@ export function CameraDetailDrawer({ camera, onClose, onCenterOnMap }: CameraDet
                   <button
                     onClick={() => onCenterOnMap(camera.lat, camera.long)}
                     title="Center view on map"
+                    className="btn-secondary"
                     style={{
-                      background: 'var(--accent-subtle)',
-                      border: '1px solid var(--accent-border)',
                       padding: '4px 8px',
-                      borderRadius: 'var(--radius-xs)',
-                      color: 'var(--accent-primary)',
-                      cursor: 'pointer',
+                      fontSize: '11px',
                       display: 'flex',
                       alignItems: 'center',
                       gap: '4px',
-                      fontSize: '11px',
-                      fontWeight: 600,
                     }}
                   >
                     <ExternalLink size={12} />
@@ -333,11 +324,9 @@ export function CameraDetailDrawer({ camera, onClose, onCenterOnMap }: CameraDet
         {/* Section 2: Department & Authority */}
         <section
           aria-labelledby="section-dept-title"
+          className="netrava-card"
           style={{
-            backgroundColor: 'var(--bg-surface)',
-            border: '1px solid var(--border-subtle)',
-            borderRadius: 'var(--radius-md)',
-            padding: 'var(--space-4)',
+            padding: '14px 16px',
           }}
         >
           <div
@@ -345,44 +334,44 @@ export function CameraDetailDrawer({ camera, onClose, onCenterOnMap }: CameraDet
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: 'var(--space-2)',
-              fontSize: 'var(--text-xs)',
+              gap: '8px',
+              fontSize: '11px',
               fontWeight: 700,
               textTransform: 'uppercase',
-              letterSpacing: '0.05em',
+              letterSpacing: '0.06em',
               color: 'var(--text-muted)',
-              marginBottom: 'var(--space-3)',
+              marginBottom: '12px',
             }}
           >
-            <Shield size={14} color="var(--accent-primary)" />
+            <Shield size={14} color="var(--accent-blue)" />
             <span>Jurisdiction & Registry Authority</span>
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             <div>
-              <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Assigned Department</div>
-              <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--text-primary)' }}>
+              <div style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Assigned Department</div>
+              <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', marginTop: '2px' }}>
                 {camera.department_name || 'Gujarat Police Headquarters'}
               </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-2)', marginTop: '4px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginTop: '4px' }}>
               <div>
-                <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Active Status</div>
-                <div style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: camera.is_active ? 'var(--status-success)' : 'var(--status-critical)' }}>
+                <div style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Active Status</div>
+                <div style={{ fontSize: '12px', fontWeight: 600, color: camera.is_active ? 'var(--status-success)' : 'var(--status-critical)', marginTop: '2px' }}>
                   {camera.is_active ? 'Operational (Active)' : 'Decommissioned'}
                 </div>
               </div>
               <div>
-                <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Registered Since</div>
-                <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)' }}>
+                <div style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Registered Since</div>
+                <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '2px' }}>
                   {new Date(camera.created_at).toLocaleDateString('en-IN')}
                 </div>
               </div>
             </div>
 
-            <div style={{ marginTop: 'var(--space-2)' }}>
-              <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Camera UUID</div>
+            <div style={{ marginTop: '4px' }}>
+              <div style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Camera UUID</div>
               <div
                 style={{
                   fontSize: '11px',
@@ -390,7 +379,8 @@ export function CameraDetailDrawer({ camera, onClose, onCenterOnMap }: CameraDet
                   color: 'var(--text-muted)',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: 'var(--space-2)',
+                  gap: '8px',
+                  marginTop: '2px',
                 }}
               >
                 <span>{camera.id}</span>
@@ -415,11 +405,9 @@ export function CameraDetailDrawer({ camera, onClose, onCenterOnMap }: CameraDet
         {/* Section 3: Streams & Hardware Configuration */}
         <section
           aria-labelledby="section-stream-title"
+          className="netrava-card"
           style={{
-            backgroundColor: 'var(--bg-surface)',
-            border: '1px solid var(--border-subtle)',
-            borderRadius: 'var(--radius-md)',
-            padding: 'var(--space-4)',
+            padding: '14px 16px',
           }}
         >
           <div
@@ -427,29 +415,29 @@ export function CameraDetailDrawer({ camera, onClose, onCenterOnMap }: CameraDet
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: 'var(--space-2)',
-              fontSize: 'var(--text-xs)',
+              gap: '8px',
+              fontSize: '11px',
               fontWeight: 700,
               textTransform: 'uppercase',
-              letterSpacing: '0.05em',
+              letterSpacing: '0.06em',
               color: 'var(--text-muted)',
-              marginBottom: 'var(--space-3)',
+              marginBottom: '12px',
             }}
           >
             <Server size={14} color="var(--accent-primary)" />
             <span>Hardware & Stream Configuration</span>
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-2)' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
               <div>
-                <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Protocol</div>
-                <div style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--text-primary)' }}>
+                <div style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Protocol</div>
+                <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-primary)', marginTop: '2px' }}>
                   {camera.protocol}
                 </div>
               </div>
               <div>
-                <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Connector ID</div>
+                <div style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Connector ID</div>
                 <div
                   style={{
                     fontSize: '11px',
@@ -458,6 +446,7 @@ export function CameraDetailDrawer({ camera, onClose, onCenterOnMap }: CameraDet
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',
                     whiteSpace: 'nowrap',
+                    marginTop: '2px',
                   }}
                   title={camera.connector_type_id}
                 >
@@ -468,7 +457,7 @@ export function CameraDetailDrawer({ camera, onClose, onCenterOnMap }: CameraDet
 
             {/* Stream List */}
             <div>
-              <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: 'var(--space-2)' }}>
+              <div style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '6px' }}>
                 Registered Video Streams ({camera.streams?.length || 0})
               </div>
 
@@ -477,11 +466,11 @@ export function CameraDetailDrawer({ camera, onClose, onCenterOnMap }: CameraDet
                   <div
                     key={stream.id || idx}
                     style={{
-                      padding: 'var(--space-3)',
-                      backgroundColor: 'var(--bg-card)',
-                      borderRadius: 'var(--radius-sm)',
-                      border: '1px solid var(--border-default)',
-                      marginBottom: 'var(--space-2)',
+                      padding: '10px 12px',
+                      backgroundColor: 'rgba(5, 8, 15, 0.6)',
+                      borderRadius: '6px',
+                      border: '1px solid var(--border-subtle)',
+                      marginBottom: '6px',
                     }}
                   >
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
@@ -489,7 +478,7 @@ export function CameraDetailDrawer({ camera, onClose, onCenterOnMap }: CameraDet
                         style={{
                           fontSize: '11px',
                           fontWeight: 700,
-                          color: 'var(--accent-primary)',
+                          color: 'var(--accent-blue)',
                           fontFamily: 'var(--font-mono)',
                         }}
                       >
@@ -500,8 +489,8 @@ export function CameraDetailDrawer({ camera, onClose, onCenterOnMap }: CameraDet
                           fontSize: '10px',
                           textTransform: 'uppercase',
                           padding: '1px 5px',
-                          borderRadius: 'var(--radius-xs)',
-                          backgroundColor: 'var(--bg-surface)',
+                          borderRadius: '3px',
+                          backgroundColor: 'rgba(255, 255, 255, 0.04)',
                           color: 'var(--text-muted)',
                         }}
                       >
@@ -514,9 +503,10 @@ export function CameraDetailDrawer({ camera, onClose, onCenterOnMap }: CameraDet
                         fontFamily: 'var(--font-mono)',
                         color: 'var(--text-muted)',
                         wordBreak: 'break-all',
-                        backgroundColor: 'var(--bg-surface)',
-                        padding: '4px 6px',
-                        borderRadius: 'var(--radius-xs)',
+                        backgroundColor: 'rgba(0, 0, 0, 0.4)',
+                        padding: '4px 8px',
+                        borderRadius: '4px',
+                        border: '1px solid var(--border-subtle)',
                       }}
                     >
                       {stream.url_or_handle}
@@ -524,29 +514,10 @@ export function CameraDetailDrawer({ camera, onClose, onCenterOnMap }: CameraDet
                   </div>
                 ))
               ) : (
-                <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                <div style={{ fontSize: '12px', color: 'var(--text-muted)', fontStyle: 'italic' }}>
                   No video stream handles registered for this camera.
                 </div>
               )}
-            </div>
-
-            {/* Phase 4B Notice: No Live Video Yet */}
-            <div
-              style={{
-                display: 'flex',
-                gap: 'var(--space-2)',
-                alignItems: 'flex-start',
-                padding: 'var(--space-3)',
-                backgroundColor: 'rgba(59, 130, 246, 0.08)',
-                border: '1px solid rgba(59, 130, 246, 0.25)',
-                borderRadius: 'var(--radius-sm)',
-              }}
-            >
-              <Radio size={14} color="var(--accent-primary)" style={{ flexShrink: 0, marginTop: '2px' }} />
-              <div style={{ fontSize: '11px', color: 'var(--text-secondary)', lineHeight: 1.4 }}>
-                <strong style={{ color: 'var(--accent-primary)' }}>Live Video Preview Disabled:</strong> Live HLS
-                matrix playback and multi-camera feeds are scheduled for delivery in <strong>Phase 4C</strong>.
-              </div>
             </div>
           </div>
         </section>
@@ -554,11 +525,9 @@ export function CameraDetailDrawer({ camera, onClose, onCenterOnMap }: CameraDet
         {/* Section 4: Telemetry & Equipment Health */}
         <section
           aria-labelledby="section-health-title"
+          className="netrava-card"
           style={{
-            backgroundColor: 'var(--bg-surface)',
-            border: '1px solid var(--border-subtle)',
-            borderRadius: 'var(--radius-md)',
-            padding: 'var(--space-4)',
+            padding: '14px 16px',
           }}
         >
           <div
@@ -566,38 +535,39 @@ export function CameraDetailDrawer({ camera, onClose, onCenterOnMap }: CameraDet
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: 'var(--space-2)',
-              fontSize: 'var(--text-xs)',
+              gap: '8px',
+              fontSize: '11px',
               fontWeight: 700,
               textTransform: 'uppercase',
-              letterSpacing: '0.05em',
+              letterSpacing: '0.06em',
               color: 'var(--text-muted)',
-              marginBottom: 'var(--space-3)',
+              marginBottom: '12px',
             }}
           >
-            <Activity size={14} color="var(--accent-primary)" />
+            <Activity size={14} color="var(--accent-blue)" />
             <span>Equipment Health & Telemetry</span>
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-2)' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
               <div
                 style={{
-                  padding: 'var(--space-2) var(--space-3)',
-                  backgroundColor: 'var(--bg-card)',
-                  borderRadius: 'var(--radius-sm)',
-                  border: '1px solid var(--border-default)',
+                  padding: '8px 12px',
+                  backgroundColor: 'rgba(5, 8, 15, 0.6)',
+                  borderRadius: '6px',
+                  border: '1px solid var(--border-subtle)',
                 }}
               >
-                <div style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+                <div style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                   Measured FPS
                 </div>
                 <div
                   style={{
-                    fontSize: 'var(--text-md)',
+                    fontSize: '15px',
                     fontWeight: 700,
                     fontFamily: 'var(--font-mono)',
                     color: camera.health?.fps_actual ? 'var(--text-primary)' : 'var(--text-muted)',
+                    marginTop: '2px',
                   }}
                 >
                   {camera.health?.fps_actual !== null && camera.health?.fps_actual !== undefined
@@ -608,18 +578,18 @@ export function CameraDetailDrawer({ camera, onClose, onCenterOnMap }: CameraDet
 
               <div
                 style={{
-                  padding: 'var(--space-2) var(--space-3)',
-                  backgroundColor: 'var(--bg-card)',
-                  borderRadius: 'var(--radius-sm)',
-                  border: '1px solid var(--border-default)',
+                  padding: '8px 12px',
+                  backgroundColor: 'rgba(5, 8, 15, 0.6)',
+                  borderRadius: '6px',
+                  border: '1px solid var(--border-subtle)',
                 }}
               >
-                <div style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+                <div style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                   Packet Loss
                 </div>
                 <div
                   style={{
-                    fontSize: 'var(--text-md)',
+                    fontSize: '15px',
                     fontWeight: 700,
                     fontFamily: 'var(--font-mono)',
                     color:
@@ -628,6 +598,7 @@ export function CameraDetailDrawer({ camera, onClose, onCenterOnMap }: CameraDet
                           ? 'var(--status-critical)'
                           : 'var(--status-success)'
                         : 'var(--text-muted)',
+                    marginTop: '2px',
                   }}
                 >
                   {camera.health?.packet_loss !== null && camera.health?.packet_loss !== undefined
@@ -638,31 +609,12 @@ export function CameraDetailDrawer({ camera, onClose, onCenterOnMap }: CameraDet
             </div>
 
             <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-1)', marginBottom: '2px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '2px' }}>
                 <Clock size={12} color="var(--text-muted)" />
                 <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Last Registered Heartbeat</span>
               </div>
-              <div style={{ fontSize: 'var(--text-xs)', fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)' }}>
+              <div style={{ fontSize: '11px', fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)' }}>
                 {formatTimestamp(camera.health?.last_heartbeat)}
-              </div>
-            </div>
-
-            {/* Architecture Governance Note */}
-            <div
-              style={{
-                display: 'flex',
-                gap: 'var(--space-2)',
-                alignItems: 'flex-start',
-                padding: 'var(--space-3)',
-                backgroundColor: 'var(--bg-card)',
-                border: '1px solid var(--border-default)',
-                borderRadius: 'var(--radius-sm)',
-              }}
-            >
-              <AlertTriangle size={13} color="var(--status-warning)" style={{ flexShrink: 0, marginTop: '2px' }} />
-              <div style={{ fontSize: '10px', color: 'var(--text-muted)', lineHeight: 1.4 }}>
-                <strong>Source-of-Truth Note:</strong> Health metrics represent registered equipment telemetry and
-                heartbeat updates in PostgreSQL. They do not constitute proof that an active RTSP TCP socket is currently open.
               </div>
             </div>
           </div>
@@ -672,34 +624,30 @@ export function CameraDetailDrawer({ camera, onClose, onCenterOnMap }: CameraDet
       {/* Drawer Footer */}
       <div
         style={{
-          padding: 'var(--space-3) var(--space-5)',
+          padding: '14px 20px',
           borderTop: '1px solid var(--border-subtle)',
-          backgroundColor: 'var(--bg-secondary)',
+          backgroundColor: 'rgba(5, 8, 15, 0.7)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
         }}
       >
         <span style={{ fontSize: '10px', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
-          GUJ-CCTV-P4B
+          GUJ-CCTV-NETRAVA
         </span>
 
-        <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
+        <div style={{ display: 'flex', gap: '8px' }}>
           <Link
             href={`/live?camera=${encodeURIComponent(camera.name)}`}
             data-testid="drawer-watch-live-btn"
+            className="btn-primary"
             style={{
               display: 'flex',
               alignItems: 'center',
               gap: '6px',
-              padding: 'var(--space-2) var(--space-4)',
-              backgroundColor: 'var(--accent-primary)',
-              borderRadius: 'var(--radius-sm)',
-              color: '#ffffff',
-              fontSize: 'var(--text-xs)',
-              fontWeight: 600,
+              padding: '7px 14px',
+              fontSize: '11px',
               textDecoration: 'none',
-              cursor: 'pointer',
             }}
           >
             <Video size={13} />
@@ -707,15 +655,10 @@ export function CameraDetailDrawer({ camera, onClose, onCenterOnMap }: CameraDet
           </Link>
           <button
             onClick={onClose}
+            className="btn-secondary"
             style={{
-              padding: 'var(--space-2) var(--space-4)',
-              backgroundColor: 'var(--bg-surface)',
-              border: '1px solid var(--border-default)',
-              borderRadius: 'var(--radius-sm)',
-              color: 'var(--text-primary)',
-              fontSize: 'var(--text-xs)',
-              fontWeight: 600,
-              cursor: 'pointer',
+              padding: '7px 14px',
+              fontSize: '11px',
             }}
           >
             Close Panel

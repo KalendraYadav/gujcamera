@@ -8,41 +8,82 @@ import {
   MapPin,
   Car,
   BellRing,
-  CheckCircle2,
-  Cpu,
-  Layers,
   Activity,
   ArrowRight,
+  ShieldAlert,
+  Server,
+  Cpu,
+  Database,
+  Radio,
+  Clock,
+  TrendingUp,
+  AlertTriangle,
+  Layers,
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth/context';
 import { AppShell } from '@/components/layout/AppShell';
 import { formatRoleName, hasRoleAccess } from '@/lib/auth/rbac';
 import { PoliceRole } from '@/types/auth';
 import { StatusBadge } from '@/components/ui/StatusBadge';
-import { ShieldAlert } from 'lucide-react';
+import { PoliceCrest } from '@/components/auth/PoliceCrest';
 
 export default function CommandCenterPage() {
   const { user } = useAuth();
   const isAuditor = user?.role === 'SYSTEM_AUDITOR';
 
+  const KPI_METRICS = [
+    {
+      id: 'streams',
+      label: 'Live Streams',
+      value: '48 / 52',
+      trend: '92.3% Online',
+      trendVariant: 'success' as const,
+      icon: <Video size={18} color="#34D399" />,
+    },
+    {
+      id: 'anpr',
+      label: 'ANPR Detections',
+      value: '14,892',
+      trend: '+12.4% (24h)',
+      trendVariant: 'info' as const,
+      icon: <Car size={18} color="#60A5FA" />,
+    },
+    {
+      id: 'hits',
+      label: 'Watchlist Hits',
+      value: '3',
+      trend: 'Pending Triage',
+      trendVariant: 'critical' as const,
+      icon: <BellRing size={18} color="#F87171" />,
+    },
+    {
+      id: 'latency',
+      label: 'Gateway Latency',
+      value: '42 ms',
+      trend: 'Optimal',
+      trendVariant: 'success' as const,
+      icon: <Activity size={18} color="#34D399" />,
+    },
+  ];
+
   const QUICK_LAUNCH_ITEMS = [
     {
-      id: 'audit',
-      label: 'System Audit Trail',
-      href: '/audit',
-      description: 'Immutable legal audit logs tracking officer actions, alert status transitions, and evidence access.',
-      icon: <ShieldAlert size={20} color="var(--accent-primary)" />,
-      badge: 'Statutory',
-      badgeVariant: 'info' as const,
-      allowedRoles: ['SUPER_ADMIN', 'SYSTEM_AUDITOR'] as PoliceRole[],
+      id: 'live',
+      label: 'Live Video Monitoring',
+      href: '/live',
+      description: 'Multi-grid surveillance streams with live AI tracking.',
+      icon: <Video size={18} color="#60A5FA" />,
+      badge: 'Operational',
+      badgeVariant: 'success' as const,
+      allowedRoles: ['SUPER_ADMIN', 'DEPARTMENT_ADMIN', 'INVESTIGATOR', 'OPERATOR'] as PoliceRole[],
     },
     {
       id: 'map',
       label: 'GIS Camera Command Map',
       href: '/map',
-      description: 'Interactive MapLibre GL map with PostGIS spatial viewport bounding-box queries.',
-      icon: <MapPin size={20} color="var(--status-info)" />,
-      badge: isAuditor ? 'Read-Only' : 'Live',
+      description: 'Live camera locations, spatial clusters, and feed access.',
+      icon: <MapPin size={18} color="#60A5FA" />,
+      badge: isAuditor ? 'Read-Only' : 'Active',
       badgeVariant: 'success' as const,
       allowedRoles: ['SUPER_ADMIN', 'DEPARTMENT_ADMIN', 'INVESTIGATOR', 'OPERATOR', 'SYSTEM_AUDITOR', 'VIEWER'] as PoliceRole[],
     },
@@ -50,41 +91,41 @@ export default function CommandCenterPage() {
       id: 'cameras',
       label: 'CCTV Camera Registry',
       href: '/cameras',
-      description: 'Equipment inventory, operational telemetry status, and hardware stream profiles.',
-      icon: <Activity size={20} color="var(--accent-primary)" />,
-      badge: isAuditor ? 'Inventory' : 'Live',
+      description: 'Camera inventory, health telemetry, and stream status.',
+      icon: <Activity size={18} color="#34D399" />,
+      badge: isAuditor ? 'Inventory' : 'Online',
       badgeVariant: 'success' as const,
       allowedRoles: ['SUPER_ADMIN', 'DEPARTMENT_ADMIN', 'INVESTIGATOR', 'OPERATOR', 'SYSTEM_AUDITOR', 'VIEWER'] as PoliceRole[],
     },
     {
-      id: 'live',
-      label: 'Live Video Monitoring',
-      href: '/live',
-      description: 'Deterministic CCTV HLS streams powered by MediaMTX.',
-      icon: <Video size={20} color="var(--accent-primary)" />,
+      id: 'alerts',
+      label: 'Real-Time Alert Feed',
+      href: '/alerts',
+      description: 'Active alerts, speed violations, and incident triage.',
+      icon: <BellRing size={18} color="#F87171" />,
       badge: 'Live',
-      badgeVariant: 'success' as const,
+      badgeVariant: 'critical' as const,
       allowedRoles: ['SUPER_ADMIN', 'DEPARTMENT_ADMIN', 'INVESTIGATOR', 'OPERATOR'] as PoliceRole[],
     },
     {
       id: 'vehicles',
       label: 'Vehicle Investigation',
       href: '/vehicles',
-      description: 'Plate-based ANPR search, cross-camera sightings, and MapLibre GIS route reconstruction.',
-      icon: <Car size={20} color="var(--accent-primary)" />,
-      badge: 'Live',
-      badgeVariant: 'success' as const,
+      description: 'Plate tracking, sightings timeline, and route journeys.',
+      icon: <Car size={18} color="#60A5FA" />,
+      badge: 'ANPR Active',
+      badgeVariant: 'info' as const,
       allowedRoles: ['SUPER_ADMIN', 'DEPARTMENT_ADMIN', 'INVESTIGATOR'] as PoliceRole[],
     },
     {
-      id: 'alerts',
-      label: 'Real-Time Alert Feed',
-      href: '/alerts',
-      description: 'WebSocket alert engine with 5-second polling fallback.',
-      icon: <BellRing size={20} color="var(--status-critical)" />,
-      badge: 'Live',
-      badgeVariant: 'success' as const,
-      allowedRoles: ['SUPER_ADMIN', 'DEPARTMENT_ADMIN', 'INVESTIGATOR', 'OPERATOR'] as PoliceRole[],
+      id: 'audit',
+      label: 'System Audit Trail',
+      href: '/audit',
+      description: 'Immutable ledger of officer actions, triage, and evidence access.',
+      icon: <ShieldAlert size={18} color="#FBBF24" />,
+      badge: 'Statutory',
+      badgeVariant: 'warning' as const,
+      allowedRoles: ['SUPER_ADMIN', 'SYSTEM_AUDITOR'] as PoliceRole[],
     },
   ];
 
@@ -94,221 +135,306 @@ export default function CommandCenterPage() {
 
   return (
     <AppShell>
-      <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-        {/* Welcome & Tactical Identity Banner */}
+      <div style={{ maxWidth: '1280px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 'var(--space-6)' }}>
+        
+        {/* Command Center Hero Card */}
         <div
+          className="netrava-card"
           style={{
-            padding: 'var(--space-6)',
-            backgroundColor: 'var(--bg-primary)',
-            border: '1px solid var(--border-default)',
-            borderRadius: 'var(--radius-lg)',
-            boxShadow: 'var(--shadow-card)',
-            marginBottom: 'var(--space-6)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            flexWrap: 'wrap',
-            gap: 'var(--space-4)',
+            padding: '20px 24px',
+            position: 'relative',
           }}
         >
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', marginBottom: 'var(--space-2)' }}>
-              <h1 style={{ fontSize: 'var(--text-2xl)', fontWeight: 700, color: 'var(--text-primary)' }}>
-                Command Center
-              </h1>
-              {isAuditor ? (
-                <StatusBadge label="Read-Only Oversight" variant="info" pulse icon={<Shield size={12} />} />
-              ) : (
-                <StatusBadge label="Operational" variant="success" pulse icon={<Activity size={12} />} />
-              )}
-            </div>
-            <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)' }}>
-              {isAuditor
-                ? 'Independent Statutory Compliance & Security Review — Read-Only Access'
-                : 'Unified CCTV Intelligence Platform — State Control Room, Gandhinagar'}
-            </p>
-          </div>
+          {/* Top highlight line */}
+          <div
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              height: '2px',
+              background: 'var(--highlight-gradient)',
+            }}
+          />
 
           <div
             style={{
-              padding: 'var(--space-3) var(--space-4)',
-              backgroundColor: 'var(--bg-surface)',
-              border: '1px solid var(--border-subtle)',
-              borderRadius: 'var(--radius-md)',
               display: 'flex',
               alignItems: 'center',
-              gap: 'var(--space-3)',
-            }}
-          >
-            <Shield size={22} color="var(--accent-primary)" />
-            <div>
-              <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>
-                {isAuditor ? 'Statutory Oversight Officer' : 'Authenticated Officer'}
-              </div>
-              <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--text-primary)' }}>
-                {user?.email}
-              </div>
-              <div style={{ fontSize: '11px', color: 'var(--accent-primary)', fontWeight: 500 }}>
-                {formatRoleName(user?.role)} • {isAuditor ? 'Read-Only Oversight' : (user?.department_name || 'Gujarat Police')}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Subsystem Pipeline Readiness Grid */}
-        <div style={{ marginBottom: 'var(--space-6)' }}>
-          <h2
-            style={{
-              fontSize: 'var(--text-xs)',
-              fontWeight: 700,
-              textTransform: 'uppercase',
-              letterSpacing: '0.08em',
-              color: 'var(--text-muted)',
-              marginBottom: 'var(--space-3)',
-            }}
-          >
-            Subsystem Infrastructure & Intelligence Pipeline Status
-          </h2>
-
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
               gap: 'var(--space-4)',
             }}
           >
-            <div
-              style={{
-                padding: 'var(--space-4)',
-                backgroundColor: 'var(--bg-card)',
-                border: '1px solid var(--border-subtle)',
-                borderRadius: 'var(--radius-md)',
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'var(--space-2)' }}>
-                <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>Vision Engine</span>
-                <StatusBadge label="11.7 FPS CPU" variant="success" />
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+              <PoliceCrest size={40} />
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                  <h1
+                    style={{
+                      fontSize: 'var(--text-xl)',
+                      fontWeight: 700,
+                      letterSpacing: '0.02em',
+                      color: '#FFFFFF',
+                      lineHeight: 1.2,
+                      margin: 0,
+                    }}
+                  >
+                    Command Center
+                  </h1>
+                  {isAuditor ? (
+                    <StatusBadge label="Read-Only Oversight" variant="info" pulse icon={<Shield size={12} />} />
+                  ) : (
+                    <StatusBadge label="Operational" variant="success" pulse icon={<Activity size={12} />} />
+                  )}
+                </div>
+                <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)', margin: 0, lineHeight: 1.4 }}>
+                  {isAuditor
+                    ? 'Independent Statutory Compliance & Security Review — Read-Only Access'
+                    : 'Unified CCTV Intelligence Platform — State Control Room, Gandhinagar'}
+                </p>
               </div>
-              <div style={{ fontSize: 'var(--text-md)', fontWeight: 700, color: 'var(--text-primary)', marginBottom: 'var(--space-1)' }}>
-                YOLOv8n + OCR Consensus
-              </div>
-              <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)' }}>
-                Multi-frame consensus (5–8 frames), MinIO S3 evidence store with exact-byte SHA-256 integrity verification.
-              </p>
             </div>
 
+            {/* Officer Profile Badge */}
             <div
               style={{
-                padding: 'var(--space-4)',
-                backgroundColor: 'var(--bg-card)',
-                border: '1px solid var(--border-subtle)',
-                borderRadius: 'var(--radius-md)',
+                padding: '8px 14px',
+                backgroundColor: 'rgba(11, 16, 32, 0.75)',
+                border: '1px solid var(--border-medium)',
+                borderRadius: 'var(--radius-sm)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'var(--space-2)' }}>
-                <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>Event Ingestion</span>
-                <StatusBadge label="Redis Streams" variant="info" />
+              <div
+                style={{
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: 'var(--radius-xs)',
+                  backgroundColor: 'rgba(59, 130, 246, 0.12)',
+                  border: '1px solid rgba(59, 130, 246, 0.35)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#60A5FA',
+                  flexShrink: 0,
+                }}
+              >
+                <Shield size={16} />
               </div>
-              <div style={{ fontSize: 'var(--text-md)', fontWeight: 700, color: 'var(--text-primary)', marginBottom: 'var(--space-1)' }}>
-                Event Boundary v1.0
+              <div>
+                <div style={{ fontSize: '11px', color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.04em', fontFamily: 'var(--font-mono)', fontWeight: 600 }}>
+                  {isAuditor ? 'Statutory Auditor' : 'Authenticated Officer'}
+                </div>
+                <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--text-primary)' }}>
+                  {user?.email}
+                </div>
+                <div style={{ fontSize: '12px', color: '#60A5FA', fontWeight: 500, marginTop: '1px', fontFamily: 'var(--font-mono)' }}>
+                  {formatRoleName(user?.role)} • {user?.department_name || 'Gujarat Police'}
+                </div>
               </div>
-              <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)' }}>
-                Consumer groups, atomic PostgreSQL $transaction persistence, and duplicate delivery idempotency.
-              </p>
-            </div>
-
-            <div
-              style={{
-                padding: 'var(--space-4)',
-                backgroundColor: 'var(--bg-card)',
-                border: '1px solid var(--border-subtle)',
-                borderRadius: 'var(--radius-md)',
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'var(--space-2)' }}>
-                <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>Spatial DB</span>
-                <StatusBadge label="PostGIS 3.4" variant="success" />
-              </div>
-              <div style={{ fontSize: 'var(--text-md)', fontWeight: 700, color: 'var(--text-primary)', marginBottom: 'var(--space-1)' }}>
-                Camera Registry & GIS
-              </div>
-              <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)' }}>
-                Spatial bounding box queries (`ST_DWithin`, `ST_MakeEnvelope`), route velocity reconstruction.
-              </p>
-            </div>
-
-            <div
-              style={{
-                padding: 'var(--space-4)',
-                backgroundColor: 'var(--bg-card)',
-                border: '1px solid var(--border-subtle)',
-                borderRadius: 'var(--radius-md)',
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'var(--space-2)' }}>
-                <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>Frontend UI</span>
-                <StatusBadge label="Active" variant="warning" />
-              </div>
-              <div style={{ fontSize: 'var(--text-md)', fontWeight: 700, color: 'var(--text-primary)', marginBottom: 'var(--space-1)' }}>
-                Base Design System & Shell
-              </div>
-              <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)' }}>
-                Dark-first control-room aesthetic, RBAC-aware navigation, in-memory session security, and SIMULATED DATA banners.
-              </p>
             </div>
           </div>
         </div>
 
-        {/* Operations / Oversight Navigation Quick Launch */}
+        {/* Top-Level KPI Summary (DB-01 / DB-02) */}
         <div>
-          <h2
+          <div
             style={{
-              fontSize: 'var(--text-xs)',
-              fontWeight: 700,
-              textTransform: 'uppercase',
-              letterSpacing: '0.08em',
-              color: 'var(--text-muted)',
-              marginBottom: 'var(--space-3)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              marginBottom: '10px',
             }}
           >
-            {isAuditor ? 'Authorized Oversight Modules' : 'Tactical Operations Navigation'}
-          </h2>
+            <div className="netrava-card-subtitle">
+              Operational Telemetry
+            </div>
+            <span style={{ fontSize: '11px', color: 'var(--text-dim)', fontFamily: 'var(--font-mono)', letterSpacing: '0.04em' }}>
+              LIVE FEED
+            </span>
+          </div>
 
           <div
             style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
-              gap: 'var(--space-4)',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+              gap: '12px',
+            }}
+          >
+            {KPI_METRICS.map((kpi) => (
+              <div
+                key={kpi.id}
+                className="netrava-card"
+                style={{
+                  padding: '16px 18px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'space-between',
+                  minHeight: '88px',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)', fontWeight: 500 }}>
+                    {kpi.label}
+                  </span>
+                  <span style={{ display: 'flex', alignItems: 'center' }}>
+                    {kpi.icon}
+                  </span>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginTop: '6px' }}>
+                  <span
+                    style={{
+                      fontSize: 'var(--text-2xl)',
+                      fontWeight: 700,
+                      color: 'var(--text-primary)',
+                      fontVariantNumeric: 'tabular-nums',
+                      lineHeight: 1.1,
+                      letterSpacing: '-0.01em',
+                    }}
+                  >
+                    {kpi.value}
+                  </span>
+                  <StatusBadge
+                    label={kpi.trend}
+                    variant={kpi.trendVariant}
+                    size="sm"
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Tactical Operations Navigation Quick Launch */}
+        <div>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              marginBottom: '10px',
+            }}
+          >
+            <div className="netrava-card-subtitle">
+              {isAuditor ? 'Authorized Oversight Modules' : 'Tactical Operations Navigation'}
+            </div>
+            <span style={{ fontSize: '12px', color: 'var(--text-dim)', fontFamily: 'var(--font-mono)', letterSpacing: '0.04em' }}>
+              AUTHORIZED ACCESS
+            </span>
+          </div>
+
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+              gap: '12px',
             }}
           >
             {authorizedQuickLaunch.map((item) => (
               <Link
                 key={item.id}
                 href={item.href}
+                className="netrava-card"
                 style={{
-                  display: 'block',
-                  padding: 'var(--space-4)',
-                  backgroundColor: 'var(--bg-card)',
-                  border: '1px solid var(--accent-border)',
-                  borderRadius: 'var(--radius-md)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  padding: '16px 18px',
                   textDecoration: 'none',
                   transition: 'all var(--transition-fast)',
                 }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = 'rgba(215, 25, 63, 0.40)';
+                  e.currentTarget.style.transform = 'translateY(-1px)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = 'var(--border-default)';
+                  e.currentTarget.style.transform = 'none';
+                }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'var(--space-2)' }}>
-                  {item.icon}
-                  <StatusBadge label={item.badge} variant={item.badgeVariant} />
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+                  <div
+                    style={{
+                      width: '32px',
+                      height: '32px',
+                      borderRadius: 'var(--radius-xs)',
+                      backgroundColor: 'rgba(11, 16, 32, 0.85)',
+                      border: '1px solid var(--border-medium)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    {item.icon}
+                  </div>
+                  <StatusBadge label={item.badge} variant={item.badgeVariant} size="sm" />
                 </div>
-                <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--text-primary)', marginBottom: 'var(--space-1)' }}>
-                  {item.label}
+
+                <div
+                  style={{
+                    fontSize: 'var(--text-base)',
+                    fontWeight: 600,
+                    color: '#FFFFFF',
+                    marginBottom: '4px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                  }}
+                >
+                  <span>{item.label}</span>
+                  <ArrowRight size={14} color="var(--text-dim)" />
                 </div>
-                <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)' }}>
+
+                <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)', lineHeight: 1.43, margin: 0 }}>
                   {item.description}
                 </p>
               </Link>
             ))}
           </div>
         </div>
+
+        {/* Subsystem Health Bar */}
+        <div
+          className="netrava-card"
+          style={{
+            padding: '12px 18px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '12px',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Layers size={15} color="var(--text-dim)" />
+            <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)', fontWeight: 600, letterSpacing: '0.04em' }}>
+              SUBSYSTEMS:
+            </span>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)' }}>Vision:</span>
+              <StatusBadge label="11.7 FPS" variant="success" size="sm" />
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)' }}>Events:</span>
+              <StatusBadge label="Operational" variant="info" size="sm" />
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)' }}>Spatial GIS:</span>
+              <StatusBadge label="Online" variant="success" size="sm" />
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)' }}>Video Gateway:</span>
+              <StatusBadge label="Live" variant="info" size="sm" />
+            </div>
+          </div>
+        </div>
+
       </div>
     </AppShell>
   );

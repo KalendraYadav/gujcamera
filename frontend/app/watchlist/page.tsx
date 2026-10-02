@@ -26,7 +26,6 @@ import {
 } from 'lucide-react';
 import { AppShell } from '@/components/layout/AppShell';
 import { StatusBadge } from '@/components/ui/StatusBadge';
-import { SimulatedDataBadge } from '@/components/ui/SimulatedDataBadge';
 import { watchlistsApi } from '@/lib/api/watchlists';
 import {
   Watchlist,
@@ -176,48 +175,58 @@ export default function WatchlistPage() {
 
   return (
     <AppShell>
-      <div style={{ maxWidth: '1280px', margin: '0 auto' }}>
+      <div style={{ maxWidth: '1280px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
         {/* Page Header */}
         <div
+          className="netrava-card"
           style={{
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
             flexWrap: 'wrap',
-            gap: 'var(--space-4)',
-            marginBottom: 'var(--space-6)',
+            gap: 'var(--space-3)',
+            padding: '14px 20px',
           }}
         >
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', marginBottom: 'var(--space-1)' }}>
-              <h1 style={{ fontSize: 'var(--text-2xl)', fontWeight: 700, color: 'var(--text-primary)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+              <div
+                style={{
+                  width: '28px',
+                  height: '28px',
+                  borderRadius: 'var(--radius-xs)',
+                  backgroundColor: 'rgba(215, 25, 63, 0.12)',
+                  border: '1px solid rgba(215, 25, 63, 0.3)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <ListFilter size={15} color="#F87171" />
+              </div>
+              <h1 style={{ fontSize: 'var(--text-lg)', fontWeight: 600, color: 'var(--text-primary)', letterSpacing: '0.01em', margin: 0 }}>
                 Watchlist Registry
               </h1>
-              <StatusBadge label="ACTIVE MATCHING" variant="success" />
-              <SimulatedDataBadge compact />
+              <StatusBadge label="Active Matching" status="ONLINE" size="sm" />
             </div>
-            <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)' }}>
-              Target lists for flagged vehicles of interest, stolen cars, and wanted suspect plates.
+            <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)', margin: 0 }}>
+              Target lists for flagged, stolen, and wanted suspect plates.
             </p>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <button
               onClick={loadWatchlists}
               id="refresh-watchlists-btn"
               title="Refresh watchlists"
               disabled={isLoadingWatchlists}
+              className="btn-secondary"
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: 'var(--space-2)',
-                padding: 'var(--space-2) var(--space-3)',
-                backgroundColor: 'var(--bg-surface)',
-                border: '1px solid var(--border-default)',
-                borderRadius: 'var(--radius-md)',
-                color: 'var(--text-secondary)',
-                cursor: 'pointer',
-                fontSize: 'var(--text-xs)',
+                gap: '6px',
+                padding: '6px 14px',
+                fontSize: 'var(--text-sm)',
               }}
             >
               <RefreshCw size={13} className={isLoadingWatchlists ? 'animate-spin' : ''} />
@@ -227,18 +236,13 @@ export default function WatchlistPage() {
             {canManageWatchlist && (
               <button
                 onClick={() => setShowAddWatchlistModal(true)}
+                className="btn-primary"
                 style={{
                   display: 'flex',
                   alignItems: 'center',
-                  gap: 'var(--space-2)',
-                  padding: 'var(--space-2) var(--space-4)',
-                  backgroundColor: 'var(--accent-primary)',
-                  color: '#fff',
-                  border: 'none',
-                  borderRadius: 'var(--radius-md)',
-                  fontSize: 'var(--text-xs)',
-                  fontWeight: 600,
-                  cursor: 'pointer',
+                  gap: '6px',
+                  padding: '6px 14px',
+                  fontSize: 'var(--text-sm)',
                 }}
               >
                 <FolderPlus size={14} />
@@ -252,13 +256,12 @@ export default function WatchlistPage() {
         {error && (
           <div
             style={{
-              padding: 'var(--space-3) var(--space-4)',
-              backgroundColor: 'rgba(239, 68, 68, 0.1)',
-              border: '1px solid var(--status-danger)',
-              borderRadius: 'var(--radius-md)',
-              color: 'var(--status-danger)',
-              fontSize: 'var(--text-sm)',
-              marginBottom: 'var(--space-6)',
+              padding: '12px 16px',
+              backgroundColor: 'rgba(215, 25, 63, 0.1)',
+              border: '1px solid rgba(215, 25, 63, 0.3)',
+              borderRadius: '6px',
+              color: 'var(--accent-primary)',
+              fontSize: '12px',
             }}
           >
             {error}
@@ -270,40 +273,42 @@ export default function WatchlistPage() {
           style={{
             display: 'grid',
             gridTemplateColumns: 'minmax(280px, 340px) 1fr',
-            gap: 'var(--space-6)',
+            gap: 'var(--space-4)',
             alignItems: 'start',
           }}
         >
           {/* Left Column: Watchlist Catalog */}
           <div
+            className="netrava-card"
             style={{
-              backgroundColor: 'var(--bg-surface)',
-              border: '1px solid var(--border-default)',
-              borderRadius: 'var(--radius-lg)',
-              padding: 'var(--space-4)',
+              padding: '16px',
             }}
           >
-            <div style={{ marginBottom: 'var(--space-3)' }}>
+            <div style={{ position: 'relative', marginBottom: '12px' }}>
+              <Search
+                size={13}
+                color="var(--text-muted)"
+                style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)' }}
+              />
               <input
                 type="text"
                 id="search-watchlists-input"
+                className="netrava-input"
                 placeholder="Search watchlists..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 style={{
                   width: '100%',
-                  padding: 'var(--space-2) var(--space-3)',
-                  backgroundColor: 'var(--bg-primary)',
-                  border: '1px solid var(--border-default)',
-                  borderRadius: 'var(--radius-md)',
-                  color: 'var(--text-primary)',
-                  fontSize: 'var(--text-xs)',
+                  paddingLeft: '32px',
+                  paddingTop: '6px',
+                  paddingBottom: '6px',
+                  fontSize: '11px',
                 }}
               />
             </div>
 
             {isLoadingWatchlists ? (
-              <div style={{ padding: 'var(--space-6)', textAlign: 'center', color: 'var(--text-muted)', fontSize: 'var(--text-xs)' }}>
+              <div style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '12px' }}>
                 Loading watchlists...
               </div>
             ) : (() => {
@@ -318,14 +323,14 @@ export default function WatchlistPage() {
 
               if (filteredWatchlists.length === 0) {
                 return (
-                  <div style={{ padding: 'var(--space-6)', textAlign: 'center', color: 'var(--text-muted)', fontSize: 'var(--text-xs)' }}>
+                  <div style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '12px' }}>
                     No watchlists found.
                   </div>
                 );
               }
 
               return (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                   {filteredWatchlists.map((w) => {
                     const isSelected = selectedWatchlist?.id === w.id;
                     const plateCount = w.entries_count ?? w.entry_count ?? w.entries?.length ?? 0;
@@ -334,21 +339,23 @@ export default function WatchlistPage() {
                         key={w.id}
                         id={`watchlist-item-${w.id}`}
                         onClick={() => setSelectedWatchlist(w)}
+                        className={`netrava-nav-link ${isSelected ? 'active' : ''}`}
                         style={{
-                          padding: 'var(--space-3)',
-                          borderRadius: 'var(--radius-md)',
-                          border: isSelected ? '1px solid var(--accent-primary)' : '1px solid var(--border-subtle)',
-                          backgroundColor: isSelected ? 'var(--accent-glow)' : 'var(--bg-primary)',
-                          cursor: 'pointer',
-                          transition: 'all 0.15s ease',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'stretch',
+                          padding: '10px 12px',
+                          textAlign: 'left',
                         }}
                       >
-                        <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '4px' }}>
+                        <div style={{ fontSize: '13px', fontWeight: 700, color: 'inherit', marginBottom: '4px' }}>
                           {w.name}
                         </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: isSelected ? 'rgba(255,255,255,0.85)' : 'var(--text-muted)' }}>
                           <span>{w.owner}</span>
-                          <span id={`watchlist-count-${w.id}`}>{plateCount} {plateCount === 1 ? 'plate' : 'plates'}</span>
+                          <span id={`watchlist-count-${w.id}`} style={{ fontFamily: 'var(--font-mono)' }}>
+                            {plateCount} {plateCount === 1 ? 'plate' : 'plates'}
+                          </span>
                         </div>
                       </div>
                     );
@@ -360,11 +367,9 @@ export default function WatchlistPage() {
 
           {/* Right Column: Selected Watchlist Entries */}
           <div
+            className="netrava-card"
             style={{
-              backgroundColor: 'var(--bg-surface)',
-              border: '1px solid var(--border-default)',
-              borderRadius: 'var(--radius-lg)',
-              padding: 'var(--space-6)',
+              padding: '20px',
             }}
           >
             {selectedWatchlist ? (
@@ -376,36 +381,31 @@ export default function WatchlistPage() {
                     alignItems: 'center',
                     justifyContent: 'space-between',
                     flexWrap: 'wrap',
-                    gap: 'var(--space-3)',
-                    paddingBottom: 'var(--space-4)',
+                    gap: '12px',
+                    paddingBottom: '14px',
                     borderBottom: '1px solid var(--border-subtle)',
-                    marginBottom: 'var(--space-4)',
+                    marginBottom: '16px',
                   }}
                 >
                   <div>
-                    <h2 style={{ fontSize: 'var(--text-lg)', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '2px' }}>
+                    <h2 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '3px', margin: 0 }}>
                       {selectedWatchlist.name}
                     </h2>
-                    <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>
-                      Owner: {selectedWatchlist.owner} • Department: {selectedWatchlist.department?.name || 'Assigned Division'}
+                    <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>
+                      Owner: <span style={{ color: 'var(--text-secondary)' }}>{selectedWatchlist.owner}</span> • Department: <span style={{ color: 'var(--text-secondary)' }}>{selectedWatchlist.department?.name || 'Assigned Division'}</span>
                     </div>
                   </div>
 
                   {canAddEntry && (
                     <button
                       onClick={() => setShowAddEntryModal(true)}
+                      className="btn-primary"
                       style={{
                         display: 'flex',
                         alignItems: 'center',
-                        gap: 'var(--space-1)',
-                        padding: 'var(--space-2) var(--space-3)',
-                        backgroundColor: 'var(--accent-primary)',
-                        color: '#fff',
-                        border: 'none',
-                        borderRadius: 'var(--radius-md)',
-                        fontSize: 'var(--text-xs)',
-                        fontWeight: 600,
-                        cursor: 'pointer',
+                        gap: '6px',
+                        padding: '6px 14px',
+                        fontSize: '11px',
                       }}
                     >
                       <Plus size={14} />
@@ -416,24 +416,24 @@ export default function WatchlistPage() {
 
                 {/* Flagged Entries Table */}
                 {isLoadingEntries ? (
-                  <div style={{ padding: 'var(--space-8)', textAlign: 'center', color: 'var(--text-muted)', fontSize: 'var(--text-sm)' }}>
-                    Loading flagged plate entries...
+                  <div style={{ padding: '32px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '12px' }}>
+                    Loading flagged plates...
                   </div>
                 ) : entries.length === 0 ? (
-                  <div style={{ padding: 'var(--space-8)', textAlign: 'center', color: 'var(--text-muted)', fontSize: 'var(--text-sm)' }}>
-                    No vehicle plates flagged in this watchlist yet.
+                  <div style={{ padding: '32px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '12px' }}>
+                    No vehicle plates flagged in this watchlist.
                   </div>
                 ) : (
                   <div style={{ overflowX: 'auto' }}>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 'var(--text-xs)' }}>
+                    <table className="netrava-table" style={{ width: '100%', textAlign: 'left', fontSize: '12px' }}>
                       <thead>
-                        <tr style={{ borderBottom: '1px solid var(--border-default)', textAlign: 'left', color: 'var(--text-muted)' }}>
-                          <th style={{ padding: 'var(--space-2) var(--space-3)' }}>Plate</th>
-                          <th style={{ padding: 'var(--space-2) var(--space-3)' }}>Priority</th>
-                          <th style={{ padding: 'var(--space-2) var(--space-3)' }}>Category</th>
-                          <th style={{ padding: 'var(--space-2) var(--space-3)' }}>Reason / FIR</th>
-                          <th style={{ padding: 'var(--space-2) var(--space-3)' }}>Status</th>
-                          <th style={{ padding: 'var(--space-2) var(--space-3)', textAlign: 'right' }}>Action</th>
+                        <tr>
+                          <th>Plate</th>
+                          <th>Priority</th>
+                          <th>Category</th>
+                          <th>Reason / FIR</th>
+                          <th>Status</th>
+                          <th style={{ textAlign: 'right' }}>Action</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -443,12 +443,10 @@ export default function WatchlistPage() {
                             <tr
                               key={entry.id}
                               style={{
-                                borderBottom: '1px solid var(--border-subtle)',
-                                backgroundColor: entry.active ? 'transparent' : 'rgba(255,255,255,0.01)',
                                 opacity: entry.active ? 1 : 0.6,
                               }}
                             >
-                              <td style={{ padding: 'var(--space-3)', fontFamily: 'JetBrains Mono, monospace', fontWeight: 700 }}>
+                              <td style={{ fontFamily: 'var(--font-mono)', fontWeight: 700 }}>
                                 {hasSightings ? (
                                   <Link
                                     href={`/vehicles/${encodeURIComponent(entry.plate_normalized)}`}
@@ -457,7 +455,7 @@ export default function WatchlistPage() {
                                       display: 'inline-flex',
                                       alignItems: 'center',
                                       gap: '4px',
-                                      color: 'var(--accent-primary)',
+                                      color: 'var(--accent-blue)',
                                       textDecoration: 'none',
                                       fontWeight: 700,
                                     }}
@@ -470,27 +468,26 @@ export default function WatchlistPage() {
                                   <span style={{ color: 'var(--text-primary)' }}>{entry.plate_normalized}</span>
                                 )}
                               </td>
-                              <td style={{ padding: 'var(--space-3)' }}>
+                              <td>
                                 <StatusBadge
                                   label={entry.priority}
-                                  variant={
+                                  status={
                                     entry.priority === 'CRITICAL'
-                                      ? 'critical'
+                                      ? 'ERROR'
                                       : entry.priority === 'HIGH'
-                                      ? 'warning'
-                                      : entry.priority === 'MEDIUM'
-                                      ? 'info'
-                                      : 'neutral'
+                                      ? 'DEGRADED'
+                                      : 'ONLINE'
                                   }
+                                  size="sm"
                                 />
                               </td>
-                              <td style={{ padding: 'var(--space-3)', color: 'var(--text-secondary)' }}>
+                              <td style={{ color: 'var(--text-secondary)' }}>
                                 {entry.category}
                               </td>
-                              <td style={{ padding: 'var(--space-3)', color: 'var(--text-secondary)', maxWidth: '280px' }}>
+                              <td style={{ color: 'var(--text-secondary)', maxWidth: '280px' }}>
                                 {entry.reason}
                               </td>
-                              <td style={{ padding: 'var(--space-3)' }}>
+                              <td>
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
                                   <span style={{ color: entry.active ? 'var(--status-success)' : 'var(--text-muted)', fontWeight: 600 }}>
                                     {entry.active ? 'Active Target' : 'Inactive'}
@@ -498,7 +495,7 @@ export default function WatchlistPage() {
                                   <span
                                     style={{
                                       fontSize: '11px',
-                                      color: hasSightings ? 'var(--accent-primary)' : 'var(--text-muted)',
+                                      color: hasSightings ? 'var(--accent-blue)' : 'var(--text-muted)',
                                     }}
                                   >
                                     {hasSightings
@@ -507,24 +504,20 @@ export default function WatchlistPage() {
                                   </span>
                                 </div>
                               </td>
-                              <td style={{ padding: 'var(--space-3)', textAlign: 'right' }}>
-                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 'var(--space-2)' }}>
+                              <td style={{ textAlign: 'right' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '6px' }}>
                                   {hasSightings && (
                                     <Link
                                       href={`/vehicles/${encodeURIComponent(entry.plate_normalized)}`}
                                       id={`track-action-btn-${entry.id}`}
+                                      className="btn-secondary"
                                       style={{
                                         display: 'inline-flex',
                                         alignItems: 'center',
-                                        gap: '3px',
-                                        padding: '3px 8px',
-                                        backgroundColor: 'var(--accent-glow)',
-                                        border: '1px solid rgba(59, 130, 246, 0.3)',
-                                        borderRadius: 'var(--radius-sm)',
-                                        color: 'var(--accent-primary)',
-                                        textDecoration: 'none',
+                                        gap: '4px',
+                                        padding: '4px 8px',
                                         fontSize: '11px',
-                                        fontWeight: 600,
+                                        textDecoration: 'none',
                                       }}
                                       title={`Track ${entry.plate_normalized} in Vehicle Intelligence`}
                                     >
@@ -558,7 +551,7 @@ export default function WatchlistPage() {
                 )}
               </div>
             ) : (
-              <div style={{ padding: 'var(--space-12)', textAlign: 'center', color: 'var(--text-muted)' }}>
+              <div style={{ padding: '48px', textAlign: 'center', color: 'var(--text-muted)' }}>
                 Select a watchlist to inspect entries.
               </div>
             )}
@@ -571,90 +564,81 @@ export default function WatchlistPage() {
             style={{
               position: 'fixed',
               inset: 0,
-              backgroundColor: 'rgba(0,0,0,0.75)',
+              backgroundColor: 'rgba(5, 8, 15, 0.85)',
+              backdropFilter: 'blur(12px)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               zIndex: 1000,
-              padding: 'var(--space-4)',
+              padding: '16px',
             }}
           >
             <div
+              className="netrava-card"
               style={{
-                backgroundColor: 'var(--bg-surface)',
-                border: '1px solid var(--border-default)',
-                borderRadius: 'var(--radius-lg)',
                 maxWidth: '480px',
                 width: '100%',
-                padding: 'var(--space-6)',
+                padding: '24px',
+                boxShadow: 'var(--shadow-modal)',
               }}
             >
-              <h3 style={{ fontSize: 'var(--text-lg)', fontWeight: 600, color: 'var(--text-primary)', marginBottom: 'var(--space-4)' }}>
+              <h3 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '16px', margin: 0 }}>
                 Create New Police Watchlist
               </h3>
 
               {modalError && (
-                <div style={{ padding: 'var(--space-2)', backgroundColor: 'rgba(239,68,68,0.1)', color: 'var(--status-danger)', fontSize: 'var(--text-xs)', marginBottom: 'var(--space-3)', borderRadius: 'var(--radius-sm)' }}>
+                <div style={{ padding: '8px 12px', backgroundColor: 'rgba(215,25,63,0.1)', color: 'var(--accent-primary)', fontSize: '11px', marginBottom: '12px', borderRadius: '4px' }}>
                   {modalError}
                 </div>
               )}
 
-              <form onSubmit={handleCreateWatchlist}>
-                <div style={{ marginBottom: 'var(--space-3)' }}>
-                  <label style={{ display: 'block', fontSize: 'var(--text-xs)', color: 'var(--text-muted)', marginBottom: '4px' }}>
+              <form onSubmit={handleCreateWatchlist} style={{ marginTop: '12px' }}>
+                <div style={{ marginBottom: '12px' }}>
+                  <label style={{ display: 'block', fontSize: '11px', color: 'var(--text-muted)', marginBottom: '4px', fontWeight: 600 }}>
                     Watchlist Name *
                   </label>
                   <input
                     type="text"
                     required
+                    className="netrava-input"
                     value={newListName}
                     onChange={(e) => setNewListName(e.target.value)}
                     placeholder="e.g. Gandhinagar Inter-District Contraband Suspects"
                     style={{
                       width: '100%',
-                      padding: 'var(--space-2) var(--space-3)',
-                      backgroundColor: 'var(--bg-primary)',
-                      border: '1px solid var(--border-default)',
-                      borderRadius: 'var(--radius-md)',
-                      color: 'var(--text-primary)',
-                      fontSize: 'var(--text-sm)',
+                      padding: '8px 12px',
+                      fontSize: '12px',
                     }}
                   />
                 </div>
 
-                <div style={{ marginBottom: 'var(--space-4)' }}>
-                  <label style={{ display: 'block', fontSize: 'var(--text-xs)', color: 'var(--text-muted)', marginBottom: '4px' }}>
+                <div style={{ marginBottom: '16px' }}>
+                  <label style={{ display: 'block', fontSize: '11px', color: 'var(--text-muted)', marginBottom: '4px', fontWeight: 600 }}>
                     Owner Unit / Division *
                   </label>
                   <input
                     type="text"
                     required
+                    className="netrava-input"
                     value={newListOwner}
                     onChange={(e) => setNewListOwner(e.target.value)}
                     placeholder="e.g. Special Operations Group (SOG)"
                     style={{
                       width: '100%',
-                      padding: 'var(--space-2) var(--space-3)',
-                      backgroundColor: 'var(--bg-primary)',
-                      border: '1px solid var(--border-default)',
-                      borderRadius: 'var(--radius-md)',
-                      color: 'var(--text-primary)',
-                      fontSize: 'var(--text-sm)',
+                      padding: '8px 12px',
+                      fontSize: '12px',
                     }}
                   />
                 </div>
 
-                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 'var(--space-3)' }}>
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
                   <button
                     type="button"
                     onClick={() => setShowAddWatchlistModal(false)}
+                    className="btn-secondary"
                     style={{
-                      padding: 'var(--space-2) var(--space-4)',
-                      backgroundColor: 'transparent',
-                      color: 'var(--text-secondary)',
-                      border: '1px solid var(--border-default)',
-                      borderRadius: 'var(--radius-md)',
-                      cursor: 'pointer',
+                      padding: '7px 14px',
+                      fontSize: '12px',
                     }}
                   >
                     Cancel
@@ -662,14 +646,10 @@ export default function WatchlistPage() {
                   <button
                     type="submit"
                     disabled={isSubmitting}
+                    className="btn-primary"
                     style={{
-                      padding: 'var(--space-2) var(--space-4)',
-                      backgroundColor: 'var(--accent-primary)',
-                      color: '#fff',
-                      border: 'none',
-                      borderRadius: 'var(--radius-md)',
-                      fontWeight: 600,
-                      cursor: 'pointer',
+                      padding: '7px 16px',
+                      fontSize: '12px',
                     }}
                   >
                     {isSubmitting ? 'Creating...' : 'Create Watchlist'}
@@ -686,74 +666,68 @@ export default function WatchlistPage() {
             style={{
               position: 'fixed',
               inset: 0,
-              backgroundColor: 'rgba(0,0,0,0.75)',
+              backgroundColor: 'rgba(5, 8, 15, 0.85)',
+              backdropFilter: 'blur(12px)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               zIndex: 1000,
-              padding: 'var(--space-4)',
+              padding: '16px',
             }}
           >
             <div
+              className="netrava-card"
               style={{
-                backgroundColor: 'var(--bg-surface)',
-                border: '1px solid var(--border-default)',
-                borderRadius: 'var(--radius-lg)',
                 maxWidth: '480px',
                 width: '100%',
-                padding: 'var(--space-6)',
+                padding: '24px',
+                boxShadow: 'var(--shadow-modal)',
               }}
             >
-              <h3 style={{ fontSize: 'var(--text-lg)', fontWeight: 600, color: 'var(--text-primary)', marginBottom: 'var(--space-4)' }}>
+              <h3 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '16px', margin: 0 }}>
                 Flag License Plate in {selectedWatchlist?.name}
               </h3>
 
               {modalError && (
-                <div style={{ padding: 'var(--space-2)', backgroundColor: 'rgba(239,68,68,0.1)', color: 'var(--status-danger)', fontSize: 'var(--text-xs)', marginBottom: 'var(--space-3)', borderRadius: 'var(--radius-sm)' }}>
+                <div style={{ padding: '8px 12px', backgroundColor: 'rgba(215,25,63,0.1)', color: 'var(--accent-primary)', fontSize: '11px', marginBottom: '12px', borderRadius: '4px' }}>
                   {modalError}
                 </div>
               )}
 
-              <form onSubmit={handleAddEntry}>
-                <div style={{ marginBottom: 'var(--space-3)' }}>
-                  <label style={{ display: 'block', fontSize: 'var(--text-xs)', color: 'var(--text-muted)', marginBottom: '4px' }}>
+              <form onSubmit={handleAddEntry} style={{ marginTop: '12px' }}>
+                <div style={{ marginBottom: '12px' }}>
+                  <label style={{ display: 'block', fontSize: '11px', color: 'var(--text-muted)', marginBottom: '4px', fontWeight: 600 }}>
                     License Plate (Auto-Normalized) *
                   </label>
                   <input
                     type="text"
                     required
+                    className="netrava-input"
                     value={newPlate}
                     onChange={(e) => setNewPlate(e.target.value.toUpperCase())}
                     placeholder="e.g. GJ01AB1234"
                     style={{
                       width: '100%',
-                      padding: 'var(--space-2) var(--space-3)',
-                      backgroundColor: 'var(--bg-primary)',
-                      border: '1px solid var(--border-default)',
-                      borderRadius: 'var(--radius-md)',
-                      color: 'var(--text-primary)',
-                      fontSize: 'var(--text-sm)',
-                      fontFamily: 'JetBrains Mono, monospace',
+                      padding: '8px 12px',
+                      fontSize: '13px',
+                      fontFamily: 'var(--font-mono)',
                     }}
                   />
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-3)', marginBottom: 'var(--space-3)' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '12px' }}>
                   <div>
-                    <label style={{ display: 'block', fontSize: 'var(--text-xs)', color: 'var(--text-muted)', marginBottom: '4px' }}>
+                    <label style={{ display: 'block', fontSize: '11px', color: 'var(--text-muted)', marginBottom: '4px', fontWeight: 600 }}>
                       Category *
                     </label>
                     <select
                       value={newCategory}
+                      className="netrava-input"
                       onChange={(e) => setNewCategory(e.target.value)}
                       style={{
                         width: '100%',
-                        padding: 'var(--space-2) var(--space-3)',
-                        backgroundColor: 'var(--bg-primary)',
-                        border: '1px solid var(--border-default)',
-                        borderRadius: 'var(--radius-md)',
-                        color: 'var(--text-primary)',
-                        fontSize: 'var(--text-sm)',
+                        padding: '8px 10px',
+                        fontSize: '12px',
                       }}
                     >
                       <option value="STOLEN_VEHICLE">Stolen Vehicle</option>
@@ -765,20 +739,17 @@ export default function WatchlistPage() {
                   </div>
 
                   <div>
-                    <label style={{ display: 'block', fontSize: 'var(--text-xs)', color: 'var(--text-muted)', marginBottom: '4px' }}>
+                    <label style={{ display: 'block', fontSize: '11px', color: 'var(--text-muted)', marginBottom: '4px', fontWeight: 600 }}>
                       Alert Priority *
                     </label>
                     <select
                       value={newPriority}
+                      className="netrava-input"
                       onChange={(e) => setNewPriority(e.target.value as AlertSeverity)}
                       style={{
                         width: '100%',
-                        padding: 'var(--space-2) var(--space-3)',
-                        backgroundColor: 'var(--bg-primary)',
-                        border: '1px solid var(--border-default)',
-                        borderRadius: 'var(--radius-md)',
-                        color: 'var(--text-primary)',
-                        fontSize: 'var(--text-sm)',
+                        padding: '8px 10px',
+                        fontSize: '12px',
                       }}
                     >
                       <option value="CRITICAL">CRITICAL</option>
@@ -789,39 +760,34 @@ export default function WatchlistPage() {
                   </div>
                 </div>
 
-                <div style={{ marginBottom: 'var(--space-4)' }}>
-                  <label style={{ display: 'block', fontSize: 'var(--text-xs)', color: 'var(--text-muted)', marginBottom: '4px' }}>
+                <div style={{ marginBottom: '16px' }}>
+                  <label style={{ display: 'block', fontSize: '11px', color: 'var(--text-muted)', marginBottom: '4px', fontWeight: 600 }}>
                     Reason / FIR Reference *
                   </label>
                   <textarea
                     rows={2}
                     required
+                    className="netrava-input"
                     value={newReason}
                     onChange={(e) => setNewReason(e.target.value)}
                     placeholder="e.g. FIR #402/2026 registered at Bodakdev Police Station"
                     style={{
                       width: '100%',
-                      padding: 'var(--space-2) var(--space-3)',
-                      backgroundColor: 'var(--bg-primary)',
-                      border: '1px solid var(--border-default)',
-                      borderRadius: 'var(--radius-md)',
-                      color: 'var(--text-primary)',
-                      fontSize: 'var(--text-sm)',
+                      padding: '8px 12px',
+                      fontSize: '12px',
+                      resize: 'none',
                     }}
                   />
                 </div>
 
-                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 'var(--space-3)' }}>
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
                   <button
                     type="button"
                     onClick={() => setShowAddEntryModal(false)}
+                    className="btn-secondary"
                     style={{
-                      padding: 'var(--space-2) var(--space-4)',
-                      backgroundColor: 'transparent',
-                      color: 'var(--text-secondary)',
-                      border: '1px solid var(--border-default)',
-                      borderRadius: 'var(--radius-md)',
-                      cursor: 'pointer',
+                      padding: '7px 14px',
+                      fontSize: '12px',
                     }}
                   >
                     Cancel
@@ -829,14 +795,10 @@ export default function WatchlistPage() {
                   <button
                     type="submit"
                     disabled={isSubmitting}
+                    className="btn-primary"
                     style={{
-                      padding: 'var(--space-2) var(--space-4)',
-                      backgroundColor: 'var(--accent-primary)',
-                      color: '#fff',
-                      border: 'none',
-                      borderRadius: 'var(--radius-md)',
-                      fontWeight: 600,
-                      cursor: 'pointer',
+                      padding: '7px 16px',
+                      fontSize: '12px',
                     }}
                   >
                     {isSubmitting ? 'Flagging...' : 'Add Plate Entry'}
