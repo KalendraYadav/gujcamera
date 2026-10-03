@@ -523,27 +523,51 @@ export const LivePlayer: React.FC<LivePlayerProps> = ({
           zIndex: 10,
         }}
       >
-        {/* Left: Stream Status Pill */}
-        <div
-          data-testid="playback-status-badge"
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '6px',
-            padding: '4px 10px',
-            borderRadius: '4px',
-            backgroundColor: statusBadge.bg,
-            border: `1px solid ${statusBadge.border}`,
-            color: statusBadge.color,
-            fontSize: '11px',
-            fontWeight: 700,
-            fontFamily: 'var(--font-mono)',
-            backdropFilter: 'blur(4px)',
-            pointerEvents: 'auto',
-          }}
-        >
-          {statusBadge.icon}
-          <span>{statusBadge.text}</span>
+        {/* Left: Stream Status Pill & Source Provenance Badge */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div
+            data-testid="playback-status-badge"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '4px 10px',
+              borderRadius: '4px',
+              backgroundColor: statusBadge.bg,
+              border: `1px solid ${statusBadge.border}`,
+              color: statusBadge.color,
+              fontSize: '11px',
+              fontWeight: 700,
+              fontFamily: 'var(--font-mono)',
+              backdropFilter: 'blur(4px)',
+              pointerEvents: 'auto',
+            }}
+          >
+            {statusBadge.icon}
+            <span>{statusBadge.text}</span>
+          </div>
+
+          <div
+            data-testid="source-provenance-badge"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '4px',
+              padding: '4px 8px',
+              borderRadius: '4px',
+              backgroundColor: 'rgba(30, 41, 59, 0.85)',
+              border: '1px solid rgba(148, 163, 184, 0.3)',
+              color: '#94a3b8',
+              fontSize: '10px',
+              fontWeight: 600,
+              fontFamily: 'var(--font-mono)',
+              backdropFilter: 'blur(4px)',
+              letterSpacing: '0.04em',
+            }}
+          >
+            <span>SOURCE:</span>
+            <span style={{ color: '#e2e8f0' }}>{camera.source_type || 'RESEARCH_VIDEO'}</span>
+          </div>
         </div>
 
         {/* Right: Technical Specs Overlay */}

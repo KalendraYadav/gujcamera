@@ -17,12 +17,27 @@ hls: yes
 hlsAddress: :8888
 hlsAlwaysRemux: yes
 
-# Disable unneeded protocols to minimize resource consumption and attack surface
+# Protocols and Control API
 rtmp: no
 srt: no
 webrtc: no
-api: no
+api: yes
+apiAddress: :9997
 metrics: no
+
+# Authentication Configuration (Restricts control plane API port 9997)
+authMethod: internal
+authInternalUsers:
+  # Allow streaming and viewing of RTSP/HLS streams without authentication
+  - user: any
+    permissions:
+      - action: read
+      - action: publish
+  # Secure control plane API (port 9997) restricted to authorized backend components
+  - user: mediamtx_admin
+    pass: mediamtx_dev_secret_2026
+    permissions:
+      - action: api
 
 # Path Configurations
 paths:
@@ -41,5 +56,48 @@ paths:
   cam-ahm-03:
     source: publisher
   live/cam-ahm-03:
+    source: publisher
+  demo-traffic:
+    source: publisher
+  live/demo-traffic:
+    source: publisher
+  cam-demo-01:
+    source: publisher
+  live/cam-demo-01:
+    source: publisher
+  # Surat Paths
+  cam-sur-01:
+    source: publisher
+  live/cam-sur-01:
+    source: publisher
+  cam-sur-02:
+    source: publisher
+  live/cam-sur-02:
+    source: publisher
+  cam-sur-03:
+    source: publisher
+  live/cam-sur-03:
+    source: publisher
+  # Vadodara Paths
+  cam-vad-01:
+    source: publisher
+  live/cam-vad-01:
+    source: publisher
+  cam-vad-02:
+    source: publisher
+  live/cam-vad-02:
+    source: publisher
+  cam-vad-03:
+    source: publisher
+  live/cam-vad-03:
+    source: publisher
+  # Rajkot Paths
+  cam-rjk-01:
+    source: publisher
+  live/cam-rjk-01:
+    source: publisher
+  cam-rjk-02:
+    source: publisher
+  live/cam-rjk-02:
     source: publisher
   all_others:

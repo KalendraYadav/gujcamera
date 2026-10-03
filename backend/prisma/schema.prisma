@@ -34,6 +34,13 @@ enum CameraProtocol {
   VENDOR_API
 }
 
+enum CredentialType {
+  BASIC_AUTH
+  ONVIF_TOKEN
+  BEARER_TOKEN
+  CUSTOM
+}
+
 enum DetectionType {
   VEHICLE
   PERSON
@@ -174,12 +181,30 @@ model Camera {
   connector         Connector         @relation(fields: [connectorTypeId], references: [id])
   streams           CameraStream[]
   health            CameraHealth?
+  credential        CameraCredential?
   location          Location?
   detections        Detection[]
   sightings         VehicleSighting[]
 
   @@index([departmentId, operationalStatus])
   @@map("cameras")
+}
+
+model CameraCredential {
+  id             String         @id @default(uuid()) @db.Uuid
+  cameraId       String         @unique @map("camera_id") @db.Uuid
+  credentialType CredentialType @default(BASIC_AUTH) @map("credential_type")
+  encryptedData  String         @map("encrypted_data")
+  iv             String         @map("iv")
+  authTag        String         @map("auth_tag")
+  keyVersion     String         @default("v1") @map("key_version")
+  createdAt      DateTime       @default(now()) @map("created_at")
+  updatedAt      DateTime       @updatedAt @map("updated_at")
+
+  // Relationships
+  camera         Camera         @relation(fields: [cameraId], references: [id], onDelete: Cascade)
+
+  @@map("camera_credentials")
 }
 
 model Location {
@@ -280,6 +305,7 @@ model VehicleSighting {
   confidence      Decimal  @db.Decimal(5, 4)
   consensusOf     Int      @default(1) @map("consensus_of")
   frameRef        String   @map("frame_ref")
+  vehicleClass    String?  @map("vehicle_class")               // Phase 10: YOLO vehicle class
   createdAt       DateTime @default(now()) @map("created_at")
 
   // Relationships

@@ -28,7 +28,8 @@ const MOCK_VERIFIED_EVIDENCE: EvidenceInspection = {
   verification_status: 'INTEGRITY_VERIFIED',
   integrity_match: true,
   tamper_detected: false,
-  legal_admissibility_notice: 'Statutory Notice: Indian Evidence Act Section 65B',
+  legal_admissibility_notice:
+    'LEGAL / PROCEDURAL NOTICE: Cryptographic integrity verification confirms that the retrieved evidence object matches its recorded SHA-256 digest. This technical verification does not by itself establish legal admissibility, statutory compliance, authenticity, or evidentiary sufficiency. Applicable legal and departmental procedures must be followed independently.',
 };
 
 const MOCK_TAMPERED_EVIDENCE: EvidenceInspection = {
@@ -62,7 +63,7 @@ describe('EvidenceExportModal Component', () => {
     await waitFor(() => {
       expect(screen.getByText(/SHA-256 INTEGRITY VERIFIED/i)).toBeInTheDocument();
       expect(screen.getByText('GJ01AB1234')).toBeInTheDocument();
-      expect(screen.getByText(/STATUTORY CERTIFICATE:/i)).toBeInTheDocument();
+      expect(screen.getByText(/LEGAL \/ PROCEDURAL NOTICE/i)).toBeInTheDocument();
     });
 
     const exportBtn = screen.getByRole('button', { name: /Export Evidence Package/i });

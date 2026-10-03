@@ -206,7 +206,8 @@ export class SightingEventConsumer implements OnModuleInit, OnModuleDestroy {
             confidence: new Prisma.Decimal(confidence),
             consensusOf: consensus_of,
             frameRef: storage_ref,
-          },
+            vehicleClass: payload.vehicle_class ?? null,  // Phase 10: persist vehicle class
+          } as any,  // Phase 10: 'vehicleClass' pending prisma migrate deploy
         });
 
         // Insert linked Evidence artifact record

@@ -56,7 +56,9 @@ stream_channel() {
 
 wait_for_gateway
 
-# Launch background streaming loops for primary and alias endpoints
+DEMO_VIDEO_FILE="${DEMO_VIDEO_SOURCE:-${FIXTURES_DIR}/demo-traffic.mp4}"
+
+# Launch background streaming loops for synthetic deterministic fixtures
 stream_channel "cam-ahm-01" "${FIXTURES_DIR}/cam-ahm-01.mp4" &
 stream_channel "cam-ahm-02" "${FIXTURES_DIR}/cam-ahm-02.mp4" &
 stream_channel "live/cam-ahm-01" "${FIXTURES_DIR}/cam-ahm-01.mp4" &
@@ -65,6 +67,32 @@ stream_channel "cam-gnd-02" "${FIXTURES_DIR}/cam-ahm-02.mp4" &
 stream_channel "live/cam-gnd-02" "${FIXTURES_DIR}/cam-ahm-02.mp4" &
 stream_channel "cam-ahm-03" "${FIXTURES_DIR}/cam-ahm-01.mp4" &
 stream_channel "live/cam-ahm-03" "${FIXTURES_DIR}/cam-ahm-01.mp4" &
+
+# Launch background streaming loops for realistic traffic research/demo footage
+if [ -f "${DEMO_VIDEO_FILE}" ]; then
+  echo "📹 Realistic Demo Video Source configured: ${DEMO_VIDEO_FILE}"
+  stream_channel "demo-traffic" "${DEMO_VIDEO_FILE}" &
+  stream_channel "live/demo-traffic" "${DEMO_VIDEO_FILE}" &
+  stream_channel "cam-demo-01" "${DEMO_VIDEO_FILE}" &
+  stream_channel "live/cam-demo-01" "${DEMO_VIDEO_FILE}" &
+  # Multi-City Demonstration Streams
+  stream_channel "cam-sur-01" "${DEMO_VIDEO_FILE}" &
+  stream_channel "live/cam-sur-01" "${DEMO_VIDEO_FILE}" &
+  stream_channel "cam-sur-02" "${FIXTURES_DIR}/cam-ahm-02.mp4" &
+  stream_channel "live/cam-sur-02" "${FIXTURES_DIR}/cam-ahm-02.mp4" &
+  stream_channel "cam-sur-03" "${DEMO_VIDEO_FILE}" &
+  stream_channel "live/cam-sur-03" "${DEMO_VIDEO_FILE}" &
+  stream_channel "cam-vad-01" "${DEMO_VIDEO_FILE}" &
+  stream_channel "live/cam-vad-01" "${DEMO_VIDEO_FILE}" &
+  stream_channel "cam-vad-02" "${FIXTURES_DIR}/cam-ahm-01.mp4" &
+  stream_channel "live/cam-vad-02" "${FIXTURES_DIR}/cam-ahm-01.mp4" &
+  stream_channel "cam-vad-03" "${DEMO_VIDEO_FILE}" &
+  stream_channel "live/cam-vad-03" "${DEMO_VIDEO_FILE}" &
+  stream_channel "cam-rjk-01" "${DEMO_VIDEO_FILE}" &
+  stream_channel "live/cam-rjk-01" "${DEMO_VIDEO_FILE}" &
+  stream_channel "cam-rjk-02" "${FIXTURES_DIR}/cam-ahm-02.mp4" &
+  stream_channel "live/cam-rjk-02" "${FIXTURES_DIR}/cam-ahm-02.mp4" &
+fi
 
 # Keep foreground container alive
 wait

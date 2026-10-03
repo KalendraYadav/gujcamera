@@ -8,6 +8,14 @@ export type OperationalStatus = 'ONLINE' | 'CONNECTING' | 'DEGRADED' | 'OFFLINE'
 
 export type CameraProtocol = 'RTSP' | 'ONVIF' | 'MOCK_VENDOR' | 'VENDOR_API';
 
+export type VideoSourceType =
+  | 'DEMO_FILE'
+  | 'RESEARCH_VIDEO'
+  | 'SYNTHETIC_STREAM'
+  | 'REAL_RTSP'
+  | 'REAL_ONVIF'
+  | 'VMS_GATEWAY';
+
 export interface CameraLocation {
   address: string;
   zone: string;
@@ -27,6 +35,10 @@ export interface CameraHealth {
   last_heartbeat: string;
   fps_actual: number | null;
   packet_loss: number | null;
+  reconnect_attempts?: number;
+  failure_reason?: string | null;
+  last_transition?: string | null;
+  recovery_at?: string | null;
 }
 
 export interface Camera {
@@ -40,6 +52,8 @@ export interface Camera {
   connector_type_id: string;
   operational_status: OperationalStatus;
   is_active: boolean;
+  credential_configured?: boolean;
+  source_type?: VideoSourceType;
   created_at: string;
   updated_at: string;
   location: CameraLocation | null;
@@ -145,6 +159,24 @@ export interface CreateCameraPayload {
     fps?: number;
     url_or_handle?: string;
   };
+  credentials?: {
+    username?: string;
+    password?: string;
+    token?: string;
+  };
+}
+
+export interface ConfigureCredentialsPayload {
+  credential_type?: string;
+  username?: string;
+  password?: string;
+  token?: string;
+}
+
+export interface ConfigureCredentialsResponse {
+  configured: boolean;
+  cameraId: string;
+  credentialType: string;
 }
 
 export interface DepartmentRecord {

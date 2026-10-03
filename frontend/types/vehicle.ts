@@ -95,20 +95,39 @@ export interface VehicleSightingsResponse {
   pagination: SightingPagination;
 }
 
+export type RouteStatus = 'PLAUSIBLE' | 'SUSPICIOUS' | 'IMPOSSIBLE' | 'INSUFFICIENT_DATA';
+
+export interface RouteAnomaly {
+  segment_index: number;
+  from_camera: string;
+  to_camera: string;
+  status: RouteStatus;
+  reason: string;
+  estimated_speed_kmh?: number | null;
+  elapsed_seconds?: number;
+  distance_meters?: number;
+}
+
 export interface RouteSegment {
   from_camera_id: string;
   from_camera_name: string;
+  from_city?: string;
   from_coordinates: SightingCoordinates;
   from_timestamp: string;
   to_camera_id: string;
   to_camera_name: string;
+  to_city?: string;
   to_coordinates: SightingCoordinates;
   to_timestamp: string;
   distance_meters: number;
+  distance_type?: 'GEODESIC' | 'ROAD_NETWORK';
   elapsed_seconds: number;
   estimated_speed_kmh: number;
+  status?: RouteStatus;
+  reason?: string;
+  confidence?: number;
   is_plausible: boolean;
-  plausibility_status: 'PLAUSIBLE' | 'REQUIRES_REVIEW';
+  plausibility_status: 'PLAUSIBLE' | 'REQUIRES_REVIEW' | 'IMPLAUSIBLE' | 'STATIONARY_OR_REPEAT_SIGHTING';
   plausibility_reason: string;
   segment_confidence: number;
 }
@@ -119,6 +138,7 @@ export interface TimelineSighting {
   camera_id: string;
   camera_name: string;
   department_name?: string;
+  city?: string;
   coordinates: SightingCoordinates;
   location: SightingLocation | null;
   confidence: number;
@@ -132,15 +152,23 @@ export interface RouteSummary {
   average_speed_kmh: number;
   hops_count: number;
   implausible_hops_count: number;
+  plausible_hops_count?: number;
+  suspicious_hops_count?: number;
+  impossible_hops_count?: number;
+  insufficient_data_hops_count?: number;
+  route_confidence?: number;
 }
 
 export interface VehicleTimelineResponse {
   plate_normalized: string;
   total_sightings: number;
+  cities?: string[];
   route_plausibility_score: number;
+  route_confidence?: number;
   sightings: TimelineSighting[];
   route_segments: RouteSegment[];
   summary: RouteSummary;
+  anomalies?: RouteAnomaly[];
   disclaimer: string;
 }
 
@@ -164,3 +192,17 @@ export type WatchlistCategory =
   | 'CONTRABAND_TRAFFICKING'
   | 'TERRORISM'
   | 'OTHER';
+
+export interface VehicleAuditRecord {
+  id: string;
+  actor_id: string | null;
+  actor_email: string;
+  actor_role: string;
+  actor_department: string;
+  action: string;
+  resource: string;
+  ts: string;
+  correlation_id: string | null;
+  details: any;
+}
+

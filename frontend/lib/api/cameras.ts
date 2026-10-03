@@ -75,6 +75,13 @@ export const camerasApi = {
   },
 
   /**
+   * Fetch list of administrative police departments for camera fleet assignment
+   */
+  async getDepartments(): Promise<import('@/types/camera').DepartmentRecord[]> {
+    return apiClient.get<import('@/types/camera').DepartmentRecord[]>('/cameras/departments/list');
+  },
+
+  /**
    * Onboard a new camera into the platform
    */
   async createCamera(payload: import('@/types/camera').CreateCameraPayload): Promise<Camera> {
@@ -82,9 +89,23 @@ export const camerasApi = {
   },
 
   /**
-   * Fetch list of departments with canonical IDs and names for administrative fleet assignment
+   * Configure or rotate credentials for a camera in secure AES-256-GCM vault
    */
-  async getDepartments(): Promise<import('@/types/camera').DepartmentRecord[]> {
-    return apiClient.get<import('@/types/camera').DepartmentRecord[]>('/cameras/departments');
+  async configureCredentials(
+    cameraId: string,
+    payload: import('@/types/camera').ConfigureCredentialsPayload,
+  ): Promise<import('@/types/camera').ConfigureCredentialsResponse> {
+    return apiClient.post<import('@/types/camera').ConfigureCredentialsResponse>(
+      `/cameras/${cameraId}/credentials`,
+      payload,
+    );
+  },
+
+  /**
+   * Remove credentials for a camera from the secure vault
+   */
+  async removeCredentials(cameraId: string): Promise<{ removed: boolean; cameraId: string }> {
+    return apiClient.delete<{ removed: boolean; cameraId: string }>(`/cameras/${cameraId}/credentials`);
   },
 };
+

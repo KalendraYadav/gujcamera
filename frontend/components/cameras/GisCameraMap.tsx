@@ -59,6 +59,14 @@ const TACTICAL_DARK_STYLE: any = process.env.NEXT_PUBLIC_MAP_STYLE || {
 const DEFAULT_CENTER: [number, number] = [72.5714, 23.08]; // Ahmedabad - Gandhinagar Corridor
 const DEFAULT_ZOOM = 11;
 
+export const GUJARAT_CITY_COORDINATES: Record<string, { center: [number, number]; zoom: number }> = {
+  Ahmedabad: { center: [72.5714, 23.0225], zoom: 12 },
+  Surat: { center: [72.8311, 21.1702], zoom: 12 },
+  Vadodara: { center: [73.1812, 22.3072], zoom: 12 },
+  Rajkot: { center: [70.8022, 22.3039], zoom: 12 },
+  Gandhinagar: { center: [72.6369, 23.2156], zoom: 12 },
+};
+
 export function GisCameraMap() {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
@@ -72,6 +80,8 @@ export function GisCameraMap() {
   const [isSidePanelOpen, setIsSidePanelOpen] = useState<boolean>(true);
   const [searchFilter, setSearchFilter] = useState<string>('');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
+  const [cityFilter, setCityFilter] = useState<string>('ALL');
+  const [sourceTypeFilter, setSourceTypeFilter] = useState<string>('ALL');
   const [mapBoundsText, setMapBoundsText] = useState<string>('');
   const [totalInViewport, setTotalInViewport] = useState<number>(0);
 
@@ -319,6 +329,28 @@ export function GisCameraMap() {
     });
   }, []);
 
+  // Quick navigation to a specific Gujarat city
+  const handleCitySelect = useCallback((city: string) => {
+    setCityFilter(city);
+    if (!mapInstanceRef.current) return;
+    if (city !== 'ALL' && GUJARAT_CITY_COORDINATES[city]) {
+      const { center, zoom } = GUJARAT_CITY_COORDINATES[city];
+      mapInstanceRef.current.flyTo({
+        center,
+        zoom,
+        essential: true,
+        duration: 1400,
+      });
+    } else if (city === 'ALL') {
+      mapInstanceRef.current.flyTo({
+        center: DEFAULT_CENTER,
+        zoom: DEFAULT_ZOOM,
+        essential: true,
+        duration: 1400,
+      });
+    }
+  }, []);
+
   // Filter cameras for the accessible sidebar
   const filteredCameras = cameras.filter((cam) => {
     const matchesSearch =
@@ -326,7 +358,11 @@ export function GisCameraMap() {
       cam.location?.address?.toLowerCase().includes(searchFilter.toLowerCase()) ||
       cam.location?.district?.toLowerCase().includes(searchFilter.toLowerCase());
     const matchesStatus = statusFilter === 'ALL' || cam.operational_status === statusFilter;
-    return matchesSearch && matchesStatus;
+    const camCity = cam.location?.district || '';
+    const matchesCity = cityFilter === 'ALL' || camCity.toLowerCase().includes(cityFilter.toLowerCase());
+    const camSource = cam.source_type || 'SYNTHETIC_STREAM';
+    const matchesSource = sourceTypeFilter === 'ALL' || camSource === sourceTypeFilter;
+    return matchesSearch && matchesStatus && matchesCity && matchesSource;
   });
 
   const getStatusBadgeVariant = (status: OperationalStatus): BadgeVariant => {
@@ -600,6 +636,35 @@ export function GisCameraMap() {
                 />
               </div>
 
+              {/* City Jurisdiction Tabs */}
+              <div>
+                <div style={{ fontSize: '10px', color: 'var(--text-muted)', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                  City Jurisdiction
+                </div>
+                <div style={{ display: 'flex', gap: '3px', flexWrap: 'wrap' }}>
+                  {['ALL', 'Ahmedabad', 'Surat', 'Vadodara', 'Rajkot', 'Gandhinagar'].map((city) => {
+                    const isActive = cityFilter === city;
+                    return (
+                      <button
+                        key={city}
+                        id={`gis-filter-city-${city.toLowerCase()}`}
+                        type="button"
+                        onClick={() => handleCitySelect(city)}
+                        className={`netrava-tab-button ${isActive ? 'active' : ''}`}
+                        style={{
+                          padding: '3px 6px',
+                          fontSize: '9px',
+                          fontWeight: isActive ? 700 : 500,
+                        }}
+                      >
+                        {city === 'ALL' ? 'All Gujarat' : city}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Status and Source Type Filters */}
               <div style={{ display: 'flex', gap: '4px' }}>
                 {['ALL', 'ONLINE', 'DEGRADED', 'OFFLINE'].map((status) => {
                   const isActive = statusFilter === status;
@@ -607,16 +672,44 @@ export function GisCameraMap() {
                     <button
                       key={status}
                       id={`gis-filter-${status.toLowerCase()}`}
+                      type="button"
                       onClick={() => setStatusFilter(status)}
                       className={`netrava-tab-button ${isActive ? 'active' : ''}`}
                       style={{
                         flex: 1,
-                        padding: '4px 6px',
-                        fontSize: '10px',
+                        padding: '3px 4px',
+                        fontSize: '9px',
                         fontWeight: isActive ? 700 : 600,
                       }}
                     >
                       {status}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Source Type Filter */}
+              <div style={{ display: 'flex', gap: '4px' }}>
+                {['ALL', 'RESEARCH_VIDEO', 'SYNTHETIC_STREAM'].map((st) => {
+                  const isActive = sourceTypeFilter === st;
+                  const label = st === 'ALL' ? 'All Sources' : st === 'RESEARCH_VIDEO' ? 'Research Video' : 'Synthetic';
+                  return (
+                    <button
+                      key={st}
+                      id={`gis-filter-source-${st.toLowerCase()}`}
+                      type="button"
+                      onClick={() => setSourceTypeFilter(st)}
+                      className={`netrava-tab-button ${isActive ? 'active' : ''}`}
+                      style={{
+                        flex: 1,
+                        padding: '2px 4px',
+                        fontSize: '9px',
+                        fontWeight: isActive ? 700 : 500,
+                        backgroundColor: isActive ? 'rgba(59, 130, 246, 0.15)' : undefined,
+                        borderColor: isActive ? 'rgba(59, 130, 246, 0.4)' : undefined,
+                      }}
+                    >
+                      {label}
                     </button>
                   );
                 })}
@@ -736,8 +829,24 @@ export function GisCameraMap() {
                       fontFamily: 'var(--font-mono)',
                     }}
                   >
-                    <span>{cam.department_name?.split(' ')[0] || 'Statewide'}</span>
-                    <span>{cam.protocol}</span>
+                    <span style={{ color: '#93C5FD', fontWeight: 600 }}>
+                      {cam.location?.district || cam.department_name?.split(' ')[0] || 'Gujarat'}
+                    </span>
+                    <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                      <span
+                        style={{
+                          fontSize: '9px',
+                          padding: '1px 4px',
+                          borderRadius: '3px',
+                          backgroundColor: cam.source_type === 'RESEARCH_VIDEO' ? 'rgba(234, 179, 8, 0.15)' : 'rgba(59, 130, 246, 0.12)',
+                          color: cam.source_type === 'RESEARCH_VIDEO' ? '#FBBF24' : '#60A5FA',
+                          border: `1px solid ${cam.source_type === 'RESEARCH_VIDEO' ? 'rgba(234, 179, 8, 0.3)' : 'rgba(59, 130, 246, 0.25)'}`,
+                        }}
+                      >
+                        {cam.source_type === 'RESEARCH_VIDEO' ? 'RESEARCH' : 'SYNTHETIC'}
+                      </span>
+                      <span>{cam.protocol}</span>
+                    </div>
                   </div>
                 </div>
               );

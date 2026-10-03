@@ -163,7 +163,7 @@ export class EvidenceService {
       integrity_match: isVerified,
       tamper_detected: isBreach,
       legal_admissibility_notice:
-        'Statutory Notice: Indian Evidence Act Section 65B electronic record metadata.',
+        'LEGAL / PROCEDURAL NOTICE: Cryptographic integrity verification confirms that the retrieved evidence object matches its recorded SHA-256 digest. This technical verification does not by itself establish legal admissibility, statutory compliance, authenticity, or evidentiary sufficiency. Applicable legal and departmental procedures must be followed independently.',
       verification: verificationResult,
       sighting: sighting
         ? {
@@ -312,14 +312,15 @@ Officer User ID:     ${user.id}
 Export Timestamp:    ${new Date().toISOString()}
 Vault Reference:     ${evidence.storageRef}
 
-LEGAL COMPLIANCE & USAGE DISCLAIMER:
+LEGAL / PROCEDURAL NOTICE:
 --------------------------------------------------------------------------------
 This technical verification certificate confirms the mathematical byte integrity
-of the captured JPEG frame from initial storage to the moment of export, in
-accordance with digital forensics guidelines (Section 65B Indian Evidence Act).
-This certificate confirms that stored evidence bytes have suffered zero tampering,
-alteration, or data corruption. It does not replace independent court testimony
-or investigative corroboration.
+of the captured JPEG frame from initial storage to the moment of export, matching
+its recorded SHA-256 cryptographic digest.
+
+This technical verification does not by itself establish legal admissibility,
+statutory compliance, authenticity, or evidentiary sufficiency. Applicable legal
+and departmental procedures must be followed independently.
 ================================================================================
 `;
 

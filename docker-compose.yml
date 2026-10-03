@@ -83,12 +83,17 @@ services:
   # 4. MediaMTX RTSP Streaming Gateway (Video Middleware)
   # ----------------------------------------------------------------------------
   video-gateway:
-    image: bluenviron/mediamtx:1.9.3
+    image: bluenviron/mediamtx:1.11.0
     container_name: gujcamera_video_gateway
     restart: unless-stopped
     ports:
       - "${RTSP_PORT:-${RTSP_SIMULATOR_PORT:-8554}}:8554"
       - "${HLS_PORT:-8888}:8888"
+      # Bind MediaMTX control API strictly to loopback/localhost (127.0.0.1) for local host developer diagnostics;
+      # never bind 0.0.0.0 publicly. Backend containers communicate via internal Docker network (video-gateway:9997).
+      - "127.0.0.1:${MEDIAMTX_API_PORT:-9997}:9997"
+    environment:
+      MTX_AUTHINTERNALUSERS: '[{"user":"any","permissions":[{"action":"read"},{"action":"publish"}]},{"user":"${MEDIAMTX_API_USER:-mediamtx_admin}","pass":"${MEDIAMTX_API_PASSWORD:-mediamtx_dev_secret_2026}","permissions":[{"action":"api"}]}]'
     volumes:
       - ./video-gateway/mediamtx.yml:/mediamtx.yml:ro
     networks:
@@ -110,6 +115,7 @@ services:
       GATEWAY_PORT: 8554
       RETRY_INTERVAL: 3
       FIXTURES_DIR: /fixtures
+      DEMO_VIDEO_SOURCE: ${DEMO_VIDEO_SOURCE:-/fixtures/demo-traffic.mp4}
     volumes:
       - ./video-gateway/fixtures:/fixtures:ro
       - ./video-gateway/stream-loop.sh:/scripts/stream-loop.sh:ro

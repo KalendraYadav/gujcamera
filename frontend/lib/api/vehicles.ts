@@ -115,4 +115,27 @@ export const vehiclesApi = {
       : `/vehicles/${encodeURIComponent(normalizedPlate)}/route`;
     return apiClient.get<VehicleTimelineResponse>(endpoint);
   },
+
+  /**
+   * Get investigation audit trail for a vehicle
+   */
+  async getVehicleAudit(plate: string): Promise<{
+    plate_normalized: string;
+    total_records: number;
+    data: Array<{
+      id: string;
+      actor_id: string | null;
+      actor_email: string;
+      actor_role: string;
+      actor_department: string;
+      action: string;
+      resource: string;
+      ts: string;
+      correlation_id: string | null;
+      details: any;
+    }>;
+  }> {
+    const normalizedPlate = plate.trim().toUpperCase().replace(/[\s\-]/g, '');
+    return apiClient.get(`/vehicles/${encodeURIComponent(normalizedPlate)}/audit`);
+  },
 };

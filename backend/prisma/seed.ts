@@ -122,6 +122,30 @@ async function main() {
     },
   });
 
+  const deptSurat = await prisma.department.create({
+    data: {
+      name: 'Surat City Police Commissionerate',
+      parentDepartmentId: deptDGP.id,
+      retentionPolicyId: 'POLICY-SURAT-CITY-1YR',
+    },
+  });
+
+  const deptVadodara = await prisma.department.create({
+    data: {
+      name: 'Vadodara City Police Commissionerate',
+      parentDepartmentId: deptDGP.id,
+      retentionPolicyId: 'POLICY-VADODARA-CITY-1YR',
+    },
+  });
+
+  const deptRajkot = await prisma.department.create({
+    data: {
+      name: 'Rajkot City Police Commissionerate',
+      parentDepartmentId: deptDGP.id,
+      retentionPolicyId: 'POLICY-RAJKOT-CITY-1YR',
+    },
+  });
+
   const deptGandhinagar = await prisma.department.create({
     data: {
       name: 'Gandhinagar District Police',
@@ -276,6 +300,190 @@ async function main() {
       },
     },
     {
+      name: 'CAM-AHM-04: SG Highway - ISKCON Crossroad Flyover',
+      departmentId: deptAhmedabad.id,
+      lat: 23.0287100,
+      long: 72.5065400,
+      protocol: CameraProtocol.RTSP,
+      connectorTypeId: connectorRTSP.id,
+      operationalStatus: OperationalStatus.ONLINE,
+      location: {
+        address: 'ISKCON Cross Road, SG Highway, Satellite',
+        zone: 'West Zone',
+        district: 'Ahmedabad',
+      },
+      stream: {
+        codec: 'h264',
+        resolution: '1920x1080',
+        fps: 25,
+        urlOrHandle: 'rtsp://simulator:8554/live/cam-ahm-01',
+      },
+    },
+    // Surat Cameras
+    {
+      name: 'CAM-SUR-01: Dumas Road - VR Mall Junction',
+      departmentId: deptSurat.id,
+      lat: 21.1492000,
+      long: 72.7483000,
+      protocol: CameraProtocol.RTSP,
+      connectorTypeId: connectorRTSP.id,
+      operationalStatus: OperationalStatus.ONLINE,
+      location: {
+        address: 'VR Mall Junction, Dumas Road, Magdalla',
+        zone: 'South Zone',
+        district: 'Surat',
+      },
+      stream: {
+        codec: 'h264',
+        resolution: '1920x1080',
+        fps: 25,
+        urlOrHandle: 'rtsp://simulator:8554/live/cam-sur-01',
+      },
+    },
+    {
+      name: 'CAM-SUR-02: Ring Road - Sahara Darwaja Textile Market',
+      departmentId: deptSurat.id,
+      lat: 21.1965000,
+      long: 72.8421000,
+      protocol: CameraProtocol.ONVIF,
+      connectorTypeId: connectorONVIF.id,
+      operationalStatus: OperationalStatus.ONLINE,
+      location: {
+        address: 'Sahara Darwaja, Ring Road, Begampura',
+        zone: 'East Zone',
+        district: 'Surat',
+      },
+      stream: {
+        codec: 'h264',
+        resolution: '1920x1080',
+        fps: 20,
+        urlOrHandle: 'rtsp://simulator:8554/live/cam-sur-02',
+      },
+    },
+    {
+      name: 'CAM-SUR-03: Adajan - Gujarat Gas Circle',
+      departmentId: deptSurat.id,
+      lat: 21.1912000,
+      long: 72.7984000,
+      protocol: CameraProtocol.RTSP,
+      connectorTypeId: connectorRTSP.id,
+      operationalStatus: OperationalStatus.ONLINE,
+      location: {
+        address: 'Gujarat Gas Circle, Anand Mahal Road, Adajan',
+        zone: 'West Zone',
+        district: 'Surat',
+      },
+      stream: {
+        codec: 'h264',
+        resolution: '1920x1080',
+        fps: 25,
+        urlOrHandle: 'rtsp://simulator:8554/live/cam-sur-03',
+      },
+    },
+    // Vadodara Cameras
+    {
+      name: 'CAM-VAD-01: Sayajigunj - Railway Station Circle',
+      departmentId: deptVadodara.id,
+      lat: 22.3108000,
+      long: 73.1812000,
+      protocol: CameraProtocol.RTSP,
+      connectorTypeId: connectorRTSP.id,
+      operationalStatus: OperationalStatus.ONLINE,
+      location: {
+        address: 'Station Road, Sayajigunj',
+        zone: 'Central Zone',
+        district: 'Vadodara',
+      },
+      stream: {
+        codec: 'h264',
+        resolution: '1920x1080',
+        fps: 25,
+        urlOrHandle: 'rtsp://simulator:8554/live/cam-vad-01',
+      },
+    },
+    {
+      name: 'CAM-VAD-02: Alkapuri - RC Dutt Road Junction',
+      departmentId: deptVadodara.id,
+      lat: 22.3142000,
+      long: 73.1705000,
+      protocol: CameraProtocol.ONVIF,
+      connectorTypeId: connectorONVIF.id,
+      operationalStatus: OperationalStatus.ONLINE,
+      location: {
+        address: 'RC Dutt Road, Alkapuri',
+        zone: 'West Zone',
+        district: 'Vadodara',
+      },
+      stream: {
+        codec: 'h264',
+        resolution: '1920x1080',
+        fps: 20,
+        urlOrHandle: 'rtsp://simulator:8554/live/cam-vad-02',
+      },
+    },
+    {
+      name: 'CAM-VAD-03: Fatehgunj - MSU Circle',
+      departmentId: deptVadodara.id,
+      lat: 22.3245000,
+      long: 73.1878000,
+      protocol: CameraProtocol.RTSP,
+      connectorTypeId: connectorRTSP.id,
+      operationalStatus: OperationalStatus.ONLINE,
+      location: {
+        address: 'MSU Pavilion Road, Fatehgunj',
+        zone: 'North Zone',
+        district: 'Vadodara',
+      },
+      stream: {
+        codec: 'h264',
+        resolution: '1920x1080',
+        fps: 25,
+        urlOrHandle: 'rtsp://simulator:8554/live/cam-vad-03',
+      },
+    },
+    // Rajkot Cameras
+    {
+      name: 'CAM-RJK-01: 150 Feet Ring Road - Indira Circle',
+      departmentId: deptRajkot.id,
+      lat: 22.2856000,
+      long: 70.7684000,
+      protocol: CameraProtocol.RTSP,
+      connectorTypeId: connectorRTSP.id,
+      operationalStatus: OperationalStatus.ONLINE,
+      location: {
+        address: 'Indira Circle, 150 Feet Ring Road',
+        zone: 'West Zone',
+        district: 'Rajkot',
+      },
+      stream: {
+        codec: 'h264',
+        resolution: '1920x1080',
+        fps: 25,
+        urlOrHandle: 'rtsp://simulator:8554/live/cam-rjk-01',
+      },
+    },
+    {
+      name: 'CAM-RJK-02: Kalawad Road - KKV Hall Cross Road',
+      departmentId: deptRajkot.id,
+      lat: 22.2798000,
+      long: 70.7789000,
+      protocol: CameraProtocol.ONVIF,
+      connectorTypeId: connectorONVIF.id,
+      operationalStatus: OperationalStatus.ONLINE,
+      location: {
+        address: 'KKV Hall Cross Road, Kalawad Road',
+        zone: 'South Zone',
+        district: 'Rajkot',
+      },
+      stream: {
+        codec: 'h264',
+        resolution: '1920x1080',
+        fps: 20,
+        urlOrHandle: 'rtsp://simulator:8554/live/cam-rjk-02',
+      },
+    },
+    // Gandhinagar Cameras
+    {
       name: 'CAM-GND-01: Gandhinagar Secretariat - Gate 1',
       departmentId: deptGandhinagar.id,
       lat: 23.2167200,
@@ -313,6 +521,27 @@ async function main() {
         resolution: '1920x1080',
         fps: 15,
         urlOrHandle: 'rtsp://simulator:8554/live/cam-gnd-02',
+      },
+    },
+    // Highway Research Video Feed
+    {
+      name: 'CAM-DEMO-01: Expressway Highway Traffic Corridor (RESEARCH)',
+      departmentId: deptAhmedabad.id,
+      lat: 23.1142000,
+      long: 72.5856000,
+      protocol: CameraProtocol.RTSP,
+      connectorTypeId: connectorRTSP.id,
+      operationalStatus: OperationalStatus.ONLINE,
+      location: {
+        address: 'Ahmedabad - Gandhinagar Highway Bypass, Express Lane 2',
+        zone: 'Corridor Zone',
+        district: 'Ahmedabad',
+      },
+      stream: {
+        codec: 'h264',
+        resolution: '1280x720',
+        fps: 30,
+        urlOrHandle: 'rtsp://simulator:8554/live/demo-traffic',
       },
     },
   ];
@@ -434,11 +663,29 @@ async function main() {
     data: {
       plateNormalized: demoVehicle.plateNormalized,
       cameraId: createdCameras[1].id,
-      ts: new Date(Date.now() - 5 * 60 * 1000),
+      ts: new Date(Date.now() - 10 * 60 * 1000),
       confidence: 0.9620,
       consensusOf: 7,
       frameRef: 's3://police-evidence-vault/frames/2026/09/09/cam-ahm-02-gj01ab1234-sighting2.jpg',
     },
+  });
+
+  // Third Sighting on CAM-GND-02 (Gandhinagar CH-0 Circle) — 15 minutes after Sighting 2 (20 km transit, cross-city correlation)
+  const sighting3 = await prisma.vehicleSighting.create({
+    data: {
+      plateNormalized: demoVehicle.plateNormalized,
+      cameraId: createdCameras[13].id,
+      ts: new Date(Date.now() - 2 * 60 * 1000),
+      confidence: 0.9510,
+      consensusOf: 5,
+      frameRef: 's3://police-evidence-vault/frames/2026/09/09/cam-gnd-02-gj01ab1234-sighting3.jpg',
+    },
+  });
+
+  // Update vehicle last seen
+  await prisma.vehicle.update({
+    where: { plateNormalized: demoVehicle.plateNormalized },
+    data: { lastSeen: sighting3.ts },
   });
 
   // 10. Seed Demo Alert for Sighting 2 matching Watchlist
@@ -479,8 +726,14 @@ async function main() {
   );
   const sha256Sighting2 = crypto.createHash('sha256').update(jpegSighting2).digest('hex');
 
+  const jpegSighting3 = createSyntheticEvidenceJpeg(
+    'SIMULATED DEMO CCTV EVIDENCE - GUJARAT POLICE GPIC-2026 - CAM-GND-02 - GJ01AB1234 - SIGHTING 3'
+  );
+  const sha256Sighting3 = crypto.createHash('sha256').update(jpegSighting3).digest('hex');
+
   const key1 = 'frames/2026/09/09/cam-ahm-01-gj01ab1234-sighting1.jpg';
   const key2 = 'frames/2026/09/09/cam-ahm-02-gj01ab1234-sighting2.jpg';
+  const key3 = 'frames/2026/09/09/cam-gnd-02-gj01ab1234-sighting3.jpg';
 
   // Upload frames to MinIO S3
   await s3Client.send(
@@ -491,7 +744,6 @@ async function main() {
       ContentType: 'image/jpeg',
     })
   );
-  console.log(`   ✅ Sighting 1 frame stored in MinIO ('${S3_BUCKET}/${key1}'). SHA-256: ${sha256Sighting1}`);
 
   await s3Client.send(
     new PutObjectCommand({
@@ -501,9 +753,18 @@ async function main() {
       ContentType: 'image/jpeg',
     })
   );
-  console.log(`   ✅ Sighting 2 frame stored in MinIO ('${S3_BUCKET}/${key2}'). SHA-256: ${sha256Sighting2}`);
 
-  // Create database Evidence records for both sightings with authentic cryptographic hashes
+  await s3Client.send(
+    new PutObjectCommand({
+      Bucket: S3_BUCKET,
+      Key: key3,
+      Body: jpegSighting3,
+      ContentType: 'image/jpeg',
+    })
+  );
+  console.log(`   ✅ Sighting frames stored in MinIO. SHA-256 digests generated.`);
+
+  // Create database Evidence records for sightings with authentic cryptographic hashes
   const evidence1 = await prisma.evidence.create({
     data: {
       sourceType: 'SIGHTING',
@@ -523,7 +784,17 @@ async function main() {
       capturedAt: sighting2.ts,
     },
   });
-  console.log(`   ✅ Evidence records seeded in DB: Sighting 1 -> ${evidence1.id}, Sighting 2 -> ${evidence2.id}`);
+
+  const evidence3 = await prisma.evidence.create({
+    data: {
+      sourceType: 'SIGHTING',
+      sourceId: sighting3.id,
+      storageRef: sighting3.frameRef,
+      hash: sha256Sighting3,
+      capturedAt: sighting3.ts,
+    },
+  });
+  console.log(`   ✅ Evidence records seeded in DB: Sighting 1 -> ${evidence1.id}, Sighting 2 -> ${evidence2.id}, Sighting 3 -> ${evidence3.id}`);
 
   // 12. Seed Initial Audit Record
   console.log('📝 Creating initial system audit log...');

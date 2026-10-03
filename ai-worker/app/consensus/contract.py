@@ -44,6 +44,7 @@ class PlateObservation:
     frame: Optional[np.ndarray] = None
     plate_bbox: Optional[List[int]] = None
     vehicle_id: Optional[str] = None
+    vehicle_class: Optional[str] = None  # Phase 10: VehicleClass label (e.g. 'CAR', 'TRUCK')
 
     def to_summary(self) -> Dict[str, Any]:
         """Diagnostic summary without raw frame bytes"""
@@ -57,6 +58,7 @@ class PlateObservation:
             "format_valid": self.format_valid,
             "plate_bbox": self.plate_bbox,
             "vehicle_id": self.vehicle_id,
+            "vehicle_class": self.vehicle_class,
         }
 
 
@@ -80,6 +82,7 @@ class ConsensusResult:
     best_frame: Optional[np.ndarray] = None
     best_frame_confidence: float = 0.0
     best_frame_sequence: int = 0
+    vehicle_class: Optional[str] = None  # Phase 10: Majority vehicle class from best observation
 
     @property
     def is_accepted(self) -> bool:

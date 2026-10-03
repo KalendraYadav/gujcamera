@@ -62,9 +62,18 @@ interface RouteMapProps {
   routeSegments: RouteSegment[];
   disclaimer: string;
   plateNormalized: string;
+  selectedSightingId?: string | null;
+  onSelectSighting?: (sighting: TimelineSighting) => void;
 }
 
-export function RouteMap({ sightings, routeSegments, disclaimer, plateNormalized }: RouteMapProps) {
+export function RouteMap({
+  sightings,
+  routeSegments,
+  disclaimer,
+  plateNormalized,
+  selectedSightingId,
+  onSelectSighting,
+}: RouteMapProps) {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
   const markersRef = useRef<any[]>([]);
@@ -196,9 +205,13 @@ export function RouteMap({ sightings, routeSegments, disclaimer, plateNormalized
           el.style.display = 'flex';
           el.style.alignItems = 'center';
           el.style.justifyContent = 'center';
-          el.style.cursor = 'default';
+          el.style.cursor = onSelectSighting ? 'pointer' : 'default';
           el.style.zIndex = isFirst || isLast ? '20' : '10';
           el.title = `Sighting ${index + 1}: ${sighting.camera_name} at ${new Date(sighting.timestamp).toLocaleTimeString()}`;
+
+          if (onSelectSighting) {
+            el.onclick = () => onSelectSighting(sighting);
+          }
 
           // Inner visual element - handles styling and scale micro-interactions safely
           const inner = document.createElement('div');
@@ -326,8 +339,9 @@ export function RouteMap({ sightings, routeSegments, disclaimer, plateNormalized
   }
 
   return (
-    <div
-      className="netrava-card"
+    <>
+      <div
+        className="netrava-card"
       style={{
         position: 'relative',
         width: '100%',
@@ -461,7 +475,7 @@ export function RouteMap({ sightings, routeSegments, disclaimer, plateNormalized
               background: 'repeating-linear-gradient(90deg, #60A5FA 0 4px, transparent 4px 6px)',
             }}
           />
-          <span>Observed Trajectory</span>
+          <span>Observed Trajectory (Geodesic)</span>
         </div>
         {hasImplausible && (
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -472,7 +486,7 @@ export function RouteMap({ sightings, routeSegments, disclaimer, plateNormalized
                 background: 'repeating-linear-gradient(90deg, #EF4444 0 2px, transparent 2px 5px)',
               }}
             />
-            <span style={{ color: 'var(--status-critical)' }}>Implausible Hop</span>
+            <span style={{ color: 'var(--status-critical)' }}>Flagged / Anomaly Hop</span>
           </div>
         )}
       </div>
@@ -505,5 +519,134 @@ export function RouteMap({ sightings, routeSegments, disclaimer, plateNormalized
         </div>
       )}
     </div>
+
+    {/* Route Segments Telemetry Breakdown */}
+    {routeSegments.length > 0 && (
+      <div
+        style={{
+          marginTop: 'var(--space-3)',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 'var(--space-2)',
+        }}
+      >
+        <div
+          style={{
+            fontSize: '11px',
+            fontFamily: 'var(--font-mono)',
+            fontWeight: 700,
+            color: 'var(--text-secondary)',
+            letterSpacing: '0.06em',
+            textTransform: 'uppercase',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+          }}
+        >
+          <span>Observed Camera-to-Camera Hops ({routeSegments.length})</span>
+          <span style={{ color: 'var(--text-dim)', fontSize: '10px' }}>POSTGIS GEODESIC VECTORS</span>
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '8px' }}>
+          {routeSegments.map((seg, i) => {
+            const status = seg.status || (seg.is_plausible ? 'PLAUSIBLE' : 'IMPOSSIBLE');
+            const isImpossible = status === 'IMPOSSIBLE';
+            const isSuspicious = status === 'SUSPICIOUS';
+            const distFormatted =
+              seg.distance_meters < 1000
+                ? `${Math.round(seg.distance_meters)} m`
+                : `${(seg.distance_meters / 1000).toFixed(1)} km`;
+            const durationFormatted =
+              seg.elapsed_seconds < 60
+                ? `${seg.elapsed_seconds} sec`
+                : `${Math.round(seg.elapsed_seconds / 60)} min`;
+            const speedFormatted = `${(seg.estimated_speed_kmh || 0).toFixed(1)} km/h`;
+
+            return (
+              <div
+                key={i}
+                style={{
+                  padding: '8px 12px',
+                  borderRadius: 'var(--radius-sm)',
+                  backgroundColor: isImpossible
+                    ? 'var(--status-critical-bg)'
+                    : isSuspicious
+                    ? 'rgba(245, 158, 11, 0.08)'
+                    : 'var(--bg-primary)',
+                  border: `1px solid ${
+                    isImpossible
+                      ? 'var(--status-critical-border)'
+                      : isSuspicious
+                      ? 'rgba(245, 158, 11, 0.3)'
+                      : 'var(--border-subtle)'
+                  }`,
+                  fontSize: '11px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '4px',
+                }}
+              >
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    fontFamily: 'var(--font-mono)',
+                    fontWeight: 700,
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: 'var(--text-primary)' }}>
+                    <span>{seg.from_camera_name}</span>
+                    <span style={{ color: 'var(--text-dim)' }}>&rarr;</span>
+                    <span>{seg.to_camera_name}</span>
+                  </div>
+                  <span
+                    style={{
+                      color: isImpossible
+                        ? 'var(--status-critical)'
+                        : isSuspicious
+                        ? '#F59E0B'
+                        : 'var(--status-success)',
+                    }}
+                  >
+                    {status}
+                  </span>
+                </div>
+
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px',
+                    color: 'var(--text-secondary)',
+                    fontFamily: 'var(--font-mono)',
+                    fontSize: '10px',
+                  }}
+                >
+                  <span>{distFormatted}</span>
+                  <span>&bull;</span>
+                  <span>{durationFormatted}</span>
+                  <span>&bull;</span>
+                  <span>{speedFormatted}</span>
+                </div>
+
+                {(seg.reason || seg.plausibility_reason) && (
+                  <div
+                    style={{
+                      fontSize: '10px',
+                      color: isImpossible ? 'var(--status-critical)' : 'var(--text-dim)',
+                      fontStyle: 'italic',
+                    }}
+                  >
+                    Reason: {seg.reason || seg.plausibility_reason}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    )}
+  </>
   );
 }

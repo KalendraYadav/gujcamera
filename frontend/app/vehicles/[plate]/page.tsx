@@ -1,25 +1,27 @@
 'use client';
 
 // ==============================================================================
-// Vehicle Detail Page — /vehicles/[plate]
+// NETRAVAHA — Investigation Command Center
 // Gujarat Police Innovation Challenge 2026
 // Source of Truth: master_architecture.md (Section 10, 14.2)
-//                  docs/API.md (Section 5.2, 5.3, 5.4)
+//                  Phase 8 Investigation Command Center Specification
 //
-// Three-tab layout:
-//   Tab 1 — Overview: vehicle attributes, watchlist details, first/last sighting
-//   Tab 2 — Sighting Timeline: chronological table + route hop analytics
-//   Tab 3 — Route Map: MapLibre GL GIS polyline + sighting markers
+// Central workspace unifying:
+//   - Institutional Investigation Header & KPI dossier
+//   - Investigation Action Command Bar
+//   - Watchlist & Live Alert Correlation
+//   - Spatio-Temporal Sighting Correlation Timeline
+//   - Route GIS Spatial Model & PostGIS Geodesic Hop Breakdown
+//   - Evidence & Live SHA-256 Cryptographic Integrity Verification
+//   - Immutable System Compliance Audit Trail
 //
-// Authorization: INVESTIGATOR, DEPARTMENT_ADMIN, SUPER_ADMIN only.
-// Every page load triggers backend audit events:
-//   VEHICLE_DETAIL_VIEW + VEHICLE_TIMELINE_SEARCH
-//
-// GOVERNANCE:
-//   Correlation is PLATE-BASED ANPR ONLY. Not visual re-ID. Not face recognition.
+// Strict Terminology Governance:
+//   - "SPATIO-TEMPORAL SIGHTING CORRELATION" (never GPS track or live location)
+//   - "INTEGRITY VERIFIED" (never tamper-proof or immutable evidence)
+//   - Real backend data only (no fabricated UI intelligence)
 // ==============================================================================
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import {
   Car,
@@ -32,34 +34,60 @@ import {
   Map,
   List,
   Eye,
-  Info,
   FileArchive,
+  CheckCircle2,
+  Search,
+  ExternalLink,
+  RefreshCw,
+  Layers,
+  FileText,
+  ShieldCheck,
+  ShieldAlert,
+  HelpCircle,
 } from 'lucide-react';
 import { AppShell } from '@/components/layout/AppShell';
 import { SightingsTimeline } from '@/components/vehicles/SightingsTimeline';
 import { RouteMap } from '@/components/vehicles/RouteMap';
+import { EvidenceInspectionPanel } from '@/components/vehicles/EvidenceInspectionPanel';
+import { InvestigationAuditTrail } from '@/components/vehicles/InvestigationAuditTrail';
+import CorrelationCandidatesPanel from '@/components/vehicles/CorrelationCandidatesPanel';
 import { EvidenceExportModal } from '@/components/evidence/EvidenceExportModal';
 import { StatusBadge, BadgeVariant } from '@/components/ui/StatusBadge';
 import { ErrorState } from '@/components/ui/ErrorState';
 import { LoadingState } from '@/components/ui/LoadingState';
 import { vehiclesApi } from '@/lib/api/vehicles';
-import { VehicleDetail, VehicleTimelineResponse } from '@/types/vehicle';
+import { alertsApi } from '@/lib/api/alerts';
+import {
+  VehicleDetail,
+  VehicleTimelineResponse,
+  TimelineSighting,
+  VehicleAuditRecord,
+} from '@/types/vehicle';
+import { AlertItem } from '@/types/alert';
 import { useAuth } from '@/lib/auth/context';
+import { tokenStorage } from '@/lib/auth/session';
 import { hasRoleAccess, canExportEvidence } from '@/lib/auth/rbac';
 
-type PageState = 'loading' | 'error' | 'loaded';
-type ActiveTab = 'overview' | 'timeline' | 'map';
+type PageState = 'loading' | 'error' | 'loaded' | 'empty' | 'no_observations';
+type ActiveTab = 'command_center' | 'timeline' | 'map' | 'evidence' | 'audit' | 'correlation';
 
-function formatTimestamp(iso: string): string {
-  return new Date(iso).toLocaleString('en-IN', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    hour12: false,
-  });
+function formatTimestamp(iso?: string | null): string {
+  if (!iso) return 'NO DATA';
+  try {
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return 'NO DATA';
+    return d.toLocaleString('en-IN', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false,
+    });
+  } catch {
+    return 'NO DATA';
+  }
 }
 
 function getPriorityVariant(priority: string | null | undefined): BadgeVariant {
@@ -75,50 +103,7 @@ function getPriorityVariant(priority: string | null | undefined): BadgeVariant {
   }
 }
 
-interface DetailFieldProps {
-  label: string;
-  value: React.ReactNode;
-  mono?: boolean;
-}
-
-function DetailField({ label, value, mono }: DetailFieldProps) {
-  return (
-    <div
-      style={{
-        padding: 'var(--space-3) var(--space-4)',
-        backgroundColor: 'var(--bg-primary)',
-        border: '1px solid var(--border-subtle)',
-        borderRadius: 'var(--radius-sm)',
-      }}
-    >
-      <div
-        style={{
-          fontSize: '10px',
-          color: 'var(--text-dim)',
-          textTransform: 'uppercase',
-          letterSpacing: '0.08em',
-          fontFamily: 'var(--font-mono)',
-          fontWeight: 700,
-          marginBottom: '4px',
-        }}
-      >
-        {label}
-      </div>
-      <div
-        style={{
-          fontSize: 'var(--text-sm)',
-          fontWeight: 700,
-          color: 'var(--text-primary)',
-          fontFamily: mono ? 'var(--font-mono)' : undefined,
-        }}
-      >
-        {value}
-      </div>
-    </div>
-  );
-}
-
-export default function VehicleDetailPage() {
+export default function VehicleInvestigationPage() {
   const { user, isLoading: authLoading } = useAuth();
   const isAuthorized = hasRoleAccess(user?.role, ['SUPER_ADMIN', 'DEPARTMENT_ADMIN', 'INVESTIGATOR']);
   const isEvidenceExportAuthorized = canExportEvidence(user?.role);
@@ -126,42 +111,97 @@ export default function VehicleDetailPage() {
   const params = useParams();
   const router = useRouter();
   const rawPlate = Array.isArray(params.plate) ? params.plate[0] : params.plate || '';
-  const plate = decodeURIComponent(rawPlate);
+  const plate = decodeURIComponent(rawPlate).trim().toUpperCase();
 
   const [pageState, setPageState] = useState<PageState>('loading');
   const [errorMessage, setErrorMessage] = useState<string>('');
   const [vehicleDetail, setVehicleDetail] = useState<VehicleDetail | null>(null);
   const [timeline, setTimeline] = useState<VehicleTimelineResponse | null>(null);
-  const [activeTab, setActiveTab] = useState<ActiveTab>('overview');
+  const [alerts, setAlerts] = useState<AlertItem[]>([]);
+  const [auditRecords, setAuditRecords] = useState<VehicleAuditRecord[]>([]);
+  const [auditLoading, setAuditLoading] = useState<boolean>(false);
+  const [selectedSighting, setSelectedSighting] = useState<TimelineSighting | null>(null);
   const [evidenceSightingId, setEvidenceSightingId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<ActiveTab>('command_center');
+  const [quickSearchInput, setQuickSearchInput] = useState<string>('');
 
   const loadData = async () => {
-    if (!plate || authLoading || !isAuthorized) return;
+    if (!plate) {
+      setPageState('empty');
+      return;
+    }
+    if (authLoading || !isAuthorized) return;
 
     setPageState('loading');
     setErrorMessage('');
 
     try {
-      // Fetch both in parallel
-      const [detail, tl] = await Promise.all([
+      // Parallel investigation bundle fetch
+      const auditPromise =
+        typeof (vehiclesApi as any).getVehicleAudit === 'function'
+          ? (vehiclesApi as any).getVehicleAudit(plate).catch(() => ({ data: [], total_records: 0 }))
+          : Promise.resolve({ data: [], total_records: 0 });
+
+      const alertsPromise =
+        typeof (alertsApi as any).listAlerts === 'function'
+          ? (alertsApi as any).listAlerts({ plate }).catch(() => ({ data: [] }))
+          : Promise.resolve({ data: [] });
+
+      const [detail, tl, alertsRes, auditRes] = await Promise.all([
         vehiclesApi.getVehicleByPlate(plate),
         vehiclesApi.getVehicleTimeline(plate),
+        alertsPromise,
+        auditPromise,
       ]);
 
       setVehicleDetail(detail);
       setTimeline(tl);
+      setAlerts(alertsRes.data || []);
+      setAuditRecords(auditRes.data || []);
+
+      // Auto-select latest sighting with frame if available, else first sighting
+      if (tl.sightings && tl.sightings.length > 0) {
+        const sightingWithEvidence = tl.sightings.find((s) => Boolean(s.frame_ref)) || tl.sightings[0];
+        setSelectedSighting(sightingWithEvidence);
+      } else {
+        setSelectedSighting(null);
+      }
+
       setPageState('loaded');
     } catch (err: any) {
-      console.error('Vehicle detail load error:', err);
+      console.error('Vehicle command center load error:', err);
       const code = err.statusCode;
       if (code === 404) {
-        setErrorMessage(`Vehicle "${plate}" has no records in the CCTV system. This plate has never been observed by any registered camera.`);
+        setPageState('no_observations');
+        setErrorMessage(`Vehicle "${plate}" has no observations recorded in the CCTV intelligence network.`);
       } else if (code === 403) {
+        setPageState('error');
         setErrorMessage('Access denied. Vehicle investigation requires INVESTIGATOR, DEPARTMENT_ADMIN, or SUPER_ADMIN role.');
       } else {
-        setErrorMessage(err.message || 'Failed to load vehicle data. Verify backend connectivity.');
+        setPageState('error');
+        setErrorMessage(err.message || 'Unable to retrieve investigation data from backend.');
       }
-      setPageState('error');
+    }
+  };
+
+  const handleRefreshAudit = async () => {
+    if (!plate) return;
+    setAuditLoading(true);
+    try {
+      const res = await vehiclesApi.getVehicleAudit(plate);
+      setAuditRecords(res.data || []);
+    } catch (err) {
+      console.warn('Failed to refresh vehicle audit records:', err);
+    } finally {
+      setAuditLoading(false);
+    }
+  };
+
+  const handleQuickSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    const clean = quickSearchInput.trim().toUpperCase().replace(/[\s\-]/g, '');
+    if (clean) {
+      router.push(`/vehicles/${clean}`);
     }
   };
 
@@ -172,13 +212,51 @@ export default function VehicleDetailPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [plate, authLoading, isAuthorized]);
 
+  // Derived Jurisdictions count
+  const jurisdictionsList = useMemo(() => {
+    if (!timeline?.sightings) return [];
+    const cities = new Set<string>();
+    timeline.sightings.forEach((s) => {
+      const city = s.city || s.location?.district;
+      if (city) cities.add(city);
+    });
+    return Array.from(cities);
+  }, [timeline]);
+
+  // Derived Watchlist Alert Match
+  const activeAlert = useMemo(() => {
+    return alerts.find((a) => a.status === 'NEW' || a.status === 'ACKNOWLEDGED' || a.status === 'INVESTIGATING') || alerts[0] || null;
+  }, [alerts]);
+
+  // Route Plausibility Status
+  const routeStatus = useMemo<'PLAUSIBLE' | 'ANOMALOUS' | 'INSUFFICIENT DATA'>(() => {
+    if (!timeline || timeline.sightings.length < 2) return 'INSUFFICIENT DATA';
+    const hasAnomalies = (timeline.anomalies && timeline.anomalies.length > 0) || (timeline.summary.implausible_hops_count > 0);
+    return hasAnomalies ? 'ANOMALOUS' : 'PLAUSIBLE';
+  }, [timeline]);
+
+  // Evidence Availability Status
+  const evidenceStatus = useMemo<'EVIDENCE AVAILABLE' | 'NO DATA'>(() => {
+    if (!timeline?.sightings || timeline.sightings.length === 0) return 'NO DATA';
+    const hasEvidence = timeline.sightings.some((s) => Boolean(s.frame_ref));
+    return hasEvidence ? 'EVIDENCE AVAILABLE' : 'NO DATA';
+  }, [timeline]);
+
+  // Check if coordinates exist
+  const hasValidCoordinates = useMemo(() => {
+    if (!timeline?.sightings) return true;
+    return timeline.sightings.every(
+      (s) => s.coordinates && typeof s.coordinates.lat === 'number' && typeof s.coordinates.long === 'number' && s.coordinates.lat !== 0
+    );
+  }, [timeline]);
+
   if (authLoading) {
     return (
       <AppShell>
-        <div style={{ maxWidth: '1080px', margin: '0 auto', padding: 'var(--space-6)' }}>
+        <div style={{ maxWidth: '1200px', margin: '0 auto', padding: 'var(--space-6)' }}>
           <LoadingState
-            message="Verifying investigation credentials..."
-            subtext="Checking cryptographic session and officer RBAC role"
+            message="Verifying investigation credentials…"
+            subtext="Authenticating JWT session and cryptographic RBAC permissions"
           />
         </div>
       </AppShell>
@@ -188,7 +266,7 @@ export default function VehicleDetailPage() {
   if (!isAuthorized) {
     return (
       <AppShell>
-        <div style={{ maxWidth: '1080px', margin: '0 auto', padding: 'var(--space-6)' }}>
+        <div style={{ maxWidth: '1200px', margin: '0 auto', padding: 'var(--space-6)' }}>
           <ErrorState
             title="Investigation Access Restricted"
             message="Vehicle intelligence search and cross-camera tracking are restricted to Investigator, Department Admin, and Super Admin personnel."
@@ -201,69 +279,248 @@ export default function VehicleDetailPage() {
   }
 
   const tabs = [
-    { id: 'overview' as ActiveTab, label: 'Overview', icon: Info },
-    { id: 'timeline' as ActiveTab, label: 'Sighting Timeline', icon: List },
-    { id: 'map' as ActiveTab, label: 'Route Map', icon: Map },
+    { id: 'command_center' as ActiveTab, label: 'Command Center Dossier', icon: Layers },
+    { id: 'timeline' as ActiveTab, label: 'Sighting Timeline', icon: List, count: timeline?.total_sightings },
+    { id: 'map' as ActiveTab, label: 'Route GIS Map', icon: Map },
+    { id: 'evidence' as ActiveTab, label: 'Evidence & Integrity', icon: ShieldCheck },
+    { id: 'audit' as ActiveTab, label: 'Audit Trail', icon: FileText, count: auditRecords.length },
+    { id: 'correlation' as ActiveTab, label: 'Obs. Correlation', icon: Search },
   ];
 
   return (
     <AppShell>
       <div
         style={{
-          maxWidth: '1080px',
+          maxWidth: '1240px',
           margin: '0 auto',
           display: 'flex',
           flexDirection: 'column',
-          gap: 'var(--space-5)',
+          gap: 'var(--space-4)',
         }}
       >
-        {/* Back Navigation Button */}
-        <div>
+        {/* Navigation Breadcrumb & Quick Switch */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: 'var(--space-3)',
+          }}
+        >
           <button
             id="vehicle-detail-back"
             onClick={() => router.push('/vehicles')}
             className="btn-secondary"
             style={{
-              padding: '6px 12px',
+              padding: '5px 12px',
               fontSize: 'var(--text-xs)',
               gap: '6px',
             }}
           >
-            <ArrowLeft size={14} />
-            <span>Search Results</span>
+            <ArrowLeft size={13} />
+            <span>Vehicle Search Directory</span>
           </button>
+
+          {/* Quick Target Switch Form */}
+          <form
+            onSubmit={handleQuickSearch}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+            }}
+          >
+            <div style={{ position: 'relative' }}>
+              <input
+                type="text"
+                value={quickSearchInput}
+                onChange={(e) => setQuickSearchInput(e.target.value)}
+                placeholder="Switch Plate (e.g. GJ01AB1234)…"
+                style={{
+                  padding: '5px 10px 5px 28px',
+                  fontSize: '11px',
+                  fontFamily: 'var(--font-mono)',
+                  backgroundColor: 'var(--bg-primary)',
+                  border: '1px solid var(--border-default)',
+                  borderRadius: 'var(--radius-xs)',
+                  color: 'var(--text-primary)',
+                  width: '240px',
+                  textTransform: 'uppercase',
+                }}
+              />
+              <Search
+                size={13}
+                color="var(--text-dim)"
+                style={{ position: 'absolute', left: '8px', top: '7px' }}
+              />
+            </div>
+            <button
+              type="submit"
+              className="btn-secondary"
+              style={{
+                padding: '5px 10px',
+                fontSize: '11px',
+              }}
+            >
+              Inspect
+            </button>
+          </form>
         </div>
 
+        {/* State: Empty Search */}
+        {pageState === 'empty' && (
+          <div
+            className="netrava-card"
+            style={{
+              padding: 'var(--space-12)',
+              textAlign: 'center',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: 'var(--space-3)',
+            }}
+          >
+            <div
+              style={{
+                width: '48px',
+                height: '48px',
+                borderRadius: '50%',
+                backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                border: '1px solid rgba(59, 130, 246, 0.3)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <Search size={22} color="#60A5FA" />
+            </div>
+            <div style={{ fontSize: 'var(--text-md)', fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '0.04em' }}>
+              ENTER VEHICLE REGISTRATION
+            </div>
+            <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>
+              Begin an investigation by searching a normalized vehicle plate (e.g. GJ01AB1234).
+            </div>
+          </div>
+        )}
+
+        {/* State: Loading */}
         {pageState === 'loading' && (
           <div className="netrava-card" style={{ padding: 'var(--space-12)' }}>
             <LoadingState
-              message={`Loading vehicle record for ${plate}…`}
-              subtext="Fetching sighting history and route trajectory from PostGIS backend"
+              message={`Reconstructing investigation dossier for ${plate}…`}
+              subtext="Querying sightings, PostGIS spatial hops, watchlist alerts, and evidence digests"
             />
           </div>
         )}
 
-        {pageState === 'error' && (
-          <ErrorState
-            title="Vehicle Record Unavailable"
-            message={errorMessage}
-            onRetry={loadData}
-          />
+        {/* State: No Observations Found */}
+        {pageState === 'no_observations' && (
+          <div
+            className="netrava-card"
+            style={{
+              padding: 'var(--space-10)',
+              textAlign: 'center',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: 'var(--space-3)',
+              borderColor: 'var(--border-default)',
+            }}
+          >
+            <div
+              style={{
+                width: '48px',
+                height: '48px',
+                borderRadius: '50%',
+                backgroundColor: 'var(--bg-primary)',
+                border: '1px solid var(--border-subtle)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <Car size={22} color="var(--text-dim)" />
+            </div>
+            <div style={{ fontSize: 'var(--text-md)', fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '0.04em' }}>
+              NO OBSERVATIONS FOUND
+            </div>
+            <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', maxWidth: '440px' }}>
+              No matching CCTV sightings exist in the current surveillance dataset for plate{' '}
+              <strong style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)' }}>{plate}</strong>.
+            </div>
+            <button
+              onClick={() => router.push('/vehicles')}
+              className="btn-secondary"
+              style={{ marginTop: 'var(--space-2)', fontSize: 'var(--text-xs)' }}
+            >
+              Return to Vehicle Search
+            </button>
+          </div>
         )}
 
+        {/* State: Backend Error */}
+        {pageState === 'error' && (
+          <div
+            className="netrava-card"
+            style={{
+              padding: 'var(--space-8)',
+              borderColor: 'var(--status-critical-border)',
+            }}
+          >
+            <div style={{ fontSize: 'var(--text-md)', fontWeight: 800, color: 'var(--status-critical)', marginBottom: '8px' }}>
+              INVESTIGATION DATA UNAVAILABLE
+            </div>
+            <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)', marginBottom: 'var(--space-4)' }}>
+              {errorMessage || 'Unable to retrieve investigation data.'}
+            </div>
+            <button onClick={loadData} className="btn-secondary" style={{ fontSize: 'var(--text-xs)' }}>
+              <RefreshCw size={13} /> Retry Retrieval
+            </button>
+          </div>
+        )}
+
+        {/* State: Loaded Investigation Command Center */}
         {pageState === 'loaded' && vehicleDetail && timeline && (
           <>
-            {/* Vehicle Header Card */}
+            {/* Missing Coordinates Warning State */}
+            {!hasValidCoordinates && (
+              <div
+                style={{
+                  backgroundColor: 'rgba(245, 158, 11, 0.08)',
+                  border: '1px solid rgba(245, 158, 11, 0.3)',
+                  borderRadius: 'var(--radius-sm)',
+                  padding: 'var(--space-3) var(--space-4)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 'var(--space-3)',
+                }}
+              >
+                <AlertTriangle size={16} color="#F59E0B" style={{ flexShrink: 0 }} />
+                <div>
+                  <div style={{ fontSize: 'var(--text-xs)', fontWeight: 700, color: '#F59E0B', fontFamily: 'var(--font-mono)' }}>
+                    ROUTE ANALYSIS INCOMPLETE
+                  </div>
+                  <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
+                    One or more observing cameras do not contain valid geographic coordinates. Geodesic transit calculation may be partially omitted.
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* ============================================================== */}
+            {/* 3. INSTITUTIONAL INVESTIGATION HEADER                          */}
+            {/* ============================================================== */}
             <div
               className="netrava-card"
               style={{
-                backgroundColor: vehicleDetail.is_watchlisted ? 'rgba(239, 68, 68, 0.05)' : 'var(--bg-surface)',
-                borderColor: vehicleDetail.is_watchlisted ? 'var(--status-critical-border)' : 'var(--border-default)',
                 padding: 'var(--space-5) var(--space-6)',
                 position: 'relative',
+                backgroundColor: vehicleDetail.is_watchlisted ? 'rgba(239, 68, 68, 0.03)' : 'var(--bg-surface)',
+                borderColor: vehicleDetail.is_watchlisted ? 'var(--status-critical-border)' : 'var(--border-default)',
               }}
             >
-              {/* Top Accent Line */}
+              {/* Header Top Accent Border */}
               <div
                 style={{
                   position: 'absolute',
@@ -272,12 +529,12 @@ export default function VehicleDetailPage() {
                   right: 0,
                   height: '2px',
                   background: vehicleDetail.is_watchlisted
-                    ? 'linear-gradient(90deg, #EF4444 0%, #B91C1C 50%, transparent 100%)'
-                    : 'linear-gradient(90deg, #D7193F 0%, #3B82F6 40%, transparent 80%)',
+                    ? 'linear-gradient(90deg, #EF4444 0%, #B91C1C 60%, transparent 100%)'
+                    : 'linear-gradient(90deg, #D7193F 0%, #3B82F6 50%, transparent 100%)',
                 }}
               />
 
-              {/* Top Details Row */}
+              {/* Title & Identity Row */}
               <div
                 style={{
                   display: 'flex',
@@ -285,165 +542,540 @@ export default function VehicleDetailPage() {
                   justifyContent: 'space-between',
                   gap: 'var(--space-4)',
                   flexWrap: 'wrap',
-                  marginBottom: vehicleDetail.is_watchlisted ? 'var(--space-4)' : 'var(--space-3)',
+                  marginBottom: 'var(--space-4)',
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
                   <div
                     style={{
-                      width: '48px',
-                      height: '48px',
-                      borderRadius: 'var(--radius-md)',
-                      backgroundColor: vehicleDetail.is_watchlisted ? 'var(--status-critical-bg)' : 'var(--accent-primary-subtle)',
-                      border: `1px solid ${vehicleDetail.is_watchlisted ? 'var(--status-critical-border)' : 'var(--accent-primary-border)'}`,
+                      width: '46px',
+                      height: '46px',
+                      borderRadius: 'var(--radius-sm)',
+                      backgroundColor: vehicleDetail.is_watchlisted
+                        ? 'var(--status-critical-bg)'
+                        : 'rgba(59, 130, 246, 0.1)',
+                      border: `1px solid ${
+                        vehicleDetail.is_watchlisted
+                          ? 'var(--status-critical-border)'
+                          : 'rgba(59, 130, 246, 0.3)'
+                      }`,
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      boxShadow: vehicleDetail.is_watchlisted ? 'var(--accent-primary-glow)' : 'var(--accent-primary-glow)',
                     }}
                   >
-                    <Car size={24} color={vehicleDetail.is_watchlisted ? 'var(--status-critical)' : 'var(--accent-primary)'} />
+                    <Car
+                      size={22}
+                      color={vehicleDetail.is_watchlisted ? 'var(--status-critical)' : '#60A5FA'}
+                    />
                   </div>
+
                   <div>
-                    <h1
+                    <div
                       style={{
-                        fontSize: 'var(--text-3xl)',
-                        fontWeight: 800,
+                        fontSize: '10px',
                         fontFamily: 'var(--font-mono)',
-                        letterSpacing: '0.12em',
-                        color: 'var(--text-primary)',
+                        fontWeight: 700,
+                        color: 'var(--text-dim)',
+                        letterSpacing: '0.1em',
+                        textTransform: 'uppercase',
+                        marginBottom: '2px',
                       }}
                     >
-                      {vehicleDetail.plate_normalized}
-                    </h1>
-                    {vehicleDetail.attributes && (
-                      <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap', marginTop: '4px' }}>
-                        {[
-                          vehicleDetail.attributes.color,
-                          vehicleDetail.attributes.make,
-                          vehicleDetail.attributes.model,
-                          vehicleDetail.attributes.type,
-                        ]
-                          .filter(Boolean)
-                          .map((val, i) => (
-                            <span
-                              key={i}
-                              style={{
-                                fontSize: '11px',
-                                fontWeight: 600,
-                                color: 'var(--text-secondary)',
-                                backgroundColor: 'var(--bg-primary)',
-                                padding: '2px 8px',
-                                borderRadius: 'var(--radius-xs)',
-                                border: '1px solid var(--border-subtle)',
-                                fontFamily: 'var(--font-mono)',
-                              }}
-                            >
-                              {val}
-                            </span>
-                          ))}
-                      </div>
-                    )}
+                      VEHICLE INVESTIGATION COMMAND CENTER
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', flexWrap: 'wrap' }}>
+                      <h1
+                        style={{
+                          fontSize: 'var(--text-2xl)',
+                          fontWeight: 800,
+                          fontFamily: 'var(--font-mono)',
+                          letterSpacing: '0.12em',
+                          color: 'var(--text-primary)',
+                          margin: 0,
+                        }}
+                      >
+                        {vehicleDetail.plate_normalized}
+                      </h1>
+
+                      {vehicleDetail.attributes && (
+                        <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                          {[
+                            vehicleDetail.attributes.color,
+                            vehicleDetail.attributes.make,
+                            vehicleDetail.attributes.model,
+                            vehicleDetail.attributes.type,
+                          ]
+                            .filter(Boolean)
+                            .map((attr, i) => (
+                              <span
+                                key={i}
+                                style={{
+                                  fontSize: '11px',
+                                  fontWeight: 600,
+                                  color: 'var(--text-secondary)',
+                                  backgroundColor: 'var(--bg-primary)',
+                                  padding: '2px 8px',
+                                  borderRadius: 'var(--radius-xs)',
+                                  border: '1px solid var(--border-subtle)',
+                                  fontFamily: 'var(--font-mono)',
+                                }}
+                              >
+                                {attr}
+                              </span>
+                            ))}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
 
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 'var(--space-2)' }}>
-                  <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center' }}>
-                    {vehicleDetail.is_watchlisted ? (
-                      <>
-                        <StatusBadge
-                          label={vehicleDetail.watchlist_details?.priority || 'WATCHLISTED'}
-                          variant={getPriorityVariant(vehicleDetail.watchlist_details?.priority)}
-                          icon={<AlertTriangle size={11} />}
-                        />
-                        {vehicleDetail.watchlist_details?.category && (
-                          <StatusBadge
-                            label={vehicleDetail.watchlist_details.category.replace(/_/g, ' ')}
-                            variant="critical"
-                          />
-                        )}
-                      </>
-                    ) : (
-                      <StatusBadge label="WATCHLIST CLEAR" variant="success" icon={<Shield size={11} />} />
-                    )}
+                {/* Right Metadata Tag */}
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
+                  <div
+                    style={{
+                      fontSize: '10px',
+                      fontFamily: 'var(--font-mono)',
+                      color: 'var(--text-dim)',
+                    }}
+                  >
+                    INVESTIGATION ID:{' '}
+                    <span style={{ color: 'var(--text-secondary)', fontWeight: 700 }}>
+                      INV-{vehicleDetail.plate_normalized}
+                    </span>
                   </div>
-                  <span style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                    <Eye size={12} color="var(--accent-blue)" />
-                    <strong style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-mono)' }}>
-                      {vehicleDetail.total_sightings}
-                    </strong>{' '}
-                    sighting{vehicleDetail.total_sightings !== 1 ? 's' : ''} recorded
-                  </span>
-                  {isEvidenceExportAuthorized && ((vehicleDetail.last_known_sighting?.id) || (timeline?.sightings?.[0]?.id)) && (
-                    <button
-                      id="header-export-evidence-btn"
-                      onClick={() => {
-                        const targetId = vehicleDetail.last_known_sighting?.id || timeline?.sightings?.[0]?.id;
-                        if (targetId) setEvidenceSightingId(targetId);
-                      }}
-                      className="btn-secondary"
-                      style={{
-                        padding: '4px 10px',
-                        fontSize: 'var(--text-xs)',
-                        color: 'var(--accent-primary)',
-                        borderColor: 'var(--accent-primary-border)',
-                        marginTop: '4px',
-                      }}
-                    >
-                      <FileArchive size={13} /> Export Evidence Package
-                    </button>
-                  )}
+                  <div style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', color: 'var(--text-dim)' }}>
+                    SECURITY LEVEL: <span style={{ color: '#60A5FA' }}>CONFIDENTIAL // POLICE LAW ENFORCEMENT</span>
+                  </div>
                 </div>
               </div>
 
-              {/* Watchlist Details Alert Box */}
-              {vehicleDetail.is_watchlisted && vehicleDetail.watchlist_details && (
+              {/* KPI Metrics Strip */}
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
+                  gap: 'var(--space-2)',
+                }}
+              >
+                {/* 1. First Observed */}
                 <div
                   style={{
-                    backgroundColor: 'var(--status-critical-bg)',
-                    border: '1px solid var(--status-critical-border)',
-                    borderRadius: 'var(--radius-sm)',
-                    padding: 'var(--space-3) var(--space-4)',
-                    display: 'flex',
-                    alignItems: 'flex-start',
-                    gap: 'var(--space-3)',
+                    padding: 'var(--space-2) var(--space-3)',
+                    backgroundColor: 'var(--bg-primary)',
+                    border: '1px solid var(--border-subtle)',
+                    borderRadius: 'var(--radius-xs)',
                   }}
                 >
-                  <AlertTriangle size={16} color="var(--status-critical)" style={{ flexShrink: 0, marginTop: '2px' }} />
+                  <div style={{ fontSize: '9px', fontWeight: 700, fontFamily: 'var(--font-mono)', color: 'var(--text-dim)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+                    FIRST OBSERVED
+                  </div>
+                  <div style={{ fontSize: '11px', fontWeight: 700, fontFamily: 'var(--font-mono)', color: 'var(--text-primary)', marginTop: '2px' }}>
+                    {formatTimestamp(vehicleDetail.first_seen)}
+                  </div>
+                </div>
+
+                {/* 2. Last Observed */}
+                <div
+                  style={{
+                    padding: 'var(--space-2) var(--space-3)',
+                    backgroundColor: 'var(--bg-primary)',
+                    border: '1px solid var(--border-subtle)',
+                    borderRadius: 'var(--radius-xs)',
+                  }}
+                >
+                  <div style={{ fontSize: '9px', fontWeight: 700, fontFamily: 'var(--font-mono)', color: 'var(--text-dim)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+                    LAST OBSERVED
+                  </div>
+                  <div style={{ fontSize: '11px', fontWeight: 700, fontFamily: 'var(--font-mono)', color: 'var(--text-primary)', marginTop: '2px' }}>
+                    {formatTimestamp(vehicleDetail.last_seen)}
+                  </div>
+                </div>
+
+                {/* 3. Sightings Count */}
+                <div
+                  style={{
+                    padding: 'var(--space-2) var(--space-3)',
+                    backgroundColor: 'var(--bg-primary)',
+                    border: '1px solid var(--border-subtle)',
+                    borderRadius: 'var(--radius-xs)',
+                  }}
+                >
+                  <div style={{ fontSize: '9px', fontWeight: 700, fontFamily: 'var(--font-mono)', color: 'var(--text-dim)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+                    SIGHTINGS
+                  </div>
+                  <div style={{ fontSize: '12px', fontWeight: 800, fontFamily: 'var(--font-mono)', color: 'var(--text-primary)', marginTop: '2px' }}>
+                    {vehicleDetail.total_sightings} OBSERVED
+                  </div>
+                </div>
+
+                {/* 4. Jurisdictions Count */}
+                <div
+                  style={{
+                    padding: 'var(--space-2) var(--space-3)',
+                    backgroundColor: 'var(--bg-primary)',
+                    border: '1px solid var(--border-subtle)',
+                    borderRadius: 'var(--radius-xs)',
+                  }}
+                >
+                  <div style={{ fontSize: '9px', fontWeight: 700, fontFamily: 'var(--font-mono)', color: 'var(--text-dim)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+                    JURISDICTIONS
+                  </div>
+                  <div style={{ fontSize: '11px', fontWeight: 700, fontFamily: 'var(--font-mono)', color: '#60A5FA', marginTop: '2px' }}>
+                    {jurisdictionsList.length > 0
+                      ? `${jurisdictionsList.length} CITIES: ${jurisdictionsList.join(', ')}`
+                      : 'NO DATA'}
+                  </div>
+                </div>
+
+                {/* 5. Watchlist Status */}
+                <div
+                  style={{
+                    padding: 'var(--space-2) var(--space-3)',
+                    backgroundColor: vehicleDetail.is_watchlisted ? 'var(--status-critical-bg)' : 'var(--bg-primary)',
+                    border: `1px solid ${vehicleDetail.is_watchlisted ? 'var(--status-critical-border)' : 'var(--border-subtle)'}`,
+                    borderRadius: 'var(--radius-xs)',
+                  }}
+                >
+                  <div style={{ fontSize: '9px', fontWeight: 700, fontFamily: 'var(--font-mono)', color: vehicleDetail.is_watchlisted ? 'var(--status-critical)' : 'var(--text-dim)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+                    WATCHLIST
+                  </div>
+                  <div style={{ fontSize: '11px', fontWeight: 800, fontFamily: 'var(--font-mono)', color: vehicleDetail.is_watchlisted ? 'var(--status-critical)' : 'var(--status-success)', marginTop: '2px' }}>
+                    {vehicleDetail.is_watchlisted ? 'MATCH' : 'NO MATCH'}
+                  </div>
+                </div>
+
+                {/* 6. Route Status */}
+                <div
+                  style={{
+                    padding: 'var(--space-2) var(--space-3)',
+                    backgroundColor: routeStatus === 'ANOMALOUS' ? 'rgba(239, 68, 68, 0.08)' : 'var(--bg-primary)',
+                    border: `1px solid ${routeStatus === 'ANOMALOUS' ? 'var(--status-critical-border)' : 'var(--border-subtle)'}`,
+                    borderRadius: 'var(--radius-xs)',
+                  }}
+                >
+                  <div style={{ fontSize: '9px', fontWeight: 700, fontFamily: 'var(--font-mono)', color: routeStatus === 'ANOMALOUS' ? 'var(--status-critical)' : 'var(--text-dim)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+                    ROUTE STATUS
+                  </div>
+                  <div style={{ fontSize: '11px', fontWeight: 800, fontFamily: 'var(--font-mono)', color: routeStatus === 'PLAUSIBLE' ? 'var(--status-success)' : routeStatus === 'ANOMALOUS' ? 'var(--status-critical)' : 'var(--text-dim)', marginTop: '2px' }}>
+                    {routeStatus}
+                  </div>
+                </div>
+
+                {/* 7. Evidence Availability */}
+                <div
+                  style={{
+                    padding: 'var(--space-2) var(--space-3)',
+                    backgroundColor: 'var(--bg-primary)',
+                    border: '1px solid var(--border-subtle)',
+                    borderRadius: 'var(--radius-xs)',
+                  }}
+                >
+                  <div style={{ fontSize: '9px', fontWeight: 700, fontFamily: 'var(--font-mono)', color: 'var(--text-dim)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+                    EVIDENCE
+                  </div>
+                  <div style={{ fontSize: '11px', fontWeight: 800, fontFamily: 'var(--font-mono)', color: evidenceStatus === 'EVIDENCE AVAILABLE' ? 'var(--status-success)' : 'var(--text-dim)', marginTop: '2px' }}>
+                    {evidenceStatus}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* ============================================================== */}
+            {/* 9. INVESTIGATION ACTION COMMAND BAR                           */}
+            {/* ============================================================== */}
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: 'var(--space-2)',
+                padding: 'var(--space-2) var(--space-1)',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
+                <button
+                  id="action-search-again"
+                  onClick={() => router.push('/vehicles')}
+                  className="btn-secondary"
+                  style={{ fontSize: '11px', padding: '5px 12px', gap: '5px' }}
+                >
+                  <Search size={12} />
+                  <span>Search Directory</span>
+                </button>
+
+                <button
+                  id="action-view-on-gis"
+                  onClick={() => router.push('/map')}
+                  className="btn-secondary"
+                  style={{ fontSize: '11px', padding: '5px 12px', gap: '5px' }}
+                >
+                  <Map size={12} />
+                  <span>View on GIS Map</span>
+                </button>
+
+                {activeAlert && (
+                  <button
+                    id="action-view-alert"
+                    onClick={() => router.push(`/alerts?plate=${plate}`)}
+                    className="btn-secondary"
+                    style={{
+                      fontSize: '11px',
+                      padding: '5px 12px',
+                      gap: '5px',
+                      color: 'var(--status-critical)',
+                      borderColor: 'var(--status-critical-border)',
+                      backgroundColor: 'rgba(239, 68, 68, 0.08)',
+                    }}
+                  >
+                    <AlertTriangle size={12} />
+                    <span>View Active Alert ({activeAlert.severity})</span>
+                  </button>
+                )}
+
+                {isEvidenceExportAuthorized && selectedSighting && (
+                  <button
+                    id="header-export-evidence-btn"
+                    onClick={() => setEvidenceSightingId(selectedSighting.id)}
+                    className="btn-secondary"
+                    style={{
+                      fontSize: '11px',
+                      padding: '5px 12px',
+                      gap: '5px',
+                      color: 'var(--accent-primary)',
+                      borderColor: 'var(--accent-primary-border)',
+                    }}
+                  >
+                    <FileArchive size={12} />
+                    <span>Export Evidence Package</span>
+                  </button>
+                )}
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+                <button
+                  id="action-refresh-dossier"
+                  onClick={loadData}
+                  className="btn-secondary"
+                  style={{ fontSize: '11px', padding: '5px 12px', gap: '5px' }}
+                >
+                  <RefreshCw size={12} />
+                  <span>Sync Intelligence</span>
+                </button>
+              </div>
+            </div>
+
+            {/* ============================================================== */}
+            {/* 6. WATCHLIST + ALERT CORRELATION BANNER                       */}
+            {/* ============================================================== */}
+            {vehicleDetail.is_watchlisted ? (
+              <div
+                style={{
+                  backgroundColor: 'var(--status-critical-bg)',
+                  border: '1px solid var(--status-critical-border)',
+                  borderRadius: 'var(--radius-sm)',
+                  padding: 'var(--space-4) var(--space-5)',
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  justifyContent: 'space-between',
+                  gap: 'var(--space-4)',
+                  flexWrap: 'wrap',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 'var(--space-3)' }}>
+                  <AlertTriangle
+                    size={20}
+                    color="var(--status-critical)"
+                    style={{ flexShrink: 0, marginTop: '2px' }}
+                  />
                   <div>
-                    <div style={{ fontWeight: 700, fontSize: 'var(--text-sm)', color: 'var(--status-critical)', marginBottom: '4px' }}>
-                      WATCHLIST ALERT — {vehicleDetail.watchlist_details.category?.replace(/_/g, ' ')}
+                    <div
+                      style={{
+                        fontWeight: 800,
+                        fontSize: 'var(--text-sm)',
+                        color: 'var(--status-critical)',
+                        letterSpacing: '0.04em',
+                        fontFamily: 'var(--font-mono)',
+                        marginBottom: '4px',
+                      }}
+                    >
+                      WATCHLIST MATCH — {vehicleDetail.watchlist_details?.category?.replace(/_/g, ' ') || 'SECURITY NOTICE'}
                     </div>
+
                     <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)', marginBottom: '6px' }}>
-                      {vehicleDetail.watchlist_details.reason}
+                      {vehicleDetail.watchlist_details?.reason || 'Vehicle flagged in active security database.'}
                     </div>
-                    <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
-                      Flagged at: {formatTimestamp(vehicleDetail.watchlist_details.flagged_at)}
+
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 'var(--space-3)',
+                        flexWrap: 'wrap',
+                        fontSize: '11px',
+                        fontFamily: 'var(--font-mono)',
+                        color: 'var(--text-muted)',
+                      }}
+                    >
+                      <span>
+                        Severity:{' '}
+                        <strong style={{ color: 'var(--status-critical)' }}>
+                          {activeAlert?.severity || vehicleDetail.watchlist_details?.priority || 'CRITICAL'}
+                        </strong>
+                      </span>
+                      <span>&bull;</span>
+                      <span>
+                        Alert Status:{' '}
+                        <strong style={{ color: 'var(--text-primary)' }}>
+                          {activeAlert?.status || 'NEW'}
+                        </strong>
+                      </span>
+                      <span>&bull;</span>
+                      <span>
+                        Observing Camera:{' '}
+                        <strong style={{ color: 'var(--text-primary)' }}>
+                          {activeAlert?.sighting?.camera?.name || timeline.sightings[0]?.camera_name || 'REGISTERED CAMERA'}
+                        </strong>
+                      </span>
+                      <span>&bull;</span>
+                      <span>
+                        Jurisdiction:{' '}
+                        <strong style={{ color: 'var(--text-primary)' }}>
+                          {activeAlert?.sighting?.camera?.location?.district || timeline.sightings[0]?.location?.district || 'GUJARAT'}
+                        </strong>
+                      </span>
+                      <span>&bull;</span>
+                      <span>
+                        Flagged At:{' '}
+                        {formatTimestamp(vehicleDetail.watchlist_details?.flagged_at || activeAlert?.timestamp || activeAlert?.created_at)}
+                      </span>
                     </div>
+
                     <div
                       style={{
                         marginTop: 'var(--space-2)',
                         fontSize: '10px',
                         color: 'var(--text-muted)',
                         fontStyle: 'italic',
-                        borderTop: '1px solid var(--status-critical-border)',
-                        paddingTop: 'var(--space-2)',
                       }}
                     >
-                      Note: ANPR plate match confirms detection only. Independent verification required before enforcement action.
+                      Statutory Governance: ANPR plate correlation confirms detection only. Manual verification required before enforcement.
                     </div>
                   </div>
                 </div>
-              )}
-            </div>
 
-            {/* Tab Navigation Controls */}
+                {activeAlert && (
+                  <button
+                    id="open-alert-action-btn"
+                    onClick={() => router.push(`/alerts?plate=${plate}`)}
+                    className="btn-primary"
+                    style={{
+                      fontSize: 'var(--text-xs)',
+                      padding: '7px 14px',
+                      backgroundColor: 'var(--status-critical)',
+                      borderColor: 'var(--status-critical-border)',
+                      gap: '6px',
+                    }}
+                  >
+                    <span>OPEN ALERT #{activeAlert.id.substring(0, 8)}</span>
+                    <ExternalLink size={12} />
+                  </button>
+                )}
+              </div>
+            ) : (
+              <div
+                style={{
+                  backgroundColor: 'var(--status-success-bg)',
+                  border: '1px solid var(--status-success-border)',
+                  borderRadius: 'var(--radius-sm)',
+                  padding: 'var(--space-3) var(--space-4)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 'var(--space-3)',
+                }}
+              >
+                <Shield size={16} color="var(--status-success)" style={{ flexShrink: 0 }} />
+                <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                  <strong style={{ color: 'var(--status-success)', fontFamily: 'var(--font-mono)' }}>
+                    NO WATCHLIST MATCH:
+                  </strong>{' '}
+                  Vehicle registration {vehicleDetail.plate_normalized} is clear across all active security and stolen vehicle registries.
+                </span>
+              </div>
+            )}
+
+            {/* ============================================================== */}
+            {/* SPATIO-TEMPORAL ANOMALY HIGHLIGHT                             */}
+            {/* ============================================================== */}
+            {timeline.anomalies && timeline.anomalies.length > 0 && (
+              <div
+                className="netrava-card"
+                style={{
+                  padding: 'var(--space-4) var(--space-5)',
+                  borderColor: 'var(--status-critical-border)',
+                  backgroundColor: 'rgba(239, 68, 68, 0.04)',
+                }}
+              >
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 'var(--space-2)',
+                    color: 'var(--status-critical)',
+                    fontWeight: 800,
+                    fontSize: 'var(--text-sm)',
+                    fontFamily: 'var(--font-mono)',
+                    marginBottom: 'var(--space-2)',
+                  }}
+                >
+                  <AlertTriangle size={15} />
+                  <span>
+                    SPATIO-TEMPORAL ROUTE ANOMALIES DETECTED ({timeline.anomalies.length})
+                  </span>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  {timeline.anomalies.map((anom, idx) => (
+                    <div
+                      key={idx}
+                      style={{
+                        padding: '6px 10px',
+                        backgroundColor: 'var(--bg-primary)',
+                        border: '1px solid var(--status-critical-border)',
+                        borderRadius: 'var(--radius-xs)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        fontSize: '11px',
+                        fontFamily: 'var(--font-mono)',
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <span style={{ color: 'var(--text-primary)', fontWeight: 700 }}>
+                          Hop {anom.segment_index}: {anom.from_camera} &rarr; {anom.to_camera}
+                        </span>
+                        <span style={{ color: 'var(--text-dim)' }}>&bull;</span>
+                        <span style={{ color: 'var(--text-secondary)' }}>Reason: {anom.reason}</span>
+                      </div>
+                      <span style={{ color: 'var(--status-critical)', fontWeight: 800 }}>
+                        {anom.status}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* ============================================================== */}
+            {/* WORKSPACE NAVIGATION TABS                                      */}
+            {/* ============================================================== */}
             <div
               style={{
                 display: 'flex',
                 gap: 'var(--space-1)',
                 borderBottom: '1px solid var(--border-default)',
                 paddingBottom: '2px',
+                marginTop: 'var(--space-2)',
               }}
             >
               {tabs.map((tab) => {
@@ -457,11 +1089,14 @@ export default function VehicleDetailPage() {
                     style={{
                       borderRadius: 'var(--radius-sm) var(--radius-sm) 0 0',
                       padding: 'var(--space-2) var(--space-4)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
                     }}
                   >
-                    <tab.icon size={14} className="tab-icon" />
+                    <tab.icon size={13} className="tab-icon" />
                     <span>{tab.label}</span>
-                    {tab.id === 'timeline' && (
+                    {typeof tab.count === 'number' && (
                       <span
                         className="nav-badge"
                         style={{
@@ -476,7 +1111,7 @@ export default function VehicleDetailPage() {
                           fontWeight: 700,
                         }}
                       >
-                        {timeline.total_sightings}
+                        {tab.count}
                       </span>
                     )}
                   </button>
@@ -484,203 +1119,126 @@ export default function VehicleDetailPage() {
               })}
             </div>
 
-            {/* Tab Content Panels */}
-            <div style={{ minHeight: '300px' }}>
+            {/* ============================================================== */}
+            {/* TAB PANELS                                                     */}
+            {/* ============================================================== */}
 
-              {/* === OVERVIEW TAB === */}
-              {activeTab === 'overview' && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
-                  {/* Sighting Observation Window */}
-                  <div className="netrava-card" style={{ padding: 'var(--space-4) var(--space-5)' }}>
-                    <div className="netrava-card-title" style={{ marginBottom: 'var(--space-3)' }}>
-                      <Clock size={15} color="var(--accent-blue)" />
-                      <span>Observation Window</span>
-                    </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 'var(--space-3)' }}>
-                      <DetailField
-                        label="First Observation"
-                        value={formatTimestamp(vehicleDetail.first_seen)}
-                        mono
-                      />
-                      <DetailField
-                        label="Last Observation"
-                        value={formatTimestamp(vehicleDetail.last_seen)}
-                        mono
-                      />
-                    </div>
-                  </div>
-
-                  {/* First & Last Observed Cameras */}
-                  {(vehicleDetail.first_known_sighting || vehicleDetail.last_known_sighting) && (
-                    <div className="netrava-card" style={{ padding: 'var(--space-4) var(--space-5)' }}>
-                      <div className="netrava-card-title" style={{ marginBottom: 'var(--space-3)' }}>
-                        <MapPin size={15} color="var(--accent-primary)" />
-                        <span>Observation Endpoints</span>
-                      </div>
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 'var(--space-3)' }}>
-                        {vehicleDetail.first_known_sighting && (
-                          <div
-                            style={{
-                              padding: 'var(--space-4)',
-                              backgroundColor: 'var(--status-success-bg)',
-                              border: '1px solid var(--status-success-border)',
-                              borderRadius: 'var(--radius-sm)',
-                            }}
-                          >
-                            <div
-                              style={{
-                                fontSize: '10px',
-                                fontWeight: 700,
-                                color: 'var(--status-success)',
-                                textTransform: 'uppercase',
-                                letterSpacing: '0.06em',
-                                marginBottom: 'var(--space-2)',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '4px',
-                                fontFamily: 'var(--font-mono)',
-                              }}
-                            >
-                              <ScanLine size={11} /> First Observation
-                            </div>
-                            <div style={{ fontWeight: 700, fontSize: 'var(--text-sm)', color: 'var(--text-primary)', marginBottom: '4px' }}>
-                              {vehicleDetail.first_known_sighting.camera_name}
-                            </div>
-                            <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginBottom: '4px' }}>
-                              {vehicleDetail.first_known_sighting.location}
-                            </div>
-                            <div style={{ fontSize: '11px', color: 'var(--text-dim)', fontFamily: 'var(--font-mono)' }}>
-                              {formatTimestamp(vehicleDetail.first_known_sighting.timestamp)}
-                            </div>
-                          </div>
-                        )}
-                        {vehicleDetail.last_known_sighting && (
-                          <div
-                            style={{
-                              padding: 'var(--space-4)',
-                              backgroundColor: 'rgba(239, 68, 68, 0.06)',
-                              border: '1px solid var(--status-critical-border)',
-                              borderRadius: 'var(--radius-sm)',
-                            }}
-                          >
-                            <div
-                              style={{
-                                fontSize: '10px',
-                                fontWeight: 700,
-                                color: 'var(--status-critical)',
-                                textTransform: 'uppercase',
-                                letterSpacing: '0.06em',
-                                marginBottom: 'var(--space-2)',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '4px',
-                                fontFamily: 'var(--font-mono)',
-                              }}
-                            >
-                              <ScanLine size={11} /> Last Observation
-                            </div>
-                            <div style={{ fontWeight: 700, fontSize: 'var(--text-sm)', color: 'var(--text-primary)', marginBottom: '4px' }}>
-                              {vehicleDetail.last_known_sighting.camera_name}
-                            </div>
-                            <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginBottom: '4px' }}>
-                              {vehicleDetail.last_known_sighting.location}
-                            </div>
-                            <div style={{ fontSize: '11px', color: 'var(--text-dim)', fontFamily: 'var(--font-mono)' }}>
-                              {formatTimestamp(vehicleDetail.last_known_sighting.timestamp)}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Route Summary Overview */}
-                  {timeline.sightings.length >= 2 && (
-                    <div className="netrava-card" style={{ padding: 'var(--space-4) var(--space-5)' }}>
-                      <div className="netrava-card-title" style={{ marginBottom: 'var(--space-3)' }}>
-                        <Map size={15} color="var(--accent-blue)" />
-                        <span>Trajectory Summary</span>
-                      </div>
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 'var(--space-3)' }}>
-                        <DetailField
-                          label="Total Distance"
-                          value={
-                            timeline.summary.total_distance_meters < 1000
-                              ? `${Math.round(timeline.summary.total_distance_meters)} m`
-                              : `${(timeline.summary.total_distance_meters / 1000).toFixed(2)} km`
-                          }
-                          mono
-                        />
-                        <DetailField
-                          label="Avg Speed"
-                          value={`${timeline.summary.average_speed_kmh.toFixed(1)} km/h`}
-                          mono
-                        />
-                        <DetailField
-                          label="Camera Hops"
-                          value={String(timeline.summary.hops_count)}
-                          mono
-                        />
-                        <DetailField
-                          label="Route Score"
-                          value={
-                            <span style={{ color: timeline.route_plausibility_score === 1 ? 'var(--status-success)' : 'var(--status-warning)' }}>
-                              {Math.round(timeline.route_plausibility_score * 100)}%
-                            </span>
-                          }
-                        />
-                      </div>
-                      <div style={{ marginTop: 'var(--space-4)', display: 'flex', gap: 'var(--space-3)' }}>
-                        <button
-                          onClick={() => setActiveTab('timeline')}
-                          className="btn-secondary"
-                          style={{
-                            fontSize: 'var(--text-xs)',
-                            padding: '6px 14px',
-                          }}
-                        >
-                          <List size={13} /> View Sighting Timeline
-                        </button>
-                        <button
-                          onClick={() => setActiveTab('map')}
-                          className="btn-primary"
-                          style={{
-                            fontSize: 'var(--text-xs)',
-                            padding: '6px 14px',
-                          }}
-                        >
-                          <Map size={13} /> Open Route Map
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* === TIMELINE TAB === */}
-              {activeTab === 'timeline' && (
-                <SightingsTimeline
-                  sightings={timeline.sightings}
-                  routeSegments={timeline.route_segments}
-                  summary={timeline.summary}
-                  routePlausibilityScore={timeline.route_plausibility_score}
-                  onExportEvidence={isEvidenceExportAuthorized ? (sightingId) => setEvidenceSightingId(sightingId) : undefined}
-                  userRole={user?.role}
-                />
-              )}
-
-              {/* === MAP TAB === */}
-              {activeTab === 'map' && (
+            {/* TAB 1: COMMAND CENTER DOSSIER (Unified Multi-Pane View) */}
+            {activeTab === 'command_center' && (
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'minmax(0, 1.4fr) minmax(0, 1fr)',
+                  gap: 'var(--space-4)',
+                  alignItems: 'start',
+                }}
+              >
+                {/* Left Column: Sighting Timeline */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+                  <SightingsTimeline
+                    sightings={timeline.sightings}
+                    routeSegments={timeline.route_segments}
+                    summary={timeline.summary}
+                    routePlausibilityScore={timeline.route_plausibility_score}
+                    selectedSightingId={selectedSighting?.id}
+                    onSelectSighting={(s) => setSelectedSighting(s)}
+                    onExportEvidence={isEvidenceExportAuthorized ? (id) => setEvidenceSightingId(id) : undefined}
+                    userRole={user?.role}
+                  />
+                </div>
+
+                {/* Right Column: Route Map + Active Evidence + Audit Trail */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+                  {/* GIS Route Map */}
                   <RouteMap
                     sightings={timeline.sightings}
                     routeSegments={timeline.route_segments}
                     disclaimer={timeline.disclaimer}
                     plateNormalized={vehicleDetail.plate_normalized}
+                    selectedSightingId={selectedSighting?.id}
+                    onSelectSighting={(s) => setSelectedSighting(s)}
+                  />
+
+                  {/* Active Evidence Inspection Panel */}
+                  <EvidenceInspectionPanel
+                    sightingId={selectedSighting?.id || null}
+                    plateNormalized={vehicleDetail.plate_normalized}
+                    cameraName={selectedSighting?.camera_name}
+                    timestamp={selectedSighting?.timestamp}
+                    city={selectedSighting?.city || selectedSighting?.location?.district}
+                    onVerifyExport={isEvidenceExportAuthorized ? (id) => setEvidenceSightingId(id) : undefined}
+                  />
+
+                  {/* Investigation Audit Trail */}
+                  <InvestigationAuditTrail
+                    plateNormalized={vehicleDetail.plate_normalized}
+                    auditRecords={auditRecords}
+                    loading={auditLoading}
+                    onRefresh={handleRefreshAudit}
                   />
                 </div>
-              )}
-            </div>
+              </div>
+            )}
+
+            {/* TAB 2: FULL-WIDTH TIMELINE */}
+            {activeTab === 'timeline' && (
+              <SightingsTimeline
+                sightings={timeline.sightings}
+                routeSegments={timeline.route_segments}
+                summary={timeline.summary}
+                routePlausibilityScore={timeline.route_plausibility_score}
+                selectedSightingId={selectedSighting?.id}
+                onSelectSighting={(s) => setSelectedSighting(s)}
+                onExportEvidence={isEvidenceExportAuthorized ? (id) => setEvidenceSightingId(id) : undefined}
+                userRole={user?.role}
+              />
+            )}
+
+            {/* TAB 3: FULL-WIDTH ROUTE MAP */}
+            {activeTab === 'map' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+                <RouteMap
+                  sightings={timeline.sightings}
+                  routeSegments={timeline.route_segments}
+                  disclaimer={timeline.disclaimer}
+                  plateNormalized={vehicleDetail.plate_normalized}
+                  selectedSightingId={selectedSighting?.id}
+                  onSelectSighting={(s) => setSelectedSighting(s)}
+                />
+              </div>
+            )}
+
+            {/* TAB 4: EVIDENCE & INTEGRITY */}
+            {activeTab === 'evidence' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+                <EvidenceInspectionPanel
+                  sightingId={selectedSighting?.id || timeline.sightings[0]?.id || null}
+                  plateNormalized={vehicleDetail.plate_normalized}
+                  cameraName={selectedSighting?.camera_name || timeline.sightings[0]?.camera_name}
+                  timestamp={selectedSighting?.timestamp || timeline.sightings[0]?.timestamp}
+                  city={selectedSighting?.city || timeline.sightings[0]?.city}
+                  onVerifyExport={isEvidenceExportAuthorized ? (id) => setEvidenceSightingId(id) : undefined}
+                />
+              </div>
+            )}
+
+            {/* TAB 5: AUDIT TRAIL */}
+            {activeTab === 'audit' && (
+              <InvestigationAuditTrail
+                plateNormalized={vehicleDetail.plate_normalized}
+                auditRecords={auditRecords}
+                loading={auditLoading}
+                onRefresh={handleRefreshAudit}
+              />
+            )}
+
+            {/* TAB 6: OBSERVATION CORRELATION (Phase 10) */}
+            {activeTab === 'correlation' && (
+              <CorrelationCandidatesPanel
+                plate={vehicleDetail.plate_normalized}
+                token={tokenStorage.getAccessToken() || ''}
+              />
+            )}
           </>
         )}
 

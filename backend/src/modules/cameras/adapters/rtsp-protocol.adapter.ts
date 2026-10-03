@@ -62,7 +62,15 @@ export class RtspProtocolAdapter implements CameraProtocolAdapter {
       const port = parsed.port ? parseInt(parsed.port, 10) : 554;
       const path = parsed.pathname || '/';
 
-      const probeOutcome = await this.executeRtspSocketProbe(host, port, path, sanitizedUrl, timeoutMs);
+      const probeOutcome = await this.executeRtspSocketProbe(
+        host,
+        port,
+        path,
+        sanitizedUrl,
+        timeoutMs,
+        config.username,
+        config.password,
+      );
       const latencyMs = Date.now() - startTime;
 
       return {
@@ -97,6 +105,8 @@ export class RtspProtocolAdapter implements CameraProtocolAdapter {
     path: string,
     sanitizedUrl: string,
     timeoutMs: number,
+    username?: string,
+    password?: string,
   ): Promise<{
     status: AdapterConnectionStatus;
     reachable: boolean;
@@ -226,23 +236,73 @@ export class RtspProtocolAdapter implements CameraProtocolAdapter {
               reachable: true,
               metadata,
             });
+            return;
           } else if (statusLine.includes(' 401 Unauthorized')) {
+            // If credentials supplied, attempt RFC 2326 Basic Authorization retry
+            if (username && password) {
+              currentStep = 'DESCRIBE_AUTH';
+              buffer = '';
+              const authHeader = `Basic ${Buffer.from(`${username}:${password}`).toString('base64')}`;
+              const authDescribeRequest =
+                `DESCRIBE rtsp://${host}:${port}${path} RTSP/1.0\r\n` +
+                `CSeq: 3\r\n` +
+                `Authorization: ${authHeader}\r\n` +
+                `Accept: application/sdp\r\n` +
+                `User-Agent: GujCamera-ProtocolAdapter/1.0\r\n\r\n`;
+
+              socket.write(authDescribeRequest);
+              return;
+            }
+
             safeResolve({
               status: AdapterConnectionStatus.DEGRADED,
               reachable: true,
               errorMessage: 'RTSP Authentication Required (401 Unauthorized)',
             });
+            return;
           } else if (statusLine.includes(' 404 Not Found')) {
             safeResolve({
               status: AdapterConnectionStatus.OFFLINE,
               reachable: true,
               errorMessage: 'RTSP Stream Not Found (404)',
             });
+            return;
           } else {
             safeResolve({
               status: AdapterConnectionStatus.ERROR,
               reachable: true,
               errorMessage: `RTSP DESCRIBE Error Response: ${statusLine.trim()}`,
+            });
+            return;
+          }
+        }
+
+        if (currentStep === 'DESCRIBE_AUTH' && buffer.includes('\r\n\r\n')) {
+          const [headersPart, ...bodyParts] = buffer.split('\r\n\r\n');
+          const sdpBody = bodyParts.join('\r\n\r\n');
+          const statusLine = headersPart.split('\r\n')[0] || '';
+
+          if (statusLine.includes(' 200 OK')) {
+            const metadata = this.parseSdp(sdpBody, sanitizedUrl);
+            if (publicVerbs && metadata.rawDetails) {
+              metadata.rawDetails.publicVerbs = publicVerbs;
+            }
+            safeResolve({
+              status: AdapterConnectionStatus.CONNECTED,
+              reachable: true,
+              metadata,
+            });
+          } else if (statusLine.includes(' 401 Unauthorized')) {
+            safeResolve({
+              status: AdapterConnectionStatus.DEGRADED,
+              reachable: true,
+              errorMessage: 'RTSP Authentication Failed: Invalid credentials',
+            });
+          } else {
+            safeResolve({
+              status: AdapterConnectionStatus.ERROR,
+              reachable: true,
+              errorMessage: `RTSP Authenticated DESCRIBE Error Response: ${statusLine.trim()}`,
             });
           }
         }

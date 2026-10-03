@@ -117,11 +117,13 @@ class DetectedPlate:
     bbox: BoundingBox
     confidence: float
     vehicle_id: Optional[str] = None
+    vehicle_class: Optional[str] = None  # Phase 10: Normalized VehicleClass label (e.g. 'CAR', 'TRUCK')
 
     def to_dict(self) -> Dict[str, Any]:
         return {
             "plate_id": self.plate_id,
             "vehicle_id": self.vehicle_id,
+            "vehicle_class": self.vehicle_class,
             "confidence": round(self.confidence, 4),
             "bbox": self.bbox.to_list(),
         }

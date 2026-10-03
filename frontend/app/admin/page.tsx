@@ -1,11 +1,12 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Settings,
   Camera as CameraIcon,
   Radio,
   CheckCircle2,
+
   AlertTriangle,
   XCircle,
   Activity,
@@ -33,6 +34,7 @@ import {
   DepartmentRecord,
 } from '@/types/camera';
 import { ApiError } from '@/types/api';
+import { extractCredentialsFromUrl, stripCredentialsFromUrl } from '@/lib/utils/url-sanitizer';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
@@ -78,6 +80,14 @@ export default function FleetAdminPage() {
   const [submitSuccess, setSubmitSuccess] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [duplicateError, setDuplicateError] = useState<DuplicateErrorInfo | null>(null);
+
+  // Secure credential lifecycle states (Zero client-side persistent retention)
+  const transientCredsRef = useRef<{ username?: string; password?: string } | null>(null);
+  const [credentialsConfigured, setCredentialsConfigured] = useState<boolean>(false);
+  const [lastOnboardedCameraId, setLastOnboardedCameraId] = useState<string | null>(null);
+  const [isRotatingCreds, setIsRotatingCreds] = useState<boolean>(false);
+  const [rotationSuccess, setRotationSuccess] = useState<string | null>(null);
+  const [rotationError, setRotationError] = useState<string | null>(null);
 
   useEffect(() => {
     async function loadMetadata() {
@@ -133,6 +143,8 @@ export default function FleetAdminPage() {
     setProtocol(newProtocol);
     setProbeResult(null);
     setProbeError(null);
+    transientCredsRef.current = null;
+    setCredentialsConfigured(false);
 
     if (newProtocol === 'RTSP') {
       setStreamUrl('rtsp://localhost:8554/live/cam-ahm-01');
@@ -156,6 +168,25 @@ export default function FleetAdminPage() {
       return;
     }
 
+    // 1. Detect and separate inline credentials if present in stream endpoint
+    const extracted = extractCredentialsFromUrl(streamUrl);
+    const cleanEndpoint = extracted.cleanUrl || streamUrl.trim();
+    if (extracted.hasCredentials) {
+      setStreamUrl(cleanEndpoint);
+      if (!username.trim() && extracted.username) {
+        setUsername(extracted.username);
+      }
+    }
+
+    // Prefer explicit credentials over inline credentials
+    const probeUsername = username.trim() || extracted.username || transientCredsRef.current?.username || undefined;
+    const probePassword = password || extracted.password || transientCredsRef.current?.password || undefined;
+
+    // Cache tested credentials in component-scoped ephemeral memory for seamless camera registration
+    if (probePassword) {
+      transientCredsRef.current = { username: probeUsername, password: probePassword };
+    }
+
     setIsProbing(true);
     setProbeResult(null);
     setProbeError(null);
@@ -163,9 +194,9 @@ export default function FleetAdminPage() {
     try {
       const result = await camerasApi.testConnection({
         protocol,
-        url_or_handle: streamUrl.trim(),
-        username: username.trim() || undefined,
-        password: password || undefined,
+        url_or_handle: cleanEndpoint,
+        username: probeUsername,
+        password: probePassword,
         timeoutMs: 5000,
       });
       setProbeResult(result);
@@ -173,6 +204,8 @@ export default function FleetAdminPage() {
       setProbeError(err.message || 'Connection probe failed due to network error');
     } finally {
       setIsProbing(false);
+      // Immediately clear password state to enforce zero-retention policy
+      setPassword('');
     }
   };
 
@@ -183,11 +216,27 @@ export default function FleetAdminPage() {
     setSubmitSuccess(null);
     setSubmitError(null);
     setDuplicateError(null);
+    setRotationSuccess(null);
+    setRotationError(null);
+
+    // 1. Detect and separate inline credentials if present
+    const extracted = extractCredentialsFromUrl(streamUrl);
+    const cleanEndpoint = extracted.cleanUrl || streamUrl.trim();
+    if (extracted.hasCredentials) {
+      setStreamUrl(cleanEndpoint);
+    }
+
+    // 2. Resolve credentials (prefer explicit input over inline, then transient tested credentials)
+    const regUsername = username.trim() || extracted.username || transientCredsRef.current?.username || undefined;
+    const regPassword = password || extracted.password || transientCredsRef.current?.password || undefined;
 
     try {
       const targetConnector =
         connectorId ||
         (connectors.length > 0 ? connectors[0].id : 'c1111111-0000-0000-0000-000000000001');
+
+      const rawStreamUri = probeResult?.streamMetadata?.streamUri || cleanEndpoint;
+      const cleanStreamUri = stripCredentialsFromUrl(rawStreamUri);
 
       const newCamera = await camerasApi.createCamera({
         name: name.trim(),
@@ -206,11 +255,19 @@ export default function FleetAdminPage() {
           codec: probeResult?.streamMetadata?.codec || 'h264',
           resolution: probeResult?.streamMetadata?.resolution || '1920x1080',
           fps: probeResult?.streamMetadata?.fps || 25,
-          url_or_handle: probeResult?.streamMetadata?.streamUri || streamUrl.trim(),
+          url_or_handle: cleanStreamUri,
         },
+        ...(regPassword ? {
+          credentials: {
+            username: regUsername,
+            password: regPassword,
+          },
+        } : {}),
       });
 
       setSubmitSuccess(`Camera '${newCamera.name}' successfully onboarded with ID ${newCamera.id}!`);
+      setLastOnboardedCameraId(newCamera.id);
+      setCredentialsConfigured(Boolean(regPassword || newCamera.credential_configured));
     } catch (err: any) {
       // Detect duplicate stream endpoint conflict and surface an actionable banner
       const isDuplicate =
@@ -220,7 +277,7 @@ export default function FleetAdminPage() {
 
       if (isDuplicate) {
         setDuplicateError({
-          endpoint: streamUrl.trim(),
+          endpoint: cleanEndpoint,
           existingCameraId: err.existingCamera?.id,
           existingCameraName: err.existingCamera?.name,
         });
@@ -229,6 +286,41 @@ export default function FleetAdminPage() {
       }
     } finally {
       setIsSubmitting(false);
+      // Enforce zero client-side persistent password retention
+      setPassword('');
+      transientCredsRef.current = null;
+    }
+  };
+
+  // Rotate credentials for an onboarded camera
+  const handleRotateCredentials = async () => {
+    if (!lastOnboardedCameraId) {
+      setRotationError('No active camera selected for credential rotation');
+      return;
+    }
+    if (!password.trim()) {
+      setRotationError('New password is required for credential rotation');
+      return;
+    }
+
+    setIsRotatingCreds(true);
+    setRotationSuccess(null);
+    setRotationError(null);
+
+    try {
+      await camerasApi.configureCredentials(lastOnboardedCameraId, {
+        username: username.trim() || undefined,
+        password: password.trim(),
+        credential_type: protocol === 'ONVIF' ? 'ONVIF_TOKEN' : 'BASIC_AUTH',
+      });
+      setRotationSuccess('Credentials securely rotated in AES-256-GCM vault ✓');
+      setCredentialsConfigured(true);
+    } catch (err: any) {
+      setRotationError(err.message || 'Failed to rotate camera credentials');
+    } finally {
+      setIsRotatingCreds(false);
+      // Immediately clear password field after rotation
+      setPassword('');
     }
   };
 
@@ -855,7 +947,7 @@ export default function FleetAdminPage() {
                         type="password"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
-                        placeholder="••••••••"
+                        placeholder={credentialsConfigured ? "Enter new password to rotate" : "••••••••"}
                         style={{
                           width: '100%',
                           paddingRight: '32px',
@@ -865,6 +957,66 @@ export default function FleetAdminPage() {
                     </div>
                   </div>
                 </div>
+
+                {/* Secure Credential Zero-Retention Status & Rotation UI */}
+                {credentialsConfigured && (
+                  <div
+                    style={{
+                      padding: '8px 12px',
+                      backgroundColor: 'rgba(34, 197, 94, 0.08)',
+                      border: '1px solid rgba(34, 197, 94, 0.25)',
+                      borderRadius: 'var(--radius-sm)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '6px',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#4ADE80', fontSize: '11px', fontWeight: 700, fontFamily: 'var(--font-mono)' }}>
+                        <CheckCircle2 size={14} color="#4ADE80" />
+                        <span>Credentials configured ✓</span>
+                      </div>
+                      <span style={{ fontSize: '10px', color: 'var(--text-dim)', fontFamily: 'var(--font-mono)' }}>
+                        AES-256-GCM Secure Vault (Zero plain-text in client)
+                      </span>
+                    </div>
+
+                    {lastOnboardedCameraId && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px', paddingTop: '4px', borderTop: '1px dashed rgba(34, 197, 94, 0.2)' }}>
+                        <button
+                          type="button"
+                          onClick={handleRotateCredentials}
+                          disabled={isRotatingCreds || !password.trim()}
+                          className="btn-secondary"
+                          style={{
+                            padding: '4px 10px',
+                            fontSize: '11px',
+                            color: 'var(--accent-blue)',
+                            borderColor: 'var(--accent-blue-border)',
+                            cursor: isRotatingCreds || !password.trim() ? 'not-allowed' : 'pointer',
+                            opacity: isRotatingCreds || !password.trim() ? 0.6 : 1,
+                          }}
+                        >
+                          {isRotatingCreds ? 'Rotating Key in Vault...' : 'Rotate Credentials in Vault'}
+                        </button>
+                        <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>
+                          Enter new password above and click to rotate
+                        </span>
+                      </div>
+                    )}
+
+                    {rotationSuccess && (
+                      <div style={{ fontSize: '11px', color: 'var(--status-success)', fontFamily: 'var(--font-mono)' }}>
+                        {rotationSuccess}
+                      </div>
+                    )}
+                    {rotationError && (
+                      <div style={{ fontSize: '11px', color: 'var(--status-critical)', fontFamily: 'var(--font-mono)' }}>
+                        {rotationError}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           </div>

@@ -150,6 +150,7 @@ class PlateLocalizer(BasePlateDetector):
                         bbox=bbox,
                         confidence=conf,
                         vehicle_id=vehicle.object_id,
+                        vehicle_class=vehicle.vehicle_class.value,  # Phase 10: carry class label
                     )
                 )
 
@@ -244,6 +245,7 @@ class PlateLocalizer(BasePlateDetector):
                                 bbox=bbox,
                                 confidence=round(conf, 3),
                                 vehicle_id=vehicle.object_id,
+                                vehicle_class=vehicle.vehicle_class.value,  # Phase 10: carry class label
                             )
                         )
 

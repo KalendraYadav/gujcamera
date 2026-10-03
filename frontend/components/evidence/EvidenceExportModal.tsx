@@ -271,9 +271,9 @@ export function EvidenceExportModal({
                 </div>
 
                 <div>
-                  <div style={{ color: 'var(--text-dim)', marginBottom: '2px', fontFamily: 'var(--font-mono)', fontSize: '10px', textTransform: 'uppercase' }}>Statutory Hold</div>
+                  <div style={{ color: 'var(--text-dim)', marginBottom: '2px', fontFamily: 'var(--font-mono)', fontSize: '10px', textTransform: 'uppercase' }}>Evidence Retention Policy</div>
                   <div style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>
-                    {evidence.retention_days} Days (State Hold)
+                    {evidence.retention_days} Days (State Vault)
                   </div>
                 </div>
               </div>
@@ -289,14 +289,14 @@ export function EvidenceExportModal({
                 }}
               >
                 <div style={{ marginBottom: '8px' }}>
-                  <div style={{ color: 'var(--text-dim)', marginBottom: '2px', fontFamily: 'var(--font-mono)', fontSize: '10px', textTransform: 'uppercase' }}>Stored Database SHA-256 Digest:</div>
+                  <div style={{ color: 'var(--text-dim)', marginBottom: '2px', fontFamily: 'var(--font-mono)', fontSize: '10px', textTransform: 'uppercase' }}>Stored SHA-256 Digest:</div>
                   <div style={{ fontFamily: 'var(--font-mono)', fontSize: '10px', color: 'var(--text-secondary)', wordBreak: 'break-all' }}>
                     {evidence.stored_sha256}
                   </div>
                 </div>
 
                 <div>
-                  <div style={{ color: 'var(--text-dim)', marginBottom: '2px', fontFamily: 'var(--font-mono)', fontSize: '10px', textTransform: 'uppercase' }}>Live Computed SHA-256 Digest:</div>
+                  <div style={{ color: 'var(--text-dim)', marginBottom: '2px', fontFamily: 'var(--font-mono)', fontSize: '10px', textTransform: 'uppercase' }}>Live Calculated SHA-256 Digest:</div>
                   <div
                     style={{
                       fontFamily: 'var(--font-mono)',
@@ -311,7 +311,7 @@ export function EvidenceExportModal({
                 </div>
               </div>
 
-              {/* Legal Admissibility Statement */}
+              {/* Legal / Procedural Notice */}
               <div
                 style={{
                   padding: 'var(--space-3) var(--space-4)',
@@ -320,15 +320,28 @@ export function EvidenceExportModal({
                   borderRadius: 'var(--radius-sm)',
                   fontSize: '11px',
                   color: 'var(--text-muted)',
-                  lineHeight: 1.4,
+                  lineHeight: 1.45,
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '2px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '3px' }}>
                   <Lock size={12} color="var(--accent-blue)" />
-                  <strong style={{ color: 'var(--text-primary)' }}>STATUTORY CERTIFICATE: Indian Evidence Act Section 65B</strong>
+                  <strong style={{ color: 'var(--text-primary)', textTransform: 'uppercase', fontSize: '10px', letterSpacing: '0.04em', fontFamily: 'var(--font-mono)' }}>
+                    LEGAL / PROCEDURAL NOTICE
+                  </strong>
                 </div>
                 <div>
-                  Export package contains verifiable JPEG primary frame, machine-readable manifest JSON, and a cryptographically signed SHA-256 audit digest.
+                  Cryptographic integrity verification confirms that the retrieved evidence object matches its recorded SHA-256 digest. This technical verification does not by itself establish legal admissibility, statutory compliance, authenticity, or evidentiary sufficiency. Applicable legal and departmental procedures must be followed independently.
+                </div>
+                <div
+                  style={{
+                    marginTop: '4px',
+                    fontSize: '10px',
+                    fontFamily: 'var(--font-mono)',
+                    color: 'var(--status-warning)',
+                    fontWeight: 600,
+                  }}
+                >
+                  AUTHENTICITY / ADMISSIBILITY REQUIRES INDEPENDENT LEGAL AND PROCEDURAL REVIEW
                 </div>
               </div>
 
@@ -348,7 +361,7 @@ export function EvidenceExportModal({
                 fontWeight: 600,
               }}
             >
-              Evidence package downloaded successfully with Section 65B certificate.
+              Evidence package downloaded successfully with technical integrity verification certificate.
             </div>
           )}
 

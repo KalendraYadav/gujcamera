@@ -1,0 +1,116 @@
+                 GOVERNMENT / DEPARTMENT
+                         │
+                 ┌───────▼────────┐
+                 │ CCTV Cameras   │
+                 └───────┬────────┘
+                         │
+                    Video Stream
+                         │
+                         ▼
+                 ┌───────────────┐
+                 │ NVR / VMS     │
+                 │               │
+                 │ Recording     │
+                 │ Camera Mgmt.  │
+                 └───────┬───────┘
+                         │
+              RTSP / ONVIF / Vendor API
+                         │
+                         ▼
+                 ┌───────────────┐
+                 │ NETRAVAHA     │
+                 │ Integration   │
+                 │ Layer         │
+                 └───────┬───────┘
+                         │
+                         ▼
+                Media / AI Pipeline
+                         │
+                         ▼
+                 Vehicle Sighting
+                         │
+             ┌───────────┴───────────┐
+             ▼                       ▼
+        Database                 Evidence
+       PostgreSQL               MinIO/Object
+       + PostGIS                 Storage
+             │
+             ▼
+      Watchlist / Alerts
+             │
+             ▼
+       Police Console
+
+
+
+                        DEMO VIDEO SOURCE
+                       │
+                       ▼
+             Public / Licensed Video
+                       │
+                       ▼
+                FFmpeg / File
+                       │
+                       ▼
+                  MediaMTX
+                       │
+             ┌─────────┴─────────┐
+             ▼                   ▼
+        Live Browser        AI Worker
+             │                   │
+             │            Vehicle Detection
+             │                   ↓
+             │            Plate Detection
+             │                   ↓
+             │                 OCR
+             │                   ↓
+             │              Consensus
+             │                   ↓
+             │          Vehicle Sighting
+             │              /        \
+             │             /          \
+             │         MinIO        Redis
+             │            │            │
+             │            │            ▼
+             │            │         NestJS
+             │            │            │
+             │            └──────→ PostgreSQL
+             │                         │
+             └─────────────────────────┤
+                                       ▼
+                                Watchlist Match
+                                       │
+                                  ┌────┴────┐
+                                  │         │
+                                 NO        YES
+                                  │         │
+                               Search     Alert
+                                           │
+                                           ▼
+                                    Police Console
+
+
+ LATER:---
+
+ TODAY
+
+MP4 / Research Video
+       ↓
+     FFmpeg
+       ↓
+    MediaMTX
+       ↓
+ NETRAVAHA pipeline
+
+
+FUTURE
+
+Government CCTV
+       ↓
+NVR / VMS
+       ↓
+RTSP / ONVIF / Approved VMS Adapter
+       ↓
+    MediaMTX
+       ↓
+ SAME NETRAVAHA PIPELINE                                   

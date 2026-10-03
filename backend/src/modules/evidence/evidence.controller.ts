@@ -56,7 +56,7 @@ export class EvidenceController {
   @Roles('INVESTIGATOR', 'SUPER_ADMIN')
   @ApiOperation({
     summary: 'Export certified Evidence Integrity Package (ZIP bundle)',
-    description: 'Generates an authenticated ZIP bundle containing the raw JPEG frame, metadata JSON, and Section 65B technical verification certificate. Blocks export on hash mismatch.',
+    description: 'Generates an authenticated ZIP bundle containing the raw JPEG frame, metadata JSON, and technical verification certificate. Blocks export on hash mismatch.',
   })
   @ApiResponse({ status: 200, description: 'Authenticated ZIP evidence package' })
   @ApiResponse({ status: 404, description: 'Evidence not found' })

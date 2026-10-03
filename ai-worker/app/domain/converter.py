@@ -108,6 +108,7 @@ def convert_consensus_to_domain(
         confidence=float(consensus.consensus_confidence),
         consensus_of=int(consensus.consensus_of),
         frame_ref=frame_ref,
+        vehicle_class=consensus.vehicle_class,  # Phase 10: propagate from ConsensusResult
     )
 
     return sighting_record, evidence_record

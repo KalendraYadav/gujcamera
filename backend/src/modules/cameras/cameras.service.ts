@@ -5,8 +5,11 @@ import {
   ForbiddenException,
   ConflictException,
   Logger,
+  OnModuleInit,
+  Optional,
+  Inject,
 } from '@nestjs/common';
-import { Prisma, CameraProtocol, OperationalStatus } from '@prisma/client';
+import { Prisma, CameraProtocol, OperationalStatus, CredentialType } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AuthenticatedUser } from '../../common/decorators/current-user.decorator';
 import { CreateCameraDto } from './dto/create-camera.dto';
@@ -16,15 +19,69 @@ import { NearbyCameraQueryDto } from './dto/nearby-camera-query.dto';
 import { ProtocolAdapterRegistry } from './adapters/protocol-adapter.registry';
 import { TestConnectionDto } from './dto/test-connection.dto';
 import { ConnectionProbeResult, AdapterConnectionStatus } from './adapters/camera-protocol-adapter.interface';
+import { MediaGatewayService } from './media-gateway.service';
+import { RedisStreamClient } from '../../common/events/redis/redis-stream.client';
+import { LocalEncryptedCredentialProvider } from './credentials/local-encrypted-credential.provider';
+import { CredentialPayload } from './credentials/credential-store.interface';
+import { CameraHealthPollerService } from './health/camera-health-poller.service';
+import {
+  sanitizeStreamUrl,
+  stripCredentialsFromUrl,
+  extractCredentialsFromUrl,
+} from '../../common/utils/url-sanitizer.util';
 
 @Injectable()
-export class CamerasService {
+export class CamerasService implements OnModuleInit {
   private readonly logger = new Logger(CamerasService.name);
 
   constructor(
     private readonly prisma: PrismaService,
     private readonly protocolRegistry: ProtocolAdapterRegistry,
+    @Optional() @Inject(MediaGatewayService) private readonly mediaGatewayService?: MediaGatewayService,
+    @Optional() @Inject(RedisStreamClient) private readonly redisClient?: RedisStreamClient,
+    @Optional() @Inject(LocalEncryptedCredentialProvider) private readonly credentialStore?: LocalEncryptedCredentialProvider,
+    @Optional() @Inject(CameraHealthPollerService) private readonly healthPoller?: CameraHealthPollerService,
   ) {}
+
+  async onModuleInit(): Promise<void> {
+    try {
+      if (this.mediaGatewayService) {
+        const health = await this.mediaGatewayService.checkHealth(1500);
+        this.logger.log(`MediaMTX Gateway status on init: ${health.isHealthy ? 'ONLINE' : 'OFFLINE'}`);
+      }
+
+      if (this.redisClient) {
+        // Synchronize active cameras from DB into Redis active-streams registry hash
+        const activeCameras = await this.prisma.camera.findMany({
+          where: { isActive: true },
+          include: { streams: true },
+        });
+
+        for (const cam of activeCameras) {
+          const stream = cam.streams?.[0];
+          if (stream?.urlOrHandle) {
+            const pathName = this.mediaGatewayService
+              ? this.mediaGatewayService.normalizePathName(cam.name, cam.id)
+              : 'cam';
+            await this.redisClient.hset(
+              'gujcamera:registry:active-streams',
+              cam.id,
+              JSON.stringify({
+                id: cam.id,
+                name: cam.name,
+                internal_url: sanitizeStreamUrl(stream.urlOrHandle),
+                path_name: pathName,
+                status: cam.operationalStatus,
+              }),
+            );
+          }
+        }
+        this.logger.log(`[MediaGatewaySync] Synced ${activeCameras.length} active camera streams to Redis`);
+      }
+    } catch (err: any) {
+      this.logger.warn(`Startup camera stream sync deferred: ${err.message}`);
+    }
+  }
 
 
   /**
@@ -78,11 +135,20 @@ export class CamerasService {
       });
     }
 
-    // Validate duplicate stream URL if provided
-    const streamHandle = dto.stream?.url_or_handle || dto.stream?.urlOrHandle;
-    if (streamHandle) {
+    // Extract credentials if provided inline or via explicit credentials payload
+    const rawStreamHandle = dto.stream?.url_or_handle || dto.stream?.urlOrHandle;
+    const extractedCreds = extractCredentialsFromUrl(rawStreamHandle);
+    const cleanStreamHandle = extractedCreds.cleanUrl;
+
+    const credentialUsername = dto.credentials?.username || extractedCreds.username;
+    const credentialPassword = dto.credentials?.password || extractedCreds.password;
+    const credentialToken = dto.credentials?.token;
+    const hasCredentialsToStore = Boolean(credentialPassword || credentialToken);
+
+    // Validate duplicate stream URL if provided (checking clean endpoint to avoid false negatives)
+    if (cleanStreamHandle) {
       const existingStream = await this.prisma.cameraStream.findFirst({
-        where: { urlOrHandle: streamHandle },
+        where: { urlOrHandle: cleanStreamHandle },
         include: {
           camera: {
             select: { id: true, name: true },
@@ -92,7 +158,7 @@ export class CamerasService {
       if (existingStream) {
         throw new ConflictException({
           error_code: 'DUPLICATE_STREAM_ENDPOINT',
-          message: `Stream endpoint '${streamHandle}' is already registered to another camera`,
+          message: `Stream endpoint '${cleanStreamHandle}' is already registered to another camera`,
           existing_camera: existingStream.camera
             ? {
                 id: existingStream.camera.id,
@@ -103,9 +169,46 @@ export class CamerasService {
       }
     }
 
-    const initialStatus = dto.operational_status || dto.operationalStatus || OperationalStatus.OFFLINE;
+    let initialStatus = dto.operational_status || dto.operationalStatus || OperationalStatus.OFFLINE;
+    let finalStreamHandle = cleanStreamHandle || 'rtsp://pending-configuration';
+    let pathName = 'cam-stream';
 
-    // Create camera, location, stream, and health in a single transaction
+    if (this.mediaGatewayService && cleanStreamHandle) {
+      pathName = this.mediaGatewayService.normalizePathName(dto.name, 'pending');
+      const isInternal = this.mediaGatewayService.isInternalGatewayStream(cleanStreamHandle);
+
+      if (!isInternal) {
+        // Construct authenticated source URL in memory ONLY for MediaMTX registration
+        let mediaMtxSourceUrl = cleanStreamHandle;
+        if (credentialUsername && credentialPassword) {
+          try {
+            const parsed = new URL(cleanStreamHandle);
+            parsed.username = encodeURIComponent(credentialUsername);
+            parsed.password = encodeURIComponent(credentialPassword);
+            mediaMtxSourceUrl = parsed.toString();
+          } catch {
+            mediaMtxSourceUrl = rawStreamHandle || cleanStreamHandle;
+          }
+        } else if (rawStreamHandle) {
+          mediaMtxSourceUrl = rawStreamHandle;
+        }
+
+        const gatewayRes = await this.mediaGatewayService.registerPath(pathName, mediaMtxSourceUrl);
+        if (gatewayRes.success) {
+          finalStreamHandle = gatewayRes.internalRtspUrl;
+          initialStatus = dto.operational_status || dto.operationalStatus || OperationalStatus.ONLINE;
+        } else {
+          this.logger.warn(`Media gateway registration failed for '${pathName}': ${gatewayRes.error}`);
+          initialStatus = OperationalStatus.ERROR;
+        }
+      } else {
+        // Internal/simulator stream: preserve clean stream handle
+        finalStreamHandle = cleanStreamHandle;
+        initialStatus = dto.operational_status || dto.operationalStatus || OperationalStatus.ONLINE;
+      }
+    }
+
+    // Create camera, location, stream, health, and credentials in a single transaction
     const createdCamera = await this.prisma.$transaction(async (tx) => {
       const camera = await tx.camera.create({
         data: {
@@ -132,7 +235,7 @@ export class CamerasService {
                   codec: dto.stream.codec || 'h264',
                   resolution: dto.stream.resolution || '1920x1080',
                   fps: dto.stream.fps || 25,
-                  urlOrHandle: streamHandle || 'rtsp://pending-configuration',
+                  urlOrHandle: stripCredentialsFromUrl(finalStreamHandle),
                 },
               }
             : undefined,
@@ -150,8 +253,38 @@ export class CamerasService {
           location: { select: { address: true, zone: true, district: true } },
           streams: { select: { id: true, codec: true, resolution: true, fps: true, urlOrHandle: true } },
           health: { select: { status: true, lastHeartbeat: true, fpsActual: true, packetLoss: true } },
+          credential: { select: { id: true, credentialType: true } },
         },
       });
+
+      // Secure Credential Vault Storage (AES-256-GCM authenticated encryption)
+      if (this.credentialStore && hasCredentialsToStore) {
+        await this.credentialStore.storeCredential(
+          camera.id,
+          {
+            username: credentialUsername,
+            password: credentialPassword,
+            token: credentialToken,
+          },
+          dto.protocol === CameraProtocol.ONVIF ? CredentialType.ONVIF_TOKEN : CredentialType.BASIC_AUTH,
+        );
+
+        // Audit Log for credential configuration (never logging secrets)
+        await tx.auditLog.create({
+          data: {
+            actorId: user.id,
+            action: 'CREDENTIAL_CONFIGURED',
+            resource: 'CameraCredential',
+            before: null,
+            after: {
+              cameraId: camera.id,
+              credentialType: dto.protocol === CameraProtocol.ONVIF ? 'ONVIF_TOKEN' : 'BASIC_AUTH',
+              configured: true,
+            },
+            correlationId: requestId && requestId.length === 36 ? requestId : null,
+          },
+        });
+      }
 
       // Synchronous Audit Log for camera onboarding
       await tx.auditLog.create({
@@ -175,6 +308,33 @@ export class CamerasService {
 
       return camera;
     });
+
+    // Synchronize newly activated stream to Redis Registry and notify downstream AI Worker
+    if (this.redisClient && createdCamera.isActive && initialStatus !== OperationalStatus.ERROR) {
+      try {
+        const safeInternalUrl = sanitizeStreamUrl(finalStreamHandle);
+        const streamData = JSON.stringify({
+          id: createdCamera.id,
+          name: createdCamera.name,
+          internal_url: safeInternalUrl,
+          path_name: pathName,
+          status: createdCamera.operationalStatus,
+        });
+        await this.redisClient.hset('gujcamera:registry:active-streams', createdCamera.id, streamData);
+        await this.redisClient.pubsubPublish(
+          'gujcamera:control:camera-events',
+          JSON.stringify({
+            action: 'ACTIVATE',
+            camera_id: createdCamera.id,
+            internal_url: safeInternalUrl,
+            path_name: pathName,
+          }),
+        );
+        this.logger.log(`[DynamicStream] Activated stream '${pathName}' for camera ${createdCamera.id}`);
+      } catch (redisErr: any) {
+        this.logger.warn(`Could not publish dynamic stream activation to Redis: ${redisErr.message}`);
+      }
+    }
 
     return this.sanitizeCamera(createdCamera);
   }
@@ -259,6 +419,7 @@ export class CamerasService {
           location: { select: { address: true, zone: true, district: true } },
           streams: { select: { id: true, codec: true, resolution: true, fps: true, urlOrHandle: true } },
           health: { select: { status: true, lastHeartbeat: true, fpsActual: true, packetLoss: true } },
+          credential: { select: { id: true, credentialType: true } },
         },
       });
 
@@ -281,6 +442,11 @@ export class CamerasService {
       isActive,
       ...(query.status && { operationalStatus: query.status }),
       ...(departmentId && { departmentId }),
+      ...(query.city && {
+        location: {
+          district: { contains: query.city, mode: 'insensitive' },
+        },
+      }),
     };
 
     const cameras = await this.prisma.camera.findMany({
@@ -296,16 +462,22 @@ export class CamerasService {
         location: { select: { address: true, zone: true, district: true } },
         streams: { select: { id: true, codec: true, resolution: true, fps: true, urlOrHandle: true } },
         health: { select: { status: true, lastHeartbeat: true, fpsActual: true, packetLoss: true } },
+        credential: { select: { id: true, credentialType: true } },
       },
     });
 
     const totalCount = await this.prisma.camera.count({ where: whereClause });
+    let sanitized = cameras.map((c) => this.sanitizeCamera(c));
+
+    if (query.source_type) {
+      sanitized = sanitized.filter((c) => c.source_type === query.source_type);
+    }
 
     return {
-      data: cameras.map((c) => this.sanitizeCamera(c)),
+      data: sanitized,
       pagination: {
         limit,
-        total: totalCount,
+        total: query.source_type ? sanitized.length : totalCount,
         next_cursor: cameras.length === limit ? cameras[cameras.length - 1].id : null,
       },
     };
@@ -384,6 +556,7 @@ export class CamerasService {
         location: { select: { address: true, zone: true, district: true } },
         streams: { select: { id: true, codec: true, resolution: true, fps: true, urlOrHandle: true } },
         health: { select: { status: true, lastHeartbeat: true, fpsActual: true, packetLoss: true } },
+        credential: { select: { id: true, credentialType: true } },
       },
     });
 
@@ -431,6 +604,7 @@ export class CamerasService {
         location: { select: { address: true, zone: true, district: true } },
         streams: { select: { id: true, codec: true, resolution: true, fps: true, urlOrHandle: true } },
         health: { select: { status: true, lastHeartbeat: true, fpsActual: true, packetLoss: true } },
+        credential: { select: { id: true, credentialType: true } },
       },
     });
 
@@ -544,6 +718,7 @@ export class CamerasService {
           location: { select: { address: true, zone: true, district: true } },
           streams: { select: { id: true, codec: true, resolution: true, fps: true, urlOrHandle: true } },
           health: { select: { status: true, lastHeartbeat: true, fpsActual: true, packetLoss: true } },
+          credential: { select: { id: true, credentialType: true } },
         },
       });
 
@@ -577,6 +752,71 @@ export class CamerasService {
 
       return updated;
     });
+
+    // MediaMTX and Redis Dynamic Stream Sync on camera update
+    if (updatedCamera) {
+      const streamObj = updatedCamera.streams?.[0];
+      const streamUrl = streamObj?.urlOrHandle;
+      const pathName = this.mediaGatewayService
+        ? this.mediaGatewayService.normalizePathName(updatedCamera.name, updatedCamera.id)
+        : '';
+
+      if (updatedCamera.isActive && streamUrl) {
+        // Camera is active: ensure MediaMTX path & Redis activation
+        if (this.mediaGatewayService && !this.mediaGatewayService.isInternalGatewayStream(streamUrl)) {
+          try {
+            await this.mediaGatewayService.registerPath(pathName, streamUrl);
+          } catch (gwErr: any) {
+            this.logger.warn(`Media gateway registration error for '${pathName}': ${gwErr.message}`);
+          }
+        }
+        if (this.redisClient) {
+          try {
+            const safeStreamUrl = sanitizeStreamUrl(streamUrl);
+            await this.redisClient.hset(
+              'gujcamera:registry:active-streams',
+              updatedCamera.id,
+              JSON.stringify({
+                id: updatedCamera.id,
+                name: updatedCamera.name,
+                internal_url: safeStreamUrl,
+                path_name: pathName,
+                status: updatedCamera.operationalStatus,
+              }),
+            );
+            await this.redisClient.pubsubPublish(
+              'gujcamera:control:camera-events',
+              JSON.stringify({
+                action: 'ACTIVATE',
+                camera_id: updatedCamera.id,
+                internal_url: safeStreamUrl,
+                path_name: pathName,
+              }),
+            );
+          } catch {}
+        }
+      } else if (!updatedCamera.isActive) {
+        // Camera deactivated: remove MediaMTX path & publish DEACTIVATE
+        if (this.mediaGatewayService) {
+          try {
+            await this.mediaGatewayService.removePath(pathName);
+          } catch {}
+        }
+        if (this.redisClient) {
+          try {
+            await this.redisClient.hdel('gujcamera:registry:active-streams', updatedCamera.id);
+            await this.redisClient.pubsubPublish(
+              'gujcamera:control:camera-events',
+              JSON.stringify({
+                action: 'DEACTIVATE',
+                camera_id: updatedCamera.id,
+                path_name: pathName,
+              }),
+            );
+          } catch {}
+        }
+      }
+    }
 
     return this.sanitizeCamera(updatedCamera);
   }
@@ -656,6 +896,40 @@ export class CamerasService {
       });
     });
 
+    // Remove path from MediaMTX and notify AI Worker
+    if (this.mediaGatewayService && existing) {
+      try {
+        const pathName = this.mediaGatewayService.normalizePathName(existing.name, existing.id);
+        await this.mediaGatewayService.removePath(pathName);
+      } catch (gwErr: any) {
+        this.logger.warn(`Media gateway path removal deferred for camera ${id}: ${gwErr.message}`);
+      }
+    }
+
+    // Decommission safety: explicitly notify health poller to drop camera from monitoring
+    if (this.healthPoller) {
+      this.healthPoller.forgetCamera(id);
+    }
+
+    if (this.redisClient && existing) {
+      try {
+        const pathName = this.mediaGatewayService
+          ? this.mediaGatewayService.normalizePathName(existing.name, existing.id)
+          : '';
+        await this.redisClient.hdel('gujcamera:registry:active-streams', id);
+        await this.redisClient.pubsubPublish(
+          'gujcamera:control:camera-events',
+          JSON.stringify({
+            action: 'DEACTIVATE',
+            camera_id: id,
+            path_name: pathName,
+          }),
+        );
+      } catch (redisErr: any) {
+        this.logger.warn(`Redis deactivation publish deferred for camera ${id}: ${redisErr.message}`);
+      }
+    }
+
     return {
       message: 'Camera successfully decommissioned (soft deletion)',
       id,
@@ -687,6 +961,20 @@ export class CamerasService {
       });
     }
 
+    const runtimeState = this.healthPoller?.getRuntimeState(id);
+    let gatewayStatus: any = null;
+    if (this.mediaGatewayService && camera.name) {
+      const pathName = this.mediaGatewayService.normalizePathName(camera.name, camera.id);
+      const stateRes = await this.mediaGatewayService.getPathState(pathName, 1500);
+      gatewayStatus = {
+        exists: stateRes.exists,
+        ready: stateRes.ready,
+        path_name: pathName,
+        readers_count: stateRes.state?.readersCount || 0,
+        bytes_received: stateRes.state?.bytesReceived,
+      };
+    }
+
     return {
       camera_id: camera.id,
       name: camera.name,
@@ -699,6 +987,11 @@ export class CamerasService {
             fps_actual: camera.health.fpsActual ? Number(camera.health.fpsActual) : null,
             packet_loss: camera.health.packetLoss ? Number(camera.health.packetLoss) : null,
             updated_at: camera.health.updatedAt,
+            reconnect_attempts: runtimeState?.reconnectAttempts || 0,
+            failure_reason: runtimeState?.failureReason || null,
+            last_transition: runtimeState?.lastTransitionAt || null,
+            recovery_at: runtimeState?.recoveryAt || null,
+            gateway_status: gatewayStatus,
           }
         : null,
     };
@@ -727,6 +1020,7 @@ export class CamerasService {
       connecting,
       error,
       decommissioned,
+      metrics: this.healthPoller ? this.healthPoller.getMetrics() : null,
       note: 'Camera operational health derived from registered camera telemetry and heartbeats, independent of API/database infrastructure health',
     };
   }
@@ -735,6 +1029,20 @@ export class CamerasService {
    * Remove internal secrets, sanitize database fields, and normalize Decimals to numbers
    */
   private sanitizeCamera(camera: any) {
+    const streamUrl = camera.streams?.[0]?.urlOrHandle || camera.streams?.[0]?.url_or_handle || '';
+    let sourceType = camera.source_type || camera.sourceType || 'SYNTHETIC_STREAM';
+    if (!camera.source_type && !camera.sourceType) {
+      if (streamUrl.includes('demo-traffic') || camera.name?.includes('RESEARCH') || camera.name?.includes('Expressway') || camera.name?.includes('SUR') || camera.name?.includes('VAD') || camera.name?.includes('RJK')) {
+        sourceType = 'RESEARCH_VIDEO';
+      } else if (streamUrl.includes('mock://')) {
+        sourceType = 'DEMO_FILE';
+      } else if (camera.protocol === 'ONVIF' && !streamUrl.includes('simulator') && !streamUrl.includes('video-gateway')) {
+        sourceType = 'REAL_ONVIF';
+      } else if (camera.protocol === 'RTSP' && !streamUrl.includes('simulator') && !streamUrl.includes('video-gateway')) {
+        sourceType = 'REAL_RTSP';
+      }
+    }
+
     return {
       id: camera.id,
       name: camera.name,
@@ -746,13 +1054,16 @@ export class CamerasService {
       connector_type_id: camera.connectorTypeId,
       operational_status: camera.operationalStatus,
       is_active: camera.isActive,
+      source_type: sourceType,
       created_at: camera.createdAt,
       updated_at: camera.updatedAt,
+      credential_configured: Boolean(camera.credential),
       location: camera.location
         ? {
             address: camera.location.address,
             zone: camera.location.zone,
             district: camera.location.district,
+            city: camera.location.district,
           }
         : null,
       streams: camera.streams
@@ -761,7 +1072,7 @@ export class CamerasService {
             codec: s.codec,
             resolution: s.resolution,
             fps: s.fps,
-            url_or_handle: s.urlOrHandle,
+            url_or_handle: sanitizeStreamUrl(s.urlOrHandle),
           }))
         : [],
       health: camera.health
@@ -773,6 +1084,215 @@ export class CamerasService {
           }
         : null,
     };
+  }
+
+  /**
+   * Securely store or rotate camera credentials in AES-256-GCM vault with audit logging
+   */
+  async configureCredentials(
+    cameraId: string,
+    payload: CredentialPayload,
+    user: AuthenticatedUser,
+    type: CredentialType = CredentialType.BASIC_AUTH,
+    requestId?: string,
+  ): Promise<{ configured: boolean; cameraId: string; credentialType: CredentialType }> {
+    if (!this.isValidUUID(cameraId)) {
+      throw new BadRequestException({
+        error_code: 'BAD_REQUEST',
+        message: 'Invalid camera UUID format',
+      });
+    }
+
+    if (!this.credentialStore) {
+      throw new BadRequestException({
+        error_code: 'CREDENTIAL_STORE_UNAVAILABLE',
+        message: 'Encrypted credential storage is not initialized on this instance',
+      });
+    }
+
+    const camera = await this.prisma.camera.findUnique({
+      where: { id: cameraId },
+      include: {
+        streams: true,
+        health: true,
+      },
+    });
+    if (!camera) {
+      throw new NotFoundException({
+        error_code: 'CAMERA_NOT_FOUND',
+        message: `Camera with ID '${cameraId}' not found`,
+      });
+    }
+
+    // RBAC: Department Admins can only configure credentials for their assigned department
+    if (user.role === 'DEPARTMENT_ADMIN' && camera.departmentId !== user.departmentId) {
+      throw new ForbiddenException({
+        error_code: 'DEPARTMENT_ACCESS_DENIED',
+        message: 'Department Admins can only configure credentials for their assigned department',
+      });
+    }
+
+    const hadExisting = await this.credentialStore.hasCredential(cameraId);
+    await this.credentialStore.storeCredential(cameraId, payload, type);
+
+    // If camera is currently active and stream is registered via MediaMTX, update active path in gateway
+    if (this.mediaGatewayService && camera.isActive && camera.streams && camera.streams.length > 0) {
+      const stream = camera.streams[0];
+      const cleanUrl = stripCredentialsFromUrl(stream.urlOrHandle);
+
+      if (cleanUrl && !this.mediaGatewayService.isInternalGatewayStream(cleanUrl)) {
+        const pathName = this.mediaGatewayService.normalizePathName(camera.name, camera.id);
+
+        // Construct authenticated source in memory ONLY for MediaMTX registration
+        let mediaMtxSourceUrl = cleanUrl;
+        if (payload.username && payload.password) {
+          try {
+            const parsed = new URL(cleanUrl);
+            parsed.username = encodeURIComponent(payload.username);
+            parsed.password = encodeURIComponent(payload.password);
+            mediaMtxSourceUrl = parsed.toString();
+          } catch {
+            mediaMtxSourceUrl = cleanUrl;
+          }
+        }
+
+        const gatewayRes = await this.mediaGatewayService.registerPath(pathName, mediaMtxSourceUrl);
+        if (!gatewayRes.success) {
+          this.logger.warn(`MediaMTX path update failed during credential rotation for camera '${camera.id}': ${gatewayRes.error}`);
+          await this.prisma.camera.update({
+            where: { id: cameraId },
+            data: { operationalStatus: OperationalStatus.ERROR },
+          });
+          await this.prisma.cameraHealth.upsert({
+            where: { cameraId },
+            create: {
+              cameraId,
+              status: OperationalStatus.ERROR,
+              lastHeartbeat: new Date(),
+              fpsActual: 0,
+              packetLoss: 100.0,
+            },
+            update: {
+              status: OperationalStatus.ERROR,
+              packetLoss: 100.0,
+            },
+          });
+          throw new BadRequestException({
+            error_code: 'GATEWAY_STREAM_UPDATE_FAILED',
+            message: `Credential rotated in vault, but media gateway failed to update stream source: ${gatewayRes.error}`,
+            camera_id: cameraId,
+            status: OperationalStatus.ERROR,
+          });
+        }
+      }
+    }
+
+    // Audit log (strictly never logging secret material)
+    await this.prisma.auditLog.create({
+      data: {
+        actorId: user.id,
+        action: hadExisting ? 'CREDENTIAL_UPDATED' : 'CREDENTIAL_CONFIGURED',
+        resource: 'CameraCredential',
+        before: hadExisting ? { configured: true } : null,
+        after: {
+          cameraId,
+          credentialType: type,
+          configured: true,
+        },
+        correlationId: requestId && requestId.length === 36 ? requestId : null,
+      },
+    });
+
+    // Notify health poller to reset retry state for immediate reconciliation with new credentials
+    if (this.healthPoller) {
+      this.healthPoller.notifyCredentialRotated(cameraId);
+    }
+
+    return {
+      configured: true,
+      cameraId,
+      credentialType: type,
+    };
+  }
+
+  /**
+   * Safely remove camera credentials with audit logging and active MediaMTX source cleanup
+   */
+  async removeCredentials(
+    cameraId: string,
+    user: AuthenticatedUser,
+    requestId?: string,
+  ): Promise<{ removed: boolean; cameraId: string }> {
+    if (!this.isValidUUID(cameraId)) {
+      throw new BadRequestException({
+        error_code: 'BAD_REQUEST',
+        message: 'Invalid camera UUID format',
+      });
+    }
+
+    if (!this.credentialStore) {
+      throw new BadRequestException({
+        error_code: 'CREDENTIAL_STORE_UNAVAILABLE',
+        message: 'Encrypted credential storage is not initialized on this instance',
+      });
+    }
+
+    const camera = await this.prisma.camera.findUnique({
+      where: { id: cameraId },
+      include: {
+        streams: true,
+      },
+    });
+    if (!camera) {
+      throw new NotFoundException({
+        error_code: 'CAMERA_NOT_FOUND',
+        message: `Camera with ID '${cameraId}' not found`,
+      });
+    }
+
+    if (user.role === 'DEPARTMENT_ADMIN' && camera.departmentId !== user.departmentId) {
+      throw new ForbiddenException({
+        error_code: 'DEPARTMENT_ACCESS_DENIED',
+        message: 'Department Admins can only remove credentials for their assigned department',
+      });
+    }
+
+    const removed = await this.credentialStore.removeCredential(cameraId);
+
+    // If camera stream was registered in MediaMTX with credentials, reset source to clean URL
+    if (this.mediaGatewayService && camera.isActive && camera.streams && camera.streams.length > 0) {
+      const stream = camera.streams[0];
+      const cleanUrl = stripCredentialsFromUrl(stream.urlOrHandle);
+      if (cleanUrl && !this.mediaGatewayService.isInternalGatewayStream(cleanUrl)) {
+        const pathName = this.mediaGatewayService.normalizePathName(camera.name, camera.id);
+        await this.mediaGatewayService.registerPath(pathName, cleanUrl);
+      }
+    }
+
+    await this.prisma.auditLog.create({
+      data: {
+        actorId: user.id,
+        action: 'CREDENTIAL_REMOVED',
+        resource: 'CameraCredential',
+        before: { configured: true },
+        after: { configured: false, cameraId },
+        correlationId: requestId && requestId.length === 36 ? requestId : null,
+      },
+    });
+
+    if (this.healthPoller) {
+      this.healthPoller.notifyCredentialRotated(cameraId);
+    }
+
+    return { removed, cameraId };
+  }
+
+  /**
+   * Check whether a camera has configured credentials
+   */
+  async hasCredentials(cameraId: string): Promise<boolean> {
+    if (!this.credentialStore) return false;
+    return this.credentialStore.hasCredential(cameraId);
   }
 
   /**

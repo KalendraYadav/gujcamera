@@ -3,6 +3,7 @@ import {
   NotFoundException,
   BadRequestException,
   Logger,
+  Optional,
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -11,12 +12,26 @@ import { VehicleQueryDto } from './dto/vehicle-query.dto';
 import { SightingQueryDto } from './dto/sighting-query.dto';
 import { TimelineQueryDto } from './dto/timeline-query.dto';
 import { normalizeLicensePlate } from './utils/plate-normalizer';
+import {
+  PostGisGeodesicDistanceProvider,
+  RouteIntelligenceEngine,
+  RawSightingInput,
+} from './route-intelligence';
 
 @Injectable()
 export class VehiclesService {
   private readonly logger = new Logger(VehiclesService.name);
+  private readonly distanceProvider: PostGisGeodesicDistanceProvider;
+  private readonly routeEngine: RouteIntelligenceEngine;
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @Optional() distanceProvider?: PostGisGeodesicDistanceProvider,
+    @Optional() routeEngine?: RouteIntelligenceEngine,
+  ) {
+    this.distanceProvider = distanceProvider || new PostGisGeodesicDistanceProvider(this.prisma);
+    this.routeEngine = routeEngine || new RouteIntelligenceEngine();
+  }
 
   /**
    * Search vehicles by normalized plate or prefix, last-seen time range, with pagination
@@ -275,6 +290,7 @@ export class VehiclesService {
       ...(toDate && { ts: { ...(fromDate ? { gte: fromDate } : {}), lte: toDate } }),
       ...(cameraId && { cameraId }),
       ...(departmentId && { camera: { departmentId } }),
+      ...(query.city && { camera: { location: { district: { contains: query.city, mode: 'insensitive' } } } }),
     };
 
     const [sightings, total] = await Promise.all([
@@ -323,6 +339,7 @@ export class VehiclesService {
       camera_name: s.camera.name,
       department_id: s.camera.departmentId,
       department_name: s.camera.department?.name,
+      city: s.camera.location?.district,
       coordinates: {
         lat: Number(s.camera.lat),
         long: Number(s.camera.long),
@@ -332,6 +349,7 @@ export class VehiclesService {
             address: s.camera.location.address,
             zone: s.camera.location.zone,
             district: s.camera.location.district,
+            city: s.camera.location.district,
           }
         : null,
     }));
@@ -448,6 +466,7 @@ export class VehiclesService {
       camera_id: s.cameraId,
       camera_name: s.camera.name,
       department_name: s.camera.department?.name,
+      city: s.camera.location?.district,
       coordinates: {
         lat: Number(s.camera.lat),
         long: Number(s.camera.long),
@@ -457,6 +476,7 @@ export class VehiclesService {
             address: s.camera.location.address,
             zone: s.camera.location.zone,
             district: s.camera.location.district,
+            city: s.camera.location.district,
           }
         : null,
       confidence: Number(s.confidence),
@@ -464,142 +484,32 @@ export class VehiclesService {
       frame_ref: s.frameRef,
     }));
 
-    // Reconstruct route segments between consecutive observations
-    const routeSegments: Array<{
-      from_camera_id: string;
-      from_camera_name: string;
-      from_coordinates: { lat: number; long: number };
-      from_timestamp: Date;
-      to_camera_id: string;
-      to_camera_name: string;
-      to_coordinates: { lat: number; long: number };
-      to_timestamp: Date;
-      distance_meters: number;
-      elapsed_seconds: number;
-      estimated_speed_kmh: number | null;
-      is_plausible: boolean;
-      plausibility_status: 'PLAUSIBLE' | 'REQUIRES_REVIEW' | 'IMPLAUSIBLE' | 'STATIONARY_OR_REPEAT_SIGHTING';
-      plausibility_reason: string;
-      segment_confidence: number;
-    }> = [];
+    // Prepare raw sighting inputs for RouteIntelligenceEngine
+    const rawInputs: RawSightingInput[] = sightings.map((s) => ({
+      id: s.id,
+      timestamp: s.ts,
+      cameraId: s.cameraId,
+      cameraName: s.camera.name,
+      departmentName: s.camera.department?.name,
+      city: s.camera.location?.district,
+      coordinates:
+        s.camera.lat !== null && s.camera.long !== null
+          ? { lat: Number(s.camera.lat), long: Number(s.camera.long) }
+          : null,
+      confidence: Number(s.confidence),
+      consensusFrames: s.consensusOf,
+      frameRef: s.frameRef,
+    }));
 
-    let totalDistanceMeters = 0;
-    let implausibleHopsCount = 0;
-    const distanceCache = new Map<string, number>();
-
-    for (let i = 1; i < sightings.length; i++) {
-      const prev = sightings[i - 1];
-      const curr = sightings[i];
-
-      const prevLat = Number(prev.camera.lat);
-      const prevLong = Number(prev.camera.long);
-      const currLat = Number(curr.camera.lat);
-      const currLong = Number(curr.camera.long);
-
-      // Elapsed time in seconds
-      const elapsedSeconds = Math.max(0, Math.round((curr.ts.getTime() - prev.ts.getTime()) / 1000));
-
-      // Compute geographic distance in meters
-      let distanceMeters = 0;
-      if (prev.camera.id === curr.camera.id) {
-        distanceMeters = 0.0;
-      } else {
-        const cacheKey = `${prev.camera.id}_${curr.camera.id}`;
-        if (distanceCache.has(cacheKey)) {
-          distanceMeters = distanceCache.get(cacheKey)!;
-        } else {
-          // PostGIS true geodesic geography distance calculation
-          const queryRes: Array<{ distance_meters: number | string }> = await this.prisma.$queryRaw`
-            SELECT ROUND(ST_Distance(
-              ST_SetSRID(ST_MakePoint(${prevLong}::float, ${prevLat}::float), 4326)::geography,
-              ST_SetSRID(ST_MakePoint(${currLong}::float, ${currLat}::float), 4326)::geography
-            )::numeric, 2) AS distance_meters
-          `;
-          distanceMeters = Number(queryRes[0]?.distance_meters || 0);
-          distanceCache.set(cacheKey, distanceMeters);
-        }
-      }
-
-      totalDistanceMeters += distanceMeters;
-
-      // Spatio-Temporal Plausibility Analysis
-      let isPlausible = true;
-      let plausibilityStatus: 'PLAUSIBLE' | 'REQUIRES_REVIEW' | 'IMPLAUSIBLE' | 'STATIONARY_OR_REPEAT_SIGHTING' = 'PLAUSIBLE';
-      let plausibilityReason = '';
-      let estimatedSpeedKmh: number | null = null;
-      let plausibilityWeight = 1.0;
-
-      if (elapsedSeconds === 0) {
-        if (distanceMeters > 50) {
-          isPlausible = false;
-          plausibilityStatus = 'IMPLAUSIBLE';
-          plausibilityReason = `Simultaneous observation across distinct locations (${distanceMeters}m apart with 0s elapsed)`;
-          plausibilityWeight = 0.0;
-          implausibleHopsCount++;
-        } else {
-          isPlausible = true;
-          plausibilityStatus = 'STATIONARY_OR_REPEAT_SIGHTING';
-          plausibilityReason = 'Repeated observation at identical camera junction';
-          estimatedSpeedKmh = 0.0;
-          plausibilityWeight = 1.0;
-        }
-      } else {
-        // Velocity (km/h) = (meters / 1000) / (seconds / 3600)
-        estimatedSpeedKmh = Math.round(((distanceMeters / 1000) / (elapsedSeconds / 3600)) * 100) / 100;
-
-        if (estimatedSpeedKmh > maxPlausibleSpeedKmh) {
-          isPlausible = false;
-          plausibilityStatus = 'REQUIRES_REVIEW';
-          plausibilityReason = `Implied speed of ${estimatedSpeedKmh} km/h over ${distanceMeters}m exceeds plausible transit threshold (${maxPlausibleSpeedKmh} km/h)`;
-          plausibilityWeight = 0.2;
-          implausibleHopsCount++;
-        } else {
-          isPlausible = true;
-          plausibilityStatus = 'PLAUSIBLE';
-          plausibilityReason = `Plausible observed transit of ${estimatedSpeedKmh} km/h over ${distanceMeters}m`;
-          plausibilityWeight = 1.0;
-        }
-      }
-
-      // Canonical confidence formula: min(sighting_A.confidence, sighting_B.confidence, plausibility_score)
-      const segmentConfidence = Number(
-        Math.min(Number(prev.confidence), Number(curr.confidence), plausibilityWeight).toFixed(4),
-      );
-
-      routeSegments.push({
-        from_camera_id: prev.camera.id,
-        from_camera_name: prev.camera.name,
-        from_coordinates: { lat: prevLat, long: prevLong },
-        from_timestamp: prev.ts,
-        to_camera_id: curr.camera.id,
-        to_camera_name: curr.camera.name,
-        to_coordinates: { lat: currLat, long: currLong },
-        to_timestamp: curr.ts,
-        distance_meters: distanceMeters,
-        elapsed_seconds: elapsedSeconds,
-        estimated_speed_kmh: estimatedSpeedKmh,
-        is_plausible: isPlausible,
-        plausibility_status: plausibilityStatus,
-        plausibility_reason: plausibilityReason,
-        segment_confidence: segmentConfidence,
-      });
-    }
-
-    const totalElapsedSeconds = Math.max(
-      0,
-      Math.round((sightings[sightings.length - 1].ts.getTime() - sightings[0].ts.getTime()) / 1000),
+    // Compute deterministic spatio-temporal route intelligence
+    const routeResult = await this.routeEngine.computeRouteIntelligence(
+      plate,
+      rawInputs,
+      this.distanceProvider,
+      {
+        suspiciousSpeedThresholdKmh: maxPlausibleSpeedKmh,
+      },
     );
-
-    const averageSpeedKmh =
-      totalElapsedSeconds > 0
-        ? Math.round(((totalDistanceMeters / 1000) / (totalElapsedSeconds / 3600)) * 100) / 100
-        : 0.0;
-
-    // Overall route plausibility score: ratio of plausible hops to total hops
-    const routePlausibilityScore =
-      routeSegments.length > 0
-        ? Number(((routeSegments.length - implausibleHopsCount) / routeSegments.length).toFixed(4))
-        : 1.0;
 
     // Synchronous investigative audit record
     await this.recordAuditLog(
@@ -610,9 +520,10 @@ export class VehiclesService {
         plate,
         plate_normalized: plate,
         sightings_count: sightings.length,
-        route_segments_count: routeSegments.length,
-        plausibility_score: routePlausibilityScore,
-        implausible_hops: implausibleHopsCount,
+        route_segments_count: routeResult.route_segments.length,
+        plausibility_score: routeResult.route_plausibility_score,
+        implausible_hops: routeResult.summary.impossible_hops_count,
+        anomalies_count: routeResult.anomalies.length,
       },
       requestId,
     );
@@ -620,17 +531,14 @@ export class VehiclesService {
     return {
       plate_normalized: plate,
       total_sightings: sightings.length,
-      route_plausibility_score: routePlausibilityScore,
+      cities: routeResult.cities,
+      route_plausibility_score: routeResult.route_plausibility_score,
+      route_confidence: routeResult.route_confidence,
       sightings: formattedSightings,
-      route_segments: routeSegments,
-      summary: {
-        total_distance_meters: Math.round(totalDistanceMeters * 100) / 100,
-        total_elapsed_seconds: totalElapsedSeconds,
-        average_speed_kmh: averageSpeedKmh,
-        hops_count: routeSegments.length,
-        implausible_hops_count: implausibleHopsCount,
-      },
-      disclaimer: 'Observed movement between camera observations; does not represent an exact physical driving route or turn-by-turn navigation.',
+      route_segments: routeResult.route_segments,
+      summary: routeResult.summary,
+      anomalies: routeResult.anomalies,
+      disclaimer: routeResult.disclaimer,
     };
   }
 
@@ -658,5 +566,64 @@ export class VehiclesService {
     } catch (err) {
       this.logger.error(`Failed to record audit log for action: ${action}`, err);
     }
+  }
+
+  /**
+   * Investigation-level audit trail for a specific vehicle registration
+   */
+  async getVehicleAuditLogs(plateOrId: string, user: AuthenticatedUser) {
+    const plate = normalizeLicensePlate(plateOrId);
+
+    if (!plate) {
+      throw new BadRequestException({
+        error_code: 'BAD_REQUEST',
+        message: 'Invalid license plate parameter',
+      });
+    }
+
+    const records = await this.prisma.auditLog.findMany({
+      where: {
+        resource: { in: ['Vehicle', 'Alert', 'Evidence', 'alerts', 'evidence'] },
+      },
+      take: 200,
+      orderBy: { ts: 'desc' },
+      include: {
+        actor: {
+          select: {
+            id: true,
+            email: true,
+            role: { select: { name: true } },
+            department: { select: { id: true, name: true } },
+          },
+        },
+      },
+    });
+
+    const matching = records.filter((rec) => {
+      const after = rec.after as any;
+      if (!after) return false;
+      return (
+        after.plate_normalized === plate ||
+        after.plate === plate ||
+        after.search_query === plate
+      );
+    });
+
+    return {
+      plate_normalized: plate,
+      total_records: matching.length,
+      data: matching.map((rec) => ({
+        id: rec.id,
+        actor_id: rec.actorId,
+        actor_email: rec.actor?.email || 'SYSTEM / AUTOMATED',
+        actor_role: rec.actor?.role?.name || 'SYSTEM',
+        actor_department: rec.actor?.department?.name || 'POLICE_HQ',
+        action: rec.action,
+        resource: rec.resource,
+        ts: rec.ts.toISOString(),
+        correlation_id: rec.correlationId,
+        details: rec.after,
+      })),
+    };
   }
 }

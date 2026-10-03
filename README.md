@@ -47,9 +47,10 @@ All data models, API endpoints, events, and security boundaries strictly follow 
 | **Phase 4C: Live CCTV Streaming** | 🟢 Complete | MediaMTX HLS playback, camera switching, health visibility |
 | **Phase 4D: Vehicle Investigation** | 🟢 Complete | Cross-camera sighting timeline, route reconstruction on GIS map |
 | **Phase 4E: Watchlist & Alert Delivery** | 🟢 Complete | Native WebSocket (`/ws/alerts`), live triage console, polling fallback |
+| **Phase 5A: Dynamic Stream Ingestion** | 🟢 Complete | Zero-restart MediaMTX control plane, dynamic AI worker dispatcher ([Docs](./docs/DYNAMIC_STREAM_ACTIVATION.md)) |
 
 ### Build vs. Simulate vs. Future Scope
-* **Implemented (Current PoC)**: Dockerized storage layer, NestJS modular monolith, native WebSocket alert gateway, Next.js command console (Cameras, Live CCTV, Vehicle Investigation, Watchlists, Real-Time Alerts), Python AI worker.
+* **Implemented (Current PoC)**: Dockerized storage layer, NestJS modular monolith, native WebSocket alert gateway, Next.js command console (Cameras, Live CCTV, Vehicle Investigation, Watchlists, Real-Time Alerts), Python AI worker, dynamic MediaMTX stream activation control plane.
 * **Simulated (For Demo)**: Synthetic RTSP camera feeds via FFmpeg and deterministic video loops.
 * **Future Production**: Multi-region Kubernetes deployment, Kafka event streaming, ONVIF/PSIA vendor protocol adapters, and edge GPU pre-filtering.
 

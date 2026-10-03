@@ -48,6 +48,8 @@ export default function CameraRegistryPage() {
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [deptFilter, setDeptFilter] = useState<string>('ALL');
+  const [cityFilter, setCityFilter] = useState<string>('ALL');
+  const [sourceTypeFilter, setSourceTypeFilter] = useState<string>('ALL');
 
   const fetchRegistryData = useCallback(async () => {
     // Prevent duplicate concurrent refresh requests
@@ -103,9 +105,17 @@ export default function CameraRegistryPage() {
     }
   }, [cameras, searchTerm]);
 
-  // Extract distinct departments for filtering
+  // Extract distinct departments, cities, and source types for filtering
   const distinctDepartments = Array.from(
     new Set(cameras.map((c) => c.department_name).filter(Boolean))
+  ) as string[];
+
+  const distinctCities = Array.from(
+    new Set(cameras.map((c) => c.location?.district).filter(Boolean))
+  ) as string[];
+
+  const distinctSourceTypes = Array.from(
+    new Set(cameras.map((c) => c.source_type).filter(Boolean))
   ) as string[];
 
   // Filtered cameras
@@ -120,8 +130,10 @@ export default function CameraRegistryPage() {
 
     const matchesStatus = statusFilter === 'ALL' || cam.operational_status === statusFilter;
     const matchesDept = deptFilter === 'ALL' || cam.department_name === deptFilter;
+    const matchesCity = cityFilter === 'ALL' || cam.location?.district?.toLowerCase() === cityFilter.toLowerCase();
+    const matchesSource = sourceTypeFilter === 'ALL' || cam.source_type === sourceTypeFilter;
 
-    return matchesSearch && matchesStatus && matchesDept;
+    return matchesSearch && matchesStatus && matchesDept && matchesCity && matchesSource;
   });
 
   const getStatusBadgeVariant = (status: OperationalStatus): BadgeVariant => {
@@ -155,6 +167,8 @@ export default function CameraRegistryPage() {
     setSearchTerm('');
     setStatusFilter('ALL');
     setDeptFilter('ALL');
+    setCityFilter('ALL');
+    setSourceTypeFilter('ALL');
   };
 
   return (
@@ -448,6 +462,34 @@ export default function CameraRegistryPage() {
             </select>
           </div>
 
+          {/* City / District Dropdown */}
+          {distinctCities.length > 0 && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <label htmlFor="city-select" style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)', fontWeight: 500 }}>
+                City:
+              </label>
+              <select
+                id="city-select"
+                className="netrava-input"
+                value={cityFilter}
+                onChange={(e) => setCityFilter(e.target.value)}
+                style={{
+                  padding: '5px 10px',
+                  fontSize: 'var(--text-sm)',
+                  cursor: 'pointer',
+                  maxWidth: '180px',
+                }}
+              >
+                <option value="ALL">All Cities</option>
+                {distinctCities.map((city) => (
+                  <option key={city} value={city}>
+                    {city}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
           {/* Department Dropdown */}
           {distinctDepartments.length > 0 && (
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -476,7 +518,35 @@ export default function CameraRegistryPage() {
             </div>
           )}
 
-          {(searchTerm || statusFilter !== 'ALL' || deptFilter !== 'ALL') && (
+          {/* Video Source Type Dropdown */}
+          {distinctSourceTypes.length > 0 && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <label htmlFor="source-type-select" style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)', fontWeight: 500 }}>
+                Source:
+              </label>
+              <select
+                id="source-type-select"
+                className="netrava-input"
+                value={sourceTypeFilter}
+                onChange={(e) => setSourceTypeFilter(e.target.value)}
+                style={{
+                  padding: '5px 10px',
+                  fontSize: 'var(--text-sm)',
+                  cursor: 'pointer',
+                  maxWidth: '200px',
+                }}
+              >
+                <option value="ALL">All Sources</option>
+                {distinctSourceTypes.map((st) => (
+                  <option key={st} value={st}>
+                    {st}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {(searchTerm || statusFilter !== 'ALL' || deptFilter !== 'ALL' || cityFilter !== 'ALL' || sourceTypeFilter !== 'ALL') && (
             <button
               onClick={clearFilters}
               className="btn-secondary"
@@ -595,9 +665,37 @@ export default function CameraRegistryPage() {
                         <div style={{ color: 'var(--text-primary)' }}>
                           {camera.location?.address || 'Street unassigned'}
                         </div>
-                        <div style={{ fontSize: '11px', color: 'var(--text-dim)' }}>
+                        <div style={{ fontSize: '11px', color: 'var(--text-dim)', marginBottom: '4px' }}>
                           {camera.location?.zone ? `${camera.location.zone}, ` : ''}
                           {camera.location?.district || 'District N/A'}
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap' }}>
+                          <span
+                            style={{
+                              fontSize: '10px',
+                              padding: '1px 5px',
+                              borderRadius: '3px',
+                              backgroundColor: 'rgba(59, 130, 246, 0.12)',
+                              border: '1px solid rgba(59, 130, 246, 0.3)',
+                              color: '#60A5FA',
+                              fontWeight: 600,
+                            }}
+                          >
+                            {camera.location?.district || 'Unassigned'}
+                          </span>
+                          <span
+                            style={{
+                              fontSize: '10px',
+                              padding: '1px 5px',
+                              borderRadius: '3px',
+                              backgroundColor: camera.source_type === 'SYNTHETIC_STREAM' ? 'rgba(168, 85, 247, 0.15)' : 'rgba(16, 185, 129, 0.15)',
+                              border: `1px solid ${camera.source_type === 'SYNTHETIC_STREAM' ? 'rgba(168, 85, 247, 0.3)' : 'rgba(16, 185, 129, 0.3)'}`,
+                              color: camera.source_type === 'SYNTHETIC_STREAM' ? '#C084FC' : '#34D399',
+                              fontWeight: 600,
+                            }}
+                          >
+                            {camera.source_type || 'SOURCE_UNSET'}
+                          </span>
                         </div>
                       </td>
 

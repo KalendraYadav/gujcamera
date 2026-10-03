@@ -11,6 +11,7 @@ import { WatchlistsModule } from './modules/watchlists/watchlists.module';
 import { AlertsModule } from './modules/alerts/alerts.module';
 import { AuditModule } from './modules/audit/audit.module';
 import { EvidenceModule } from './modules/evidence/evidence.module';
+import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { EventsModule } from './common/events/events.module';
 import { RequestIdMiddleware } from './common/middleware/request-id.middleware';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
@@ -34,6 +35,7 @@ import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
     AlertsModule,
     AuditModule,
     EvidenceModule,
+    DashboardModule,
     EventsModule,
   ],
   providers: [

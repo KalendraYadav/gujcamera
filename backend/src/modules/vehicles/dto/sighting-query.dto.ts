@@ -50,6 +50,13 @@ export class SightingQueryDto {
   department_id?: string;
 
   @ApiPropertyOptional({
+    description: 'Filter sightings captured in a specific city/district (e.g. Ahmedabad, Surat, Vadodara, Rajkot, Gandhinagar)',
+  })
+  @IsString()
+  @IsOptional()
+  city?: string;
+
+  @ApiPropertyOptional({
     description: 'Sort order by sighting timestamp (asc = chronological, desc = newest first)',
     default: 'asc',
     enum: ['asc', 'desc'],

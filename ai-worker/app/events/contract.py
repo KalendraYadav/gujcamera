@@ -10,12 +10,24 @@ Carries forensic metadata (SHA-256, MinIO storage_ref) without transmitting heav
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 import json
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 import uuid
+
+
+from enum import Enum
 
 
 SCHEMA_VERSION = "1.0"
 EVENT_TYPE_SIGHTING_CREATED = "vehicle.sighting_created"
+
+
+class VideoSourceType(str, Enum):
+    DEMO_FILE = "DEMO_FILE"
+    RESEARCH_VIDEO = "RESEARCH_VIDEO"
+    SYNTHETIC_STREAM = "SYNTHETIC_STREAM"
+    REAL_RTSP = "REAL_RTSP"
+    REAL_ONVIF = "REAL_ONVIF"
+    VMS_GATEWAY = "VMS_GATEWAY"
 
 
 @dataclass(slots=True)
@@ -40,6 +52,8 @@ class VehicleSightingCreatedEvent:
     evidence_hash: str
     captured_at: str
     correlation_id: str
+    source_type: str = VideoSourceType.SYNTHETIC_STREAM.value
+    vehicle_class: str = ""  # Phase 10: YOLO-detected vehicle class (e.g. 'CAR', 'TRUCK', or '')
 
     def __post_init__(self):
         self.validate()
@@ -101,6 +115,8 @@ class VehicleSightingCreatedEvent:
             evidence_hash=str(data.get("evidence_hash", "")),
             captured_at=str(data.get("captured_at", "")),
             correlation_id=str(data.get("correlation_id", "")),
+            source_type=str(data.get("source_type", VideoSourceType.SYNTHETIC_STREAM.value)),
+            vehicle_class=str(data.get("vehicle_class", "")),
         )
 
     @classmethod
@@ -124,6 +140,8 @@ class VehicleSightingCreatedEvent:
         captured_at_ts: float,
         correlation_id: str = "",
         event_id: str = "",
+        source_type: str = VideoSourceType.SYNTHETIC_STREAM.value,
+        vehicle_class: Optional[str] = None,
     ) -> "VehicleSightingCreatedEvent":
         """Convenience constructor with automatic UTC ISO timestamps and UUIDs"""
         now_iso = datetime.now(timezone.utc).isoformat()
@@ -146,4 +164,6 @@ class VehicleSightingCreatedEvent:
             evidence_hash=evidence_hash.lower(),
             captured_at=captured_iso,
             correlation_id=correlation_id if correlation_id else str(uuid.uuid4()),
+            source_type=source_type,
+            vehicle_class=vehicle_class or "",
         )

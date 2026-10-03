@@ -161,6 +161,74 @@ export class RedisStreamClient implements OnModuleDestroy {
     return (await this.client.xadd(stream, '*', ...flatArgs)) as string;
   }
 
+  /**
+   * Publish a message to a standard Redis Pub/Sub channel for lightweight real-time notifications
+   */
+  async pubsubPublish(channel: string, message: string): Promise<number> {
+    if (!this.client) {
+      this.logger.warn(`Cannot publish to ${channel}: Redis client not initialized`);
+      return 0;
+    }
+    try {
+      return await this.client.publish(channel, message);
+    } catch (err: any) {
+      this.logger.error(`Error publishing to Redis channel ${channel}: ${err.message}`);
+      return 0;
+    }
+  }
+
+  /**
+   * Set field in a Redis Hash (for active camera stream registry state)
+   */
+  async hset(key: string, field: string, value: string): Promise<number> {
+    if (!this.client) return 0;
+    try {
+      return await this.client.hset(key, field, value);
+    } catch (err: any) {
+      this.logger.error(`Error setting hash ${key}.${field}: ${err.message}`);
+      return 0;
+    }
+  }
+
+  /**
+   * Delete field from a Redis Hash
+   */
+  async hdel(key: string, field: string): Promise<number> {
+    if (!this.client) return 0;
+    try {
+      return await this.client.hdel(key, field);
+    } catch (err: any) {
+      this.logger.error(`Error deleting hash field ${key}.${field}: ${err.message}`);
+      return 0;
+    }
+  }
+
+  /**
+   * Get all fields and values from a Redis Hash
+   */
+  async hgetall(key: string): Promise<Record<string, string>> {
+    if (!this.client) return {};
+    try {
+      return await this.client.hgetall(key);
+    } catch (err: any) {
+      this.logger.error(`Error getting all hash fields for ${key}: ${err.message}`);
+      return {};
+    }
+  }
+
+  /**
+   * Get specific field from a Redis Hash
+   */
+  async hget(key: string, field: string): Promise<string | null> {
+    if (!this.client) return null;
+    try {
+      return await this.client.hget(key, field);
+    } catch (err: any) {
+      this.logger.error(`Error getting hash field ${key}.${field}: ${err.message}`);
+      return null;
+    }
+  }
+
   async onModuleDestroy(): Promise<void> {
     if (this.client) {
       try {

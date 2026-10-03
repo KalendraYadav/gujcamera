@@ -189,4 +189,51 @@ export class CamerasController {
   ) {
     return this.camerasService.decommissionCamera(id, user, requestId);
   }
+
+  @Post(':id/credentials')
+  @Roles('SUPER_ADMIN', 'DEPARTMENT_ADMIN')
+  @ApiOperation({
+    summary: 'Configure or rotate encrypted camera credentials',
+    description: 'Requires SUPER_ADMIN or DEPARTMENT_ADMIN role. Stores credentials in AES-256-GCM vault without returning secrets.',
+  })
+  @ApiResponse({ status: 200, description: 'Credentials successfully configured or rotated' })
+  @ApiResponse({ status: 400, description: 'Validation failure' })
+  @ApiResponse({ status: 403, description: 'DEPARTMENT_ACCESS_DENIED' })
+  @ApiResponse({ status: 404, description: 'CAMERA_NOT_FOUND' })
+  async configureCredentials(
+    @Param('id') id: string,
+    @Body() dto: import('./dto/configure-credentials.dto').ConfigureCameraCredentialsDto,
+    @CurrentUser() user: AuthenticatedUser,
+    @Headers('x-request-id') requestId?: string,
+  ) {
+    return this.camerasService.configureCredentials(
+      id,
+      {
+        username: dto.username,
+        password: dto.password,
+        token: dto.token,
+      },
+      user,
+      dto.resolvedCredentialType,
+      requestId,
+    );
+  }
+
+  @Delete(':id/credentials')
+  @Roles('SUPER_ADMIN', 'DEPARTMENT_ADMIN')
+  @ApiOperation({
+    summary: 'Remove camera credentials from secure vault',
+    description: 'Requires SUPER_ADMIN or DEPARTMENT_ADMIN role. Deletes stored ciphertext and emits audit record.',
+  })
+  @ApiResponse({ status: 200, description: 'Credentials successfully removed' })
+  @ApiResponse({ status: 403, description: 'DEPARTMENT_ACCESS_DENIED' })
+  @ApiResponse({ status: 404, description: 'CAMERA_NOT_FOUND' })
+  async removeCredentials(
+    @Param('id') id: string,
+    @CurrentUser() user: AuthenticatedUser,
+    @Headers('x-request-id') requestId?: string,
+  ) {
+    return this.camerasService.removeCredentials(id, user, requestId);
+  }
 }
+

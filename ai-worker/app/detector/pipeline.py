@@ -235,6 +235,7 @@ class InferencePipeline:
                             frame=payload.frame,
                             plate_bbox=plate.bbox.to_list(),
                             vehicle_id=plate.vehicle_id,
+                            vehicle_class=plate.vehicle_class,  # Phase 10: carry YOLO class
                         )
                         c_res = self.consensus_aggregator.add_observation(obs)
                         if c_res is not None:
@@ -289,6 +290,7 @@ class InferencePipeline:
                                         storage_ref=evidence_rec.storage_ref,
                                         evidence_hash=evidence_rec.hash,
                                         captured_at_ts=evidence_artifact.captured_at,
+                                        vehicle_class=c_res.vehicle_class,  # Phase 10
                                     )
                                     msg_id = self.event_publisher.publish_sighting(event)
                                     with self._lock:

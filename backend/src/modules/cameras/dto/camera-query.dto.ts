@@ -36,6 +36,16 @@ export class CameraQueryDto {
   @IsOptional()
   departmentId?: string;
 
+  @ApiPropertyOptional({ description: 'Filter by city/district name (e.g. Ahmedabad, Surat, Vadodara, Rajkot, Gandhinagar)' })
+  @IsString()
+  @IsOptional()
+  city?: string;
+
+  @ApiPropertyOptional({ description: 'Filter by video source type (e.g. RESEARCH_VIDEO, SYNTHETIC_STREAM)' })
+  @IsString()
+  @IsOptional()
+  source_type?: string;
+
   @ApiPropertyOptional({ description: 'Items per page', default: 20, minimum: 1, maximum: 100 })
   @IsInt()
   @Min(1)

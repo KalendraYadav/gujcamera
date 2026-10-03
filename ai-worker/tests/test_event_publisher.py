@@ -364,6 +364,7 @@ def test_redis_publisher_retry_buffer_preserves_payload_and_recovers():
     orig_payload_json = event.to_json()
 
     # Attempt publish while Redis offline -> buffered
+    publisher._last_connect_attempt = 0.0
     msg_id = publisher.publish_sighting(event)
     assert msg_id is None
     assert publisher.buffer_size == 1

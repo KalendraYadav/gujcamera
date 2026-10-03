@@ -144,7 +144,7 @@ export function CameraDetailDrawer({ camera, onClose, onCenterOnMap }: CameraDet
             <CameraIcon size={18} />
           </div>
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', marginBottom: '4px' }}>
               <StatusBadge
                 status={camera.operational_status}
                 label={camera.operational_status}
@@ -162,6 +162,34 @@ export function CameraDetailDrawer({ camera, onClose, onCenterOnMap }: CameraDet
                 }}
               >
                 {camera.protocol}
+              </span>
+              <span
+                style={{
+                  fontSize: '10px',
+                  color: '#93C5FD',
+                  fontWeight: 600,
+                  fontFamily: 'var(--font-mono)',
+                  backgroundColor: 'rgba(59, 130, 246, 0.12)',
+                  padding: '2px 6px',
+                  borderRadius: '3px',
+                  border: '1px solid rgba(59, 130, 246, 0.25)',
+                }}
+              >
+                {camera.location?.district || camera.department_name?.split(' ')[0] || 'Gujarat'}
+              </span>
+              <span
+                style={{
+                  fontSize: '10px',
+                  color: camera.source_type === 'RESEARCH_VIDEO' || camera.name?.includes('RESEARCH') ? '#FBBF24' : '#34D399',
+                  fontFamily: 'var(--font-mono)',
+                  backgroundColor: camera.source_type === 'RESEARCH_VIDEO' || camera.name?.includes('RESEARCH') ? 'rgba(234, 179, 8, 0.12)' : 'rgba(52, 211, 153, 0.12)',
+                  padding: '2px 6px',
+                  borderRadius: '3px',
+                  border: `1px solid ${camera.source_type === 'RESEARCH_VIDEO' || camera.name?.includes('RESEARCH') ? 'rgba(234, 179, 8, 0.3)' : 'rgba(52, 211, 153, 0.3)'}`,
+                  letterSpacing: '0.02em',
+                }}
+              >
+                {camera.source_type === 'RESEARCH_VIDEO' || camera.name?.includes('RESEARCH') ? 'RESEARCH_VIDEO' : 'SYNTHETIC_STREAM'}
               </span>
             </div>
             <h3

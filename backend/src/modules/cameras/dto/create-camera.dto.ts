@@ -134,6 +134,14 @@ export class CreateCameraDto {
   @Type(() => CameraStreamDto)
   stream?: CameraStreamDto;
 
+  @ApiPropertyOptional({ description: 'Optional credentials to be encrypted and stored in secure vault' })
+  @IsOptional()
+  credentials?: {
+    username?: string;
+    password?: string;
+    token?: string;
+  };
+
   get resolvedDepartmentId(): string {
     return (this.department_id || this.departmentId)!;
   }

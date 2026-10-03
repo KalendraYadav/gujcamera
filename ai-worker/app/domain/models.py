@@ -44,6 +44,7 @@ class VehicleSightingRecord:
     confidence: float
     consensus_of: int
     frame_ref: str
+    vehicle_class: Optional[str] = None  # Phase 10: YOLO-detected vehicle class
     created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
     def to_dict(self) -> Dict[str, Any]:
@@ -55,6 +56,7 @@ class VehicleSightingRecord:
             "confidence": round(self.confidence, 4),
             "consensus_of": self.consensus_of,
             "frame_ref": self.frame_ref,
+            "vehicle_class": self.vehicle_class,
             "created_at": self.created_at.isoformat(),
         }
 

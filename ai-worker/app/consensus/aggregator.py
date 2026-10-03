@@ -280,4 +280,5 @@ class MultiFrameConsensusAggregator:
             best_frame=best_obs.frame,
             best_frame_confidence=best_obs.confidence,
             best_frame_sequence=best_obs.frame_sequence,
+            vehicle_class=best_obs.vehicle_class,  # Phase 10: propagate vehicle class
         )

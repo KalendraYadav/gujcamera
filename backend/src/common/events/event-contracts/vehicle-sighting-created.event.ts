@@ -7,6 +7,15 @@
 export const SCHEMA_VERSION = '1.0';
 export const EVENT_TYPE_SIGHTING_CREATED = 'vehicle.sighting_created';
 
+export enum VideoSourceType {
+  DEMO_FILE = 'DEMO_FILE',
+  RESEARCH_VIDEO = 'RESEARCH_VIDEO',
+  SYNTHETIC_STREAM = 'SYNTHETIC_STREAM',
+  REAL_RTSP = 'REAL_RTSP',
+  REAL_ONVIF = 'REAL_ONVIF',
+  VMS_GATEWAY = 'VMS_GATEWAY',
+}
+
 export interface VehicleSightingCreatedPayload {
   event_id: string;
   event_type: string;
@@ -24,6 +33,8 @@ export interface VehicleSightingCreatedPayload {
   evidence_hash: string;
   captured_at: string;
   correlation_id: string;
+  source_type?: VideoSourceType | string;
+  vehicle_class?: string; // Phase 10: YOLO-detected vehicle class
 }
 
 /**
@@ -134,5 +145,7 @@ export function validateVehicleSightingCreatedPayload(data: any): VehicleSightin
     evidence_hash: String(evidence_hash).toLowerCase(),
     captured_at: String(captured_at || new Date().toISOString()),
     correlation_id: String(correlation_id || event_id),
+    source_type: data.source_type ? String(data.source_type) : VideoSourceType.SYNTHETIC_STREAM,
+    vehicle_class: data.vehicle_class ? String(data.vehicle_class).toUpperCase() : undefined,
   };
 }
