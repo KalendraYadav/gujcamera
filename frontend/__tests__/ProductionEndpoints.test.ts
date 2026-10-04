@@ -40,6 +40,40 @@ describe('Frontend Production Endpoint Resolution', () => {
     it('falls back to local development URL when env var is absent in Node environment', () => {
       expect(getApiBaseUrl()).toBe('http://localhost:4000/api/v1');
     });
+
+    it('falls back to production backend URL when running on Vercel without NEXT_PUBLIC_API_URL', () => {
+      const originalWindow = global.window;
+      // @ts-ignore
+      global.window = {
+        location: {
+          hostname: 'gujcamera-bj85w3tfw-kalendrayadavs-projects.vercel.app',
+          protocol: 'https:',
+        },
+      };
+
+      try {
+        expect(getApiBaseUrl()).toBe('https://netravaha-backend.onrender.com/api/v1');
+      } finally {
+        global.window = originalWindow;
+      }
+    });
+
+    it('falls back to production backend URL when running on production HTTPS domain', () => {
+      const originalWindow = global.window;
+      // @ts-ignore
+      global.window = {
+        location: {
+          hostname: 'netravaha.police.gov.in',
+          protocol: 'https:',
+        },
+      };
+
+      try {
+        expect(getApiBaseUrl()).toBe('https://netravaha-backend.onrender.com/api/v1');
+      } finally {
+        global.window = originalWindow;
+      }
+    });
   });
 
   describe('resolveAlertWebSocketUrl', () => {

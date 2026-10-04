@@ -7,7 +7,9 @@ const nextConfig = {
     const rawBackendUrl =
       process.env.BACKEND_INTERNAL_URL ||
       process.env.NEXT_PUBLIC_API_URL ||
-      'http://localhost:4000';
+      (process.env.NODE_ENV === 'production' || process.env.VERCEL
+        ? 'https://netravaha-backend.onrender.com'
+        : 'http://localhost:4000');
     const backendUrl = rawBackendUrl.trim().replace(/\/+$/, '').replace(/\/api\/v1\/?$/, '');
     return [
       {

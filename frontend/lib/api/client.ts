@@ -13,15 +13,15 @@ export function getApiBaseUrl(): string {
     const trimmed = envApiUrl.trim().replace(/\/+$/, '');
     return trimmed.endsWith('/api/v1') ? trimmed : `${trimmed}/api/v1`;
   }
-  // When running in the browser on HTTPS or external domains (e.g. Cloudflare tunnels, Vercel),
-  // return relative '/api/v1' so requests are same-origin and proxied via Next.js rewrites.
-  // This completely eliminates browser Mixed Content (HTTPS -> HTTP) and CORS blocks.
+  // When running in the browser on Vercel or external HTTPS without NEXT_PUBLIC_API_URL:
   if (typeof window !== 'undefined') {
     if (
-      window.location.protocol === 'https:' ||
-      (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1')
+      window.location.hostname.endsWith('.vercel.app') ||
+      (window.location.protocol === 'https:' &&
+        window.location.hostname !== 'localhost' &&
+        window.location.hostname !== '127.0.0.1')
     ) {
-      return '/api/v1';
+      return 'https://netravaha-backend.onrender.com/api/v1';
     }
   }
   return 'http://localhost:4000/api/v1';

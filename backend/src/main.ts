@@ -6,6 +6,8 @@ import helmet from 'helmet';
 import { AppModule } from './app.module';
 import { OnvifProtocolTestFixture } from './modules/cameras/fixtures/onvif-protocol.fixture';
 
+import { createCorsOptions } from './common/config/cors.config';
+
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
   const app = await NestFactory.create(AppModule);
@@ -18,29 +20,7 @@ async function bootstrap() {
   );
 
   // 2. Cross-Origin Resource Sharing (CORS)
-  const configuredOrigins = process.env.CORS_ORIGINS
-    ? process.env.CORS_ORIGINS.split(',').map((o) => o.trim())
-    : [];
-
-  app.enableCors({
-    origin: (origin, callback) => {
-      // Allow requests with no origin (e.g. server-to-server, curl, Next.js rewrites)
-      if (!origin) return callback(null, true);
-
-      const isLocalhost = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin);
-      const isCloudflare = /^https:\/\/[a-zA-Z0-9-]+\.trycloudflare\.com$/.test(origin);
-      const isConfigured = configuredOrigins.includes(origin);
-
-      if (isLocalhost || isCloudflare || isConfigured) {
-        callback(null, true);
-      } else {
-        callback(null, false);
-      }
-    },
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Request-Id'],
-  });
+  app.enableCors(createCorsOptions(process.env.CORS_ORIGINS));
 
   // 3. Native WebSocket Adapter (master_architecture.md WS /ws/alerts)
   app.useWebSocketAdapter(new WsAdapter(app));
