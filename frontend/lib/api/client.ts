@@ -8,10 +8,12 @@ import { ApiError, ApiErrorPayload, RequestOptions } from '@/types/api';
 import { tokenStorage } from '@/lib/auth/session';
 
 export function getApiBaseUrl(): string {
-  if (process.env.NEXT_PUBLIC_API_URL) {
-    return process.env.NEXT_PUBLIC_API_URL;
+  const envApiUrl = process.env.NEXT_PUBLIC_API_URL;
+  if (envApiUrl && envApiUrl.trim() !== '') {
+    const trimmed = envApiUrl.trim().replace(/\/+$/, '');
+    return trimmed.endsWith('/api/v1') ? trimmed : `${trimmed}/api/v1`;
   }
-  // When running in the browser on HTTPS or external domains (e.g. Cloudflare tunnels),
+  // When running in the browser on HTTPS or external domains (e.g. Cloudflare tunnels, Vercel),
   // return relative '/api/v1' so requests are same-origin and proxied via Next.js rewrites.
   // This completely eliminates browser Mixed Content (HTTPS -> HTTP) and CORS blocks.
   if (typeof window !== 'undefined') {

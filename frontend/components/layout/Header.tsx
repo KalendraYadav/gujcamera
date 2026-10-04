@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import { Shield, Wifi, Clock, Server, Bell, Activity, Menu } from 'lucide-react';
 import { useAuth } from '@/lib/auth/context';
 import { NAV_ITEMS } from '@/lib/auth/rbac';
+import { getApiBaseUrl } from '@/lib/api/client';
 
 export interface HeaderProps {
   onToggleMobileNav?: () => void;
@@ -129,7 +130,7 @@ export function Header({ onToggleMobileNav }: HeaderProps = {}) {
 
         {/* Backend API Connectivity Indicator */}
         <div
-          title="Connected to Backend REST API (http://localhost:4000/api/v1)"
+          title={`Connected to Backend REST API (${getApiBaseUrl()})`}
           style={{
             display: 'flex',
             alignItems: 'center',
@@ -158,37 +159,39 @@ export function Header({ onToggleMobileNav }: HeaderProps = {}) {
         </div>
 
         {/* Environment / Demonstration Mode Indicator */}
-        <div
-          id="environment-simulated-indicator"
-          data-testid="environment-simulated-indicator"
-          title="Demonstration Mode: Representative corridor recordings replayed via normalized RTSP media gateway. Physical police NVR/VMS ready for authorized ingestion."
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            fontSize: 'var(--text-xs)',
-            color: '#93C5FD',
-            backgroundColor: 'rgba(59, 130, 246, 0.10)',
-            border: '1px solid rgba(59, 130, 246, 0.28)',
-            padding: '2px 8px',
-            borderRadius: 'var(--radius-xs)',
-            fontFamily: 'var(--font-mono)',
-            fontWeight: 600,
-            letterSpacing: '0.04em',
-            whiteSpace: 'nowrap',
-          }}
-        >
-          <span
+        {process.env.NEXT_PUBLIC_SIMULATED_DATA_BADGE !== 'false' && (
+          <div
+            id="environment-simulated-indicator"
+            data-testid="environment-simulated-indicator"
+            title="Demonstration Mode: Representative corridor recordings replayed via normalized RTSP media gateway. Physical police NVR/VMS ready for authorized ingestion."
             style={{
-              width: '5px',
-              height: '5px',
-              borderRadius: '50%',
-              backgroundColor: '#60A5FA',
-              flexShrink: 0,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              fontSize: 'var(--text-xs)',
+              color: '#93C5FD',
+              backgroundColor: 'rgba(59, 130, 246, 0.10)',
+              border: '1px solid rgba(59, 130, 246, 0.28)',
+              padding: '2px 8px',
+              borderRadius: 'var(--radius-xs)',
+              fontFamily: 'var(--font-mono)',
+              fontWeight: 600,
+              letterSpacing: '0.04em',
+              whiteSpace: 'nowrap',
             }}
-          />
-          <span>SIMULATED LIVE CCTV</span>
-        </div>
+          >
+            <span
+              style={{
+                width: '5px',
+                height: '5px',
+                borderRadius: '50%',
+                backgroundColor: '#60A5FA',
+                flexShrink: 0,
+              }}
+            />
+            <span>SIMULATED LIVE CCTV</span>
+          </div>
+        )}
 
         {/* System Auditor Oversight Mode Indicator */}
         {user?.role === 'SYSTEM_AUDITOR' && (

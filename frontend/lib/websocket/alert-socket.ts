@@ -14,6 +14,36 @@ export interface AlertSocketCallbacks {
   onError?: (err: { error_code: string; message: string }) => void;
 }
 
+/**
+ * Resolves the backend WebSocket URL for real-time alerts.
+ * Priority:
+ * 1. NEXT_PUBLIC_WS_URL (e.g. wss://netravaha-backend.onrender.com/ws/alerts)
+ * 2. Derived from NEXT_PUBLIC_API_URL (e.g. https://netravaha-backend.onrender.com -> wss://netravaha-backend.onrender.com/ws/alerts)
+ * 3. Browser HTTPS fallback (e.g. wss://custom-domain.com/ws/alerts)
+ * 4. Local development fallback (ws://localhost:4000/ws/alerts)
+ */
+export function resolveAlertWebSocketUrl(): string {
+  const envWs = process.env.NEXT_PUBLIC_WS_URL;
+  if (envWs && envWs.trim() !== '') {
+    return envWs.trim();
+  }
+
+  const envApiUrl = process.env.NEXT_PUBLIC_API_URL;
+  if (envApiUrl && envApiUrl.trim() !== '') {
+    const trimmed = envApiUrl.trim().replace(/\/+$/, '').replace(/\/api\/v1\/?$/, '');
+    const wsBase = trimmed.startsWith('https://')
+      ? trimmed.replace(/^https:\/\//, 'wss://')
+      : trimmed.replace(/^http:\/\//, 'ws://');
+    return `${wsBase}/ws/alerts`;
+  }
+
+  if (typeof window !== 'undefined' && window.location.protocol === 'https:') {
+    return `wss://${window.location.host}/ws/alerts`;
+  }
+
+  return 'ws://localhost:4000/ws/alerts';
+}
+
 export class AlertWebSocketClient {
   private ws: WebSocket | null = null;
   private status: ConnectionStatus = 'OFFLINE';
@@ -37,16 +67,7 @@ export class AlertWebSocketClient {
     this.isExplicitDisconnect = false;
 
     // Determine target WS URL
-    const envWs = process.env.NEXT_PUBLIC_WS_URL;
-    let wsUrl = envWs;
-    if (!wsUrl) {
-      if (typeof window !== 'undefined' && window.location.protocol === 'https:') {
-        wsUrl = `wss://${window.location.host}/ws/alerts`;
-      } else {
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
-        wsUrl = apiUrl.replace(/^http/, 'ws').replace(/\/api\/v1\/?$/, '') + '/ws/alerts';
-      }
-    }
+    const wsUrl = resolveAlertWebSocketUrl();
 
     const token = tokenStorage.getAccessToken();
     if (!token) {
