@@ -1,0 +1,139 @@
+========================================================
+        NETRAVAHA — JUDGE DAY STARTUP CHECKLIST
+========================================================
+
+STEP 0 — Open Docker Desktop
+--------------------------------
+Wait until Docker Desktop says it is running.
+
+
+STEP 1 — Open PowerShell
+--------------------------------
+cd "D:\web project\gujcamera"
+
+
+STEP 2 — Start CCTV services
+--------------------------------
+docker compose up -d video-gateway stream-simulator
+
+
+STEP 3 — Verify containers
+--------------------------------
+docker ps
+
+You should see:
+
+gujcamera_video_gateway
+gujcamera_stream_simulator
+
+
+STEP 4 — Start Cloudflare public tunnel
+--------------------------------
+cloudflared tunnel --url http://localhost:8888
+
+
+IMPORTANT:
+Keep this PowerShell window OPEN.
+
+Cloudflare will give you:
+
+https://XXXXXXXX.trycloudflare.com
+
+
+STEP 5 — Test the public CCTV stream
+--------------------------------
+curl.exe https://XXXXXXXX.trycloudflare.com/cam-demo-01/index.m3u8
+
+Expected:
+
+#EXTM3U
+
+
+STEP 6 — Vercel
+--------------------------------
+Open:
+
+https://gujcamera.vercel.app
+
+Login normally.
+
+
+========================================================
+                IF CLOUDFLARE URL CHANGES
+========================================================
+
+If Cloudflare gives a NEW URL:
+
+1. Open Vercel
+2. Project: gujcamera
+3. Settings
+4. Environment Variables
+5. Find:
+
+NEXT_PUBLIC_HLS_GATEWAY_URL
+
+6. Change Value to the NEW Cloudflare URL.
+
+Example:
+
+https://new-random-name.trycloudflare.com
+
+7. Save
+8. Redeploy latest deployment.
+
+
+========================================================
+                IF URL DID NOT CHANGE
+========================================================
+
+Do NOTHING in Vercel.
+
+Just:
+
+Docker → start services
+        ↓
+Cloudflare → start tunnel
+        ↓
+Open https://gujcamera.vercel.app
+
+
+========================================================
+              BEFORE SHOWING JUDGES
+========================================================
+
+Run:
+
+docker ps
+
+Then:
+
+curl.exe https://YOUR-CLOUDFLARE-URL.trycloudflare.com/cam-demo-01/index.m3u8
+
+If you see:
+
+#EXTM3U
+
+CCTV streaming is ready.
+
+
+========================================================
+                  IMPORTANT
+========================================================
+
+DO NOT close the Cloudflare terminal.
+
+DO NOT stop Docker Desktop.
+
+DO NOT shut down the laptop during the demo.
+
+The frontend is hosted online, but the CCTV video is
+currently being served from your laptop through:
+
+Docker MediaMTX
+        ↓
+Cloudflare Quick Tunnel
+        ↓
+Internet
+        ↓
+Vercel NETRAVAHA
+========================================================

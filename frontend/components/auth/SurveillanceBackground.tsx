@@ -31,70 +31,90 @@ export function SurveillanceBackground() {
   // Video playback & loading states
   const [isVideoLoaded, setIsVideoLoaded] = useState(false);
   const [isVideoFailed, setIsVideoFailed] = useState(false);
-  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
 
-  // Ref mirror for use inside event handlers (avoids stale closure)
-  const prefersReducedMotionRef = useRef(false);
-
-  // 1. Accessibility: Check for prefers-reduced-motion
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
-    setPrefersReducedMotion(mediaQuery.matches);
-    prefersReducedMotionRef.current = mediaQuery.matches;
-
-    const handler = (e: MediaQueryListEvent) => {
-      setPrefersReducedMotion(e.matches);
-      prefersReducedMotionRef.current = e.matches;
-    };
-
-    mediaQuery.addEventListener('change', handler);
-    return () => mediaQuery.removeEventListener('change', handler);
-  }, []);
-
-  // 2. Keep video playing — explicitly call play() on mount and after reduced-motion changes
   useEffect(() => {
     const video = videoRef.current;
+    if (!video) return;
 
-    if (prefersReducedMotion) {
-      // Accessibility: pause if user prefers reduced motion
-      if (video && !video.paused) {
-        video.pause();
-      }
-      return;
+    // 1. Ensure muted state is applied directly to DOM property for autoplay compliance
+    video.muted = true;
+    video.defaultMuted = true;
+
+    // 2. Immediate check: if video already has data (e.g. from cache or fast load), reveal it
+    if (video.readyState >= 2 || video.currentTime > 0) {
+      setIsVideoLoaded(true);
     }
 
-    // Explicitly attempt autoplay (HTML autoPlay attribute alone is unreliable
-    // after React state updates and on browsers with strict autoplay policies)
-    if (video) {
-      video.muted = true; // Must be muted for autoplay policy compliance
-      const playPromise = video.play();
-      if (playPromise !== undefined) {
-        playPromise.catch(() => {
-          // Autoplay was prevented — video will remain paused (poster shows as fallback)
+    // 3. Safe play function with promise rejection handling
+    const safePlay = () => {
+      const v = videoRef.current;
+      if (!v) return;
+      v.muted = true;
+      if (v.paused) {
+        v.play().catch(() => {
+          // Autoplay blocked by browser policy; will recover on user interaction
         });
-      }
-    }
-
-    const handleVisibilityChange = () => {
-      if (!videoRef.current) return;
-      if (document.hidden) {
-        if (!videoRef.current.paused) {
-          videoRef.current.pause();
-        }
-      } else {
-        if (videoRef.current.paused && !prefersReducedMotionRef.current) {
-          videoRef.current.play().catch(() => {});
-        }
       }
     };
 
+    // Initial play attempt
+    safePlay();
+
+    // 4. Recover on visibility change (e.g. tab switch or minimize/restore)
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        safePlay();
+      }
+    };
+
+    // 5. Browser autoplay policy unlock: if initial autoplay was blocked,
+    // resume immediately on the very first user interaction anywhere on the page
+    const handleUserInteraction = () => {
+      safePlay();
+      removeInteractionListeners();
+    };
+
+    const removeInteractionListeners = () => {
+      window.removeEventListener('pointerdown', handleUserInteraction);
+      window.removeEventListener('keydown', handleUserInteraction);
+      window.removeEventListener('touchstart', handleUserInteraction);
+    };
+
+    window.addEventListener('pointerdown', handleUserInteraction, { passive: true, once: true });
+    window.addEventListener('keydown', handleUserInteraction, { passive: true, once: true });
+    window.addEventListener('touchstart', handleUserInteraction, { passive: true, once: true });
     document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    // 6. Handle playback interruptions (stalled, pause)
+    const handlePause = () => {
+      if (!document.hidden && videoRef.current?.paused) {
+        safePlay();
+      }
+    };
+
+    video.addEventListener('pause', handlePause);
+    video.addEventListener('stalled', safePlay);
+    video.addEventListener('waiting', safePlay);
 
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
+      removeInteractionListeners();
+      video.removeEventListener('pause', handlePause);
+      video.removeEventListener('stalled', safePlay);
+      video.removeEventListener('waiting', safePlay);
     };
-  }, [prefersReducedMotion]);
+  }, []);
+
+  const handleMediaReady = () => {
+    setIsVideoLoaded(true);
+    const video = videoRef.current;
+    if (video) {
+      video.muted = true;
+      if (video.paused) {
+        video.play().catch(() => {});
+      }
+    }
+  };
 
   return (
     <div
@@ -166,22 +186,20 @@ export function SurveillanceBackground() {
           {!isVideoFailed && (
             <video
               ref={videoRef}
+              src="/videos/traffic_surveillance.mp4"
               autoPlay
               muted
               loop
               playsInline
               preload="auto"
               poster="/images/traffic_poster.jpg"
-              onLoadedData={() => setIsVideoLoaded(true)}
-              onError={() => setIsVideoFailed(true)}
-              onCanPlay={() => {
-                // Explicit play() on canPlay — ensures playback starts even when
-                // the useEffect play() call ran before the video had buffered enough.
-                const vid = videoRef.current;
-                if (vid && vid.paused && !prefersReducedMotionRef.current) {
-                  vid.play().catch(() => {});
-                }
+              onLoadedData={handleMediaReady}
+              onCanPlay={handleMediaReady}
+              onPlaying={handleMediaReady}
+              onTimeUpdate={() => {
+                if (!isVideoLoaded) setIsVideoLoaded(true);
               }}
+              onError={() => setIsVideoFailed(true)}
               style={{
                 position: 'absolute',
                 inset: 0,
@@ -206,7 +224,7 @@ export function SurveillanceBackground() {
               ================================================================= */}
           <VehicleTrackingOverlay
             videoRef={videoRef}
-            isReducedMotion={prefersReducedMotion}
+            isReducedMotion={false}
           />
         </div>
       </div>
