@@ -47,7 +47,7 @@ const DEMO_PRESETS = [
     label: 'Super Admin',
     email: 'admin.demo@gujcamera.local',
     role: 'SUPER_ADMIN',
-    desc: 'Statewide Oversight',
+    desc: 'Platform Oversight',
     icon: Sliders,
   },
   {
@@ -140,13 +140,13 @@ export function LoginForm() {
       <div className={styles.topAmbientGlow} aria-hidden="true" />
       <div className={styles.topHighlightLine} aria-hidden="true" />
 
-      {/* Terminal Header: Police Crest + NETRAVA Branding */}
+      {/* Terminal Header: Police Crest + NETRAVAHA Branding */}
       <div className={styles.headerBlock}>
         <div className={styles.crestWrapper}>
           <PoliceCrest size={44} />
         </div>
 
-        <h1 className={styles.brandTitle}>NETRAVA</h1>
+        <h1 className={styles.brandTitle}>NETRAVAHA</h1>
 
         <div className={styles.brandSubtitle}>
           <span>CCTV INTELLIGENCE PLATFORM</span>

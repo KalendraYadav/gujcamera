@@ -1,0 +1,11 @@
+node_modules
+.next
+.env
+.env.*
+*.log
+npm-debug.log*
+.git
+.gitignore
+__tests__
+vitest.config.ts
+test-setup.ts

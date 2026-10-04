@@ -114,6 +114,42 @@ export class MediaGatewayService {
   }
 
   /**
+   * Determine if a stream URL is an external source that MediaMTX can pull.
+   * MediaMTX supports pulling from rtsp://, rtsps://, rtmp://, rtmps://, http://, https://, srt://, udp://.
+   * Non-routable or placeholder protocols (such as mock://, custom://, file://) cannot be pulled.
+   * Internal gateway streams (video-gateway, simulator, localhost) are published into MediaMTX, not pulled.
+   */
+  isPullableExternalSource(streamUrl: string): boolean {
+    if (!streamUrl) return false;
+    if (this.isInternalGatewayStream(streamUrl)) return false;
+    const lower = streamUrl.toLowerCase().trim();
+    return (
+      lower.startsWith('rtsp://') ||
+      lower.startsWith('rtsps://') ||
+      lower.startsWith('rtmp://') ||
+      lower.startsWith('rtmps://') ||
+      lower.startsWith('http://') ||
+      lower.startsWith('https://') ||
+      lower.startsWith('srt://') ||
+      lower.startsWith('udp://')
+    );
+  }
+
+  /**
+   * Check if a stream URL is a mock or placeholder protocol (e.g. mock://, custom://, placeholder://)
+   */
+  isPlaceholderStream(streamUrl: string): boolean {
+    if (!streamUrl) return false;
+    const lower = streamUrl.toLowerCase().trim();
+    return (
+      lower.startsWith('mock://') ||
+      lower.startsWith('placeholder://') ||
+      lower.startsWith('custom://') ||
+      lower.startsWith('vendor://')
+    );
+  }
+
+  /**
    * Extract stream path from an RTSP URL (e.g. rtsp://host:8554/cam-ahm-01 -> cam-ahm-01)
    */
   extractStreamPath(streamUrl: string): string {
@@ -301,6 +337,21 @@ export class MediaGatewayService {
         internalRtspUrl: sourceUrl,
         internalHlsUrl,
         isExternalSource: false,
+      };
+    }
+
+    // If source is a mock or placeholder protocol, do not register in MediaMTX
+    if (this.isPlaceholderStream(sourceUrl) || !this.isPullableExternalSource(sourceUrl)) {
+      this.logger.log(
+        `[MediaGateway] Path '${pathName}' has non-routable/placeholder source: ${sanitizedSource}. Skipping MediaMTX registration.`,
+      );
+      return {
+        success: false,
+        pathName,
+        internalRtspUrl: sourceUrl,
+        internalHlsUrl,
+        isExternalSource: false,
+        error: `Unsupported stream protocol: '${sanitizedSource}' is a placeholder or mock source and cannot be registered in MediaMTX`,
       };
     }
 

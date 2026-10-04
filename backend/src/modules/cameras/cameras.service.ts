@@ -175,9 +175,10 @@ export class CamerasService implements OnModuleInit {
 
     if (this.mediaGatewayService && cleanStreamHandle) {
       pathName = this.mediaGatewayService.normalizePathName(dto.name, 'pending');
-      const isInternal = this.mediaGatewayService.isInternalGatewayStream(cleanStreamHandle);
+      const isPullable = this.mediaGatewayService.isPullableExternalSource(cleanStreamHandle);
+      const isPlaceholder = this.mediaGatewayService.isPlaceholderStream(cleanStreamHandle);
 
-      if (!isInternal) {
+      if (isPullable) {
         // Construct authenticated source URL in memory ONLY for MediaMTX registration
         let mediaMtxSourceUrl = cleanStreamHandle;
         if (credentialUsername && credentialPassword) {
@@ -201,6 +202,10 @@ export class CamerasService implements OnModuleInit {
           this.logger.warn(`Media gateway registration failed for '${pathName}': ${gatewayRes.error}`);
           initialStatus = OperationalStatus.ERROR;
         }
+      } else if (isPlaceholder) {
+        // Placeholder / mock stream: do NOT register into MediaMTX
+        finalStreamHandle = cleanStreamHandle;
+        initialStatus = dto.operational_status || dto.operationalStatus || OperationalStatus.OFFLINE;
       } else {
         // Internal/simulator stream: preserve clean stream handle
         finalStreamHandle = cleanStreamHandle;
@@ -763,7 +768,7 @@ export class CamerasService implements OnModuleInit {
 
       if (updatedCamera.isActive && streamUrl) {
         // Camera is active: ensure MediaMTX path & Redis activation
-        if (this.mediaGatewayService && !this.mediaGatewayService.isInternalGatewayStream(streamUrl)) {
+        if (this.mediaGatewayService && this.mediaGatewayService.isPullableExternalSource(streamUrl)) {
           try {
             await this.mediaGatewayService.registerPath(pathName, streamUrl);
           } catch (gwErr: any) {
@@ -1140,7 +1145,7 @@ export class CamerasService implements OnModuleInit {
       const stream = camera.streams[0];
       const cleanUrl = stripCredentialsFromUrl(stream.urlOrHandle);
 
-      if (cleanUrl && !this.mediaGatewayService.isInternalGatewayStream(cleanUrl)) {
+      if (cleanUrl && this.mediaGatewayService.isPullableExternalSource(cleanUrl)) {
         const pathName = this.mediaGatewayService.normalizePathName(camera.name, camera.id);
 
         // Construct authenticated source in memory ONLY for MediaMTX registration
@@ -1263,7 +1268,7 @@ export class CamerasService implements OnModuleInit {
     if (this.mediaGatewayService && camera.isActive && camera.streams && camera.streams.length > 0) {
       const stream = camera.streams[0];
       const cleanUrl = stripCredentialsFromUrl(stream.urlOrHandle);
-      if (cleanUrl && !this.mediaGatewayService.isInternalGatewayStream(cleanUrl)) {
+      if (cleanUrl && this.mediaGatewayService.isPullableExternalSource(cleanUrl)) {
         const pathName = this.mediaGatewayService.normalizePathName(camera.name, camera.id);
         await this.mediaGatewayService.registerPath(pathName, cleanUrl);
       }

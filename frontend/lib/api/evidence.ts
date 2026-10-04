@@ -52,6 +52,8 @@ function mapBackendEvidence(raw: any): EvidenceInspection {
           confidence: Number(raw.sighting.confidence),
           consensus_frames:
             raw.sighting.consensus_frames ?? raw.sighting.consensus_of ?? 0,
+          vehicle_class: raw.sighting.vehicle_class ?? raw.sighting.vehicleClass ?? null,
+          vehicleClass: raw.sighting.vehicleClass ?? raw.sighting.vehicle_class ?? null,
         }
       : undefined,
   };
@@ -123,5 +125,41 @@ export const evidenceApi = {
     link.click();
     document.body.removeChild(link);
     window.URL.revokeObjectURL(blobUrl);
+  },
+
+  /**
+   * Fetch original raw JPEG evidence frame bytes
+   */
+  async getFrameBlob(id: string): Promise<Blob> {
+    const accessToken = tokenStorage.getAccessToken();
+    const headers: Record<string, string> = {};
+    if (accessToken) {
+      headers['Authorization'] = `Bearer ${accessToken}`;
+    }
+
+    const response = await fetch(`${getApiBaseUrl()}/evidence/${id}/frame`, {
+      method: 'GET',
+      headers,
+    });
+
+    if (!response.ok) {
+      let errorMsg = `Frame retrieval failed (${response.status})`;
+      try {
+        const errJson = await response.json();
+        if (errJson.message) errorMsg = errJson.message;
+      } catch {
+        // default message
+      }
+      throw new Error(errorMsg);
+    }
+
+    return response.blob();
+  },
+
+  /**
+   * Return frame stream endpoint URL
+   */
+  getFrameUrl(id: string): string {
+    return `${getApiBaseUrl()}/evidence/${id}/frame`;
   },
 };

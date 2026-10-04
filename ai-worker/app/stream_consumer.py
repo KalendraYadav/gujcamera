@@ -126,7 +126,13 @@ class StreamConsumer:
         os.environ["OPENCV_FFMPEG_CAPTURE_OPTIONS"] = "rtsp_transport;tcp"
 
         try:
-            cap = cv2.VideoCapture(self.config.url, cv2.CAP_FFMPEG)
+            url = self.config.url
+            url = url.replace("rtsp://simulator:8554", "rtsp://127.0.0.1:8554")
+            url = url.replace("rtsp://video-gateway:8554", "rtsp://127.0.0.1:8554")
+            if url.startswith("rtsp://"):
+                cap = cv2.VideoCapture(url, cv2.CAP_FFMPEG)
+            else:
+                cap = cv2.VideoCapture(url)
             # Minimize internal buffer latency
             cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
             if not cap.isOpened():

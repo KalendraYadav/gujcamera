@@ -52,6 +52,8 @@ vi.mock('@/lib/api/evidence', () => ({
     getBySighting: vi.fn(),
     getEvidence: vi.fn(),
     downloadExport: vi.fn(),
+    getFrameBlob: vi.fn().mockResolvedValue(new Blob(['fake-frame'], { type: 'image/jpeg' })),
+    getFrameUrl: vi.fn((id: string) => `/api/v1/evidence/${id}/frame`),
   },
 }));
 

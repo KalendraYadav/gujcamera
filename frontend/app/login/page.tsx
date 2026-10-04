@@ -42,7 +42,7 @@ export default function LoginPage() {
                 lineHeight: 1,
               }}
             >
-              NETRAVA
+              NETRAVAHA
             </div>
             <div
               style={{
@@ -164,7 +164,7 @@ export default function LoginPage() {
               })}
             </div>
 
-            {/* Nationwide Map Intelligence Overlay */}
+            {/* Representative Corridor Map Badge */}
             <div style={{ marginTop: '8px' }}>
               <NationwideMapBadge />
             </div>

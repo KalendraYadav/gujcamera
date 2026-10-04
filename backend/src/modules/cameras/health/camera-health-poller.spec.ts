@@ -94,7 +94,13 @@ describe('CameraHealthPollerService (Phase 4: Health Monitoring & Reconnection)'
         if (match) return match[1].toLowerCase();
         return `cam-${id.slice(0, 8)}`;
       }),
-      isInternalGatewayStream: jest.fn((url: string) => url.includes('video-gateway:8554')),
+      isInternalGatewayStream: jest.fn((url: string) => url.includes('video-gateway:8554') || url.includes('simulator:8554')),
+      isPullableExternalSource: jest.fn((url: string) => !url.includes('video-gateway') && !url.includes('simulator') && !url.startsWith('mock://') && !url.startsWith('placeholder://')),
+      isPlaceholderStream: jest.fn((url: string) => url.startsWith('mock://') || url.startsWith('placeholder://')),
+      extractStreamPath: jest.fn((url: string) => {
+        const match = url.match(/(?:rtsp:\/\/[^\/]+\/|mock:\/\/[^\/]+\/)(.*)/i);
+        return match ? match[1].replace(/^\/+|\/+$/g, '') : '';
+      }),
       listPathStates: jest.fn(),
       getPathState: jest.fn(),
       registerPath: jest.fn().mockResolvedValue({ success: true, internalRtspUrl: 'rtsp://video-gateway:8554/cam-sur-01' }),
@@ -658,5 +664,48 @@ describe('CameraHealthPollerService (Phase 4: Health Monitoring & Reconnection)'
 
     const metrics = service.getMetrics();
     expect(metrics.totalPollCycles).toBe(5);
+  });
+
+  // ============================================================================
+  // TEST 19: Placeholder/Mock cameras do not trigger MediaMTX registration
+  // ============================================================================
+  it('19. Placeholder stream isolation: mock:// cameras remain in configured status and never attempt MediaMTX registration', async () => {
+    const mockCameraPlaceholder = {
+      id: 'mock-gnd-01',
+      name: 'CAM-GND-01: Gandhinagar Secretariat',
+      isActive: true,
+      operationalStatus: OperationalStatus.OFFLINE,
+      departmentId: 'dept-01',
+      streams: [
+        {
+          id: 'stream-mock-01',
+          urlOrHandle: 'mock://vendor-a/gnd-sec-01',
+          streamType: 'SUB',
+          protocol: 'MOCK',
+        },
+      ],
+      health: {
+        status: OperationalStatus.OFFLINE,
+        lastHeartbeat: new Date(),
+        fpsActual: 0,
+        packetLoss: 100,
+      },
+    };
+
+    mockPrisma.camera.findMany.mockResolvedValue([mockCameraPlaceholder]);
+
+    const pathStates = new Map();
+    mockMediaGateway.listPathStates.mockResolvedValue({ success: true, paths: pathStates });
+
+    await service.pollActiveCameras();
+
+    // Must NOT call registerPath or flood MediaMTX
+    expect(mockMediaGateway.registerPath).not.toHaveBeenCalled();
+
+    // Verify runtime state preserves configured status without reconnection loops
+    const runtime = service.getRuntimeState('mock-gnd-01');
+    expect(runtime).toBeDefined();
+    expect(runtime?.status).toBe(OperationalStatus.OFFLINE);
+    expect(runtime?.reconnectAttempts).toBe(0);
   });
 });

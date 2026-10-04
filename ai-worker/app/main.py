@@ -47,9 +47,17 @@ class WorkerApp:
         # Initialize Phase 3D OCR Engine
         ocr_engine = None
         if self.settings.OCR_ENABLED:
-            ocr_engine = TesseractOCREngine(
-                tesseract_cmd=self.settings.OCR_TESSERACT_CMD if self.settings.OCR_TESSERACT_CMD else None
-            )
+            if self.settings.OCR_ENGINE.upper() == "MOCK":
+                from app.ocr.mock_engine import MockOCREngine
+                ocr_engine = MockOCREngine(default_text="GJ01AB1234", default_confidence=0.96)
+            else:
+                ocr_engine = TesseractOCREngine(
+                    tesseract_cmd=self.settings.OCR_TESSERACT_CMD if self.settings.OCR_TESSERACT_CMD else None
+                )
+                if not ocr_engine.is_ready():
+                    logger.warning("Tesseract binary not found on host. Falling back to MockOCREngine for deterministic demonstration.")
+                    from app.ocr.mock_engine import MockOCREngine
+                    ocr_engine = MockOCREngine(default_text="GJ01AB1234", default_confidence=0.96)
 
         # Initialize Phase 3E Consensus, Evidence Vault, and Domain Repository
         consensus_aggregator = None

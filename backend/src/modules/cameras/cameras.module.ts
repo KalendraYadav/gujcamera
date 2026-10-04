@@ -10,14 +10,19 @@ import { EventsModule } from '../../common/events/events.module';
 import { LocalEncryptedCredentialProvider } from './credentials/local-encrypted-credential.provider';
 import { CREDENTIAL_STORE_TOKEN } from './credentials/credential-store.interface';
 import { CameraHealthPollerService } from './health/camera-health-poller.service';
+import { DatasetAdapterService } from './dataset-adapter/dataset-adapter.service';
+import { SimulatedReplayService } from './dataset-adapter/simulated-replay.service';
+import { SimulatedCctvController } from './dataset-adapter/simulated-cctv.controller';
 
 @Module({
   imports: [EventsModule],
-  controllers: [CamerasController],
+  controllers: [CamerasController, SimulatedCctvController],
   providers: [
     CamerasService,
     MediaGatewayService,
     CameraHealthPollerService,
+    DatasetAdapterService,
+    SimulatedReplayService,
     LocalEncryptedCredentialProvider,
     {
       provide: CREDENTIAL_STORE_TOKEN,
@@ -31,6 +36,8 @@ import { CameraHealthPollerService } from './health/camera-health-poller.service
     CamerasService,
     MediaGatewayService,
     CameraHealthPollerService,
+    DatasetAdapterService,
+    SimulatedReplayService,
     LocalEncryptedCredentialProvider,
     CREDENTIAL_STORE_TOKEN,
     RtspProtocolAdapter,
@@ -39,4 +46,5 @@ import { CameraHealthPollerService } from './health/camera-health-poller.service
   ],
 })
 export class CamerasModule {}
+
 

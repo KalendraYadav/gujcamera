@@ -52,6 +52,34 @@ export class EvidenceController {
     return this.evidenceService.getEvidenceBySightingId(sightingId, user);
   }
 
+  @Get(':id/frame')
+  @Roles('INVESTIGATOR', 'SUPER_ADMIN', 'SYSTEM_AUDITOR')
+  @ApiOperation({
+    summary: 'Stream raw evidence JPEG frame directly from vault with live SHA-256 verification',
+    description: 'Streams original unmodified JPEG bytes from MinIO storage vault. Validates SHA-256 integrity digest before serving. Blocks streaming on hash mismatch.',
+  })
+  @ApiResponse({ status: 200, description: 'Raw JPEG binary frame stream', content: { 'image/jpeg': {} } })
+  @ApiResponse({ status: 404, description: 'Evidence not found or frame missing from storage vault' })
+  @ApiResponse({ status: 409, description: 'INTEGRITY_VERIFICATION_FAILED: Tampered or corrupted evidence' })
+  @ApiResponse({ status: 503, description: 'Evidence vault storage unreachable' })
+  async getEvidenceFrame(
+    @Param('id') id: string,
+    @CurrentUser() user: AuthenticatedUser,
+    @Res() res: Response,
+  ) {
+    const { frameBuffer, hash } = await this.evidenceService.getEvidenceFrame(id, user);
+
+    res.set({
+      'Content-Type': 'image/jpeg',
+      'Content-Length': frameBuffer.length.toString(),
+      'X-Evidence-Integrity': 'VERIFIED_MATCH',
+      'X-Evidence-Hash': hash,
+      'Cache-Control': 'private, no-cache, no-store, must-revalidate',
+    });
+
+    res.end(frameBuffer);
+  }
+
   @Get(':id/export')
   @Roles('INVESTIGATOR', 'SUPER_ADMIN')
   @ApiOperation({

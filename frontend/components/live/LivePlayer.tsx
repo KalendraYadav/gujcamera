@@ -568,7 +568,30 @@ export const LivePlayer: React.FC<LivePlayerProps> = ({
             <span>SOURCE:</span>
             <span style={{ color: '#e2e8f0' }}>{camera.source_type || 'RESEARCH_VIDEO'}</span>
           </div>
+
+          <div
+            data-testid="simulated-live-badge"
+            title="Representative corridor recordings replayed over simulated RTSP gateway. Ingestion boundary accepts authorized police CCTV upon operational deployment."
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '4px',
+              padding: '4px 8px',
+              borderRadius: '4px',
+              backgroundColor: 'rgba(59, 130, 246, 0.18)',
+              border: '1px solid rgba(59, 130, 246, 0.38)',
+              color: '#93C5FD',
+              fontSize: '10px',
+              fontWeight: 600,
+              fontFamily: 'var(--font-mono)',
+              backdropFilter: 'blur(4px)',
+              letterSpacing: '0.04em',
+            }}
+          >
+            <span>SIMULATED LIVE</span>
+          </div>
         </div>
+
 
         {/* Right: Technical Specs Overlay */}
         <div

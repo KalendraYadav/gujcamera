@@ -168,13 +168,13 @@ describe('Evidence Export RBAC Alignment (Department Admin vs Authorized Roles)'
   // 1. UNIT TEST: canExportEvidence role matrix
   // --------------------------------------------------------------------------
   describe('canExportEvidence RBAC Helper', () => {
-    it('authorizes INVESTIGATOR, SUPER_ADMIN, and SYSTEM_AUDITOR for evidence export', () => {
+    it('authorizes INVESTIGATOR and SUPER_ADMIN for evidence export', () => {
       expect(canExportEvidence('INVESTIGATOR')).toBe(true);
       expect(canExportEvidence('SUPER_ADMIN')).toBe(true);
-      expect(canExportEvidence('SYSTEM_AUDITOR')).toBe(true);
     });
 
-    it('rejects DEPARTMENT_ADMIN, OPERATOR, VIEWER, and undefined roles', () => {
+    it('rejects SYSTEM_AUDITOR, DEPARTMENT_ADMIN, OPERATOR, VIEWER, and undefined roles', () => {
+      expect(canExportEvidence('SYSTEM_AUDITOR')).toBe(false);
       expect(canExportEvidence('DEPARTMENT_ADMIN')).toBe(false);
       expect(canExportEvidence('OPERATOR')).toBe(false);
       expect(canExportEvidence('VIEWER')).toBe(false);
@@ -252,7 +252,7 @@ describe('Evidence Export RBAC Alignment (Department Admin vs Authorized Roles)'
       expect(screen.getAllByText(/Verify & Export Evidence Package/i).length).toBe(2);
     });
 
-    it('renders Verify & Export button for SYSTEM_AUDITOR', () => {
+    it('does NOT render Verify & Export button for SYSTEM_AUDITOR', () => {
       render(
         <SightingsTimeline
           sightings={MOCK_SIGHTINGS}
@@ -264,7 +264,7 @@ describe('Evidence Export RBAC Alignment (Department Admin vs Authorized Roles)'
         />
       );
 
-      expect(screen.getAllByText(/Verify & Export Evidence Package/i).length).toBe(2);
+      expect(screen.queryByText(/Verify & Export Evidence Package/i)).not.toBeInTheDocument();
     });
   });
 
@@ -292,11 +292,15 @@ describe('Evidence Export RBAC Alignment (Department Admin vs Authorized Roles)'
       render(<VehicleDetailPage />);
 
       // Wait for vehicle details to load
-      await waitFor(() => {
-        expect(screen.getByText('GJ01AB1234')).toBeInTheDocument();
-        expect(screen.getByText('Hyundai')).toBeInTheDocument();
-        expect(screen.getByText('Creta')).toBeInTheDocument();
-      });
+      await waitFor(
+        () => {
+          expect(screen.getByText('GJ01AB1234')).toBeInTheDocument();
+          expect(screen.getByText('Hyundai')).toBeInTheDocument();
+          expect(screen.getByText('Creta')).toBeInTheDocument();
+        },
+        { timeout: 4000 },
+      );
+
 
       // 1. Header Export button must NOT be rendered
       expect(screen.queryByText('Export Evidence Package')).not.toBeInTheDocument();

@@ -1,0 +1,24 @@
+{
+  "processes": {
+    "CAM-AHM-01": {
+      "pid": "wsl-daemon",
+      "rtspPath": "cam-ahm-01",
+      "startedAt": "2026-10-04T04:53:20.787Z"
+    },
+    "CAM-AHM-02": {
+      "pid": "wsl-daemon",
+      "rtspPath": "cam-ahm-02",
+      "startedAt": "2026-10-04T04:53:20.787Z"
+    },
+    "CAM-GND-02": {
+      "pid": "wsl-daemon",
+      "rtspPath": "cam-gnd-02",
+      "startedAt": "2026-10-04T04:53:20.787Z"
+    },
+    "CAM-DEMO-01": {
+      "pid": "wsl-daemon",
+      "rtspPath": "demo-traffic",
+      "startedAt": "2026-10-04T04:53:20.787Z"
+    }
+  }
+}

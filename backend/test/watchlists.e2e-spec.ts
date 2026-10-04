@@ -78,6 +78,7 @@ describe('Watchlists & Watchlist Entries Module (e2e)', () => {
     gandhinagarDeptId = gndDept!.id;
 
     // 4. Create a test DEPARTMENT_ADMIN user belonging to Ahmedabad City Police
+    await prisma.user.deleteMany({ where: { email: 'deptadmin.test.ahm@gujcamera.local' } });
     const deptAdminRole = await prisma.role.findFirst({ where: { name: 'DEPARTMENT_ADMIN' } });
     const pwHash = await bcrypt.hash('PoliceDemo@2026!', 10);
     const deptAdmin = await prisma.user.create({
@@ -98,6 +99,17 @@ describe('Watchlists & Watchlist Entries Module (e2e)', () => {
         password: 'PoliceDemo@2026!',
       });
     deptAdminAccessToken = deptAdminLoginRes.body.access_token;
+
+    // Ensure baseline watchlists exist for listing test
+    const count = await prisma.watchlist.count();
+    if (count < 2) {
+      await prisma.watchlist.createMany({
+        data: [
+          { name: 'Ahmedabad Stolen Vehicles Watchlist (DEMO)', departmentId: ahmedabadDeptId, owner: 'Crime Branch' },
+          { name: 'Gandhinagar Surveillance Watchlist (DEMO)', departmentId: gandhinagarDeptId, owner: 'District Police' },
+        ],
+      });
+    }
   });
 
   afterAll(async () => {

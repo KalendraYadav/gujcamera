@@ -281,18 +281,27 @@ export class VehicleCorrelationService {
 
     // --- Step 1: Fetch the most recent reference sighting for the query plate
     // We use it to anchor the spatio-temporal scoring
-    const refSighting = await (this.prisma.vehicleSighting.findFirst({
+    const refSighting = await this.prisma.vehicleSighting.findFirst({
       where: { plateNormalized: queryPlate },
       orderBy: { ts: 'desc' },
-      include: {
+      select: {
+        id: true,
+        plateNormalized: true,
+        vehicleClass: true,
+        ts: true,
         camera: {
-          select: { id: true, name: true, lat: true, long: true },
-          include: { location: { select: { district: true } } },
+          select: {
+            id: true,
+            name: true,
+            lat: true,
+            long: true,
+            location: { select: { district: true } },
+          },
         },
       },
-    }) as any) as any;
+    });
 
-    const queryClass: string | null = (refSighting as any)?.vehicleClass ?? null;
+    const queryClass: string | null = refSighting?.vehicleClass ?? null;
 
     // --- Step 2: Fetch all plates in the window that could be edit-distance ≤ 1
     // We use a prefix/suffix approach: query all plates whose length is ±1 of query
@@ -300,7 +309,7 @@ export class VehicleCorrelationService {
     const minLen = queryPlate.length - 1;
     const maxLen = queryPlate.length + 1;
 
-    const candidateSightings: any[] = await this.prisma.vehicleSighting.findMany({
+    const candidateSightings = await this.prisma.vehicleSighting.findMany({
       where: {
         ts: { gte: since },
         NOT: { plateNormalized: queryPlate }, // Exact matches of query plate are NOT candidates
@@ -312,14 +321,18 @@ export class VehicleCorrelationService {
         cameraId: true,
         ts: true,
         confidence: true,
-      },
-      include: {
+        vehicleClass: true,
         camera: {
-          select: { id: true, name: true, lat: true, long: true },
-          include: { location: { select: { district: true } } },
+          select: {
+            id: true,
+            name: true,
+            lat: true,
+            long: true,
+            location: { select: { district: true } },
+          },
         },
       },
-    } as any);
+    });
 
     this.logger.debug(
       `[Correlation] Pool size before fuzzy filter: ${candidateSightings.length}`,

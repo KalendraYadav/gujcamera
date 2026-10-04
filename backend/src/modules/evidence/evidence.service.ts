@@ -140,6 +140,45 @@ export class EvidenceService {
     const isVerified = verificationResult.verified;
     const isBreach = verificationResult.status === 'INTEGRITY_BREACH';
 
+    // 1. Audit view-time tamper detection if integrity hash mismatch detected
+    if (isBreach) {
+      await this.auditService.recordAudit({
+        actorId: user?.id,
+        action: 'EVIDENCE_TAMPER_DETECTED',
+        resource: 'evidence',
+        after: {
+          evidence_id: evidence.id,
+          expected_hash: evidence.hash,
+          calculated_hash: verificationResult.calculated_hash,
+          severity: 'SECURITY_ALERT',
+          actor_id: user?.id,
+          actor_email: user?.email,
+        },
+      });
+    }
+
+    // 2. Audit evidence inspection by authorized user
+    await this.auditService.recordAudit({
+      actorId: user?.id,
+      action: 'EVIDENCE_INSPECTED',
+      resource: 'evidence',
+      after: {
+        actor_id: user?.id,
+        actor_email: user?.email,
+        evidence_id: evidence.id,
+        sighting_id: evidence.sourceId,
+        camera_id: sighting?.cameraId || null,
+        verification_status: isVerified
+          ? 'INTEGRITY_VERIFIED'
+          : isBreach
+          ? 'INTEGRITY_BREACH'
+          : 'VERIFICATION_UNAVAILABLE',
+        sha256_hash: evidence.hash,
+        computed_sha256: verificationResult.calculated_hash,
+        timestamp: new Date().toISOString(),
+      },
+    });
+
     return {
       id: evidence.id,
       source_type: evidence.sourceType,
@@ -175,8 +214,58 @@ export class EvidenceService {
             confidence: Number(sighting.confidence),
             consensus_of: sighting.consensusOf,
             consensus_frames: sighting.consensusOf,
+            vehicle_class: sighting.vehicleClass ?? null,
+            vehicleClass: sighting.vehicleClass ?? null,
           }
         : null,
+    };
+  }
+
+  /**
+   * Stream raw original JPEG frame with live cryptographic SHA-256 verification
+   */
+  async getEvidenceFrame(id: string, user: AuthenticatedUser): Promise<{ frameBuffer: Buffer; hash: string; verified: boolean }> {
+    const evidence = await this.prisma.evidence.findUnique({
+      where: { id },
+    });
+
+    if (!evidence) {
+      throw new NotFoundException(`Evidence artifact '${id}' not found`);
+    }
+
+    const { bucket, key } = this.parseStorageRef(evidence.storageRef);
+
+    // Fetch original raw bytes from MinIO vault (throws NotFoundException / ServiceUnavailableException on failure)
+    const frameBuffer = await this.fetchObjectBuffer(bucket, key);
+
+    // Live SHA-256 verification
+    const calculatedHash = crypto.createHash('sha256').update(frameBuffer).digest('hex');
+    const isMatch = calculatedHash.toLowerCase() === evidence.hash.toLowerCase();
+
+    if (!isMatch) {
+      await this.auditService.recordAudit({
+        actorId: user?.id,
+        action: 'EVIDENCE_TAMPER_DETECTED',
+        resource: 'evidence',
+        after: {
+          evidence_id: evidence.id,
+          expected_hash: evidence.hash,
+          calculated_hash: calculatedHash,
+          severity: 'SECURITY_ALERT',
+          actor_id: user?.id,
+          actor_email: user?.email,
+        },
+      });
+
+      throw new ConflictException(
+        `INTEGRITY_VERIFICATION_FAILED: Stored evidence frame byte digest does not match recorded canonical hash. Expected ${evidence.hash}, computed ${calculatedHash}. Streaming blocked.`,
+      );
+    }
+
+    return {
+      frameBuffer,
+      hash: evidence.hash,
+      verified: true,
     };
   }
 
@@ -254,6 +343,7 @@ export class EvidenceService {
       storage_ref: evidence.storageRef,
       sha256_hash: evidence.hash,
       captured_at: evidence.capturedAt.toISOString(),
+      vehicleClass: sighting?.vehicleClass ?? null,
       sighting_context: sighting
         ? {
             sighting_id: sighting.id,
@@ -263,6 +353,8 @@ export class EvidenceService {
             timestamp: sighting.ts.toISOString(),
             confidence: Number(sighting.confidence),
             consensus_of: sighting.consensusOf,
+            vehicle_class: sighting.vehicleClass ?? null,
+            vehicleClass: sighting.vehicleClass ?? null,
           }
         : null,
       export_audit: {

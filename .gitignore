@@ -108,3 +108,6 @@ ai-worker/models/*.onnx
 question.md
 commandToRUN.md
 databaseKEY.md
+
+
+productionSecret.txt

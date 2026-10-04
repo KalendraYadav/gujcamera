@@ -25,5 +25,7 @@ export interface EvidenceInspection {
     timestamp: string;
     confidence: number;
     consensus_frames: number;
+    vehicle_class?: string | null;
+    vehicleClass?: string | null;
   };
 }

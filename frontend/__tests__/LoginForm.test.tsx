@@ -29,7 +29,7 @@ describe('LoginForm Component', () => {
   it('renders official police title, email input, password input, and simulated data badge', () => {
     render(<LoginForm />);
 
-    expect(screen.getByText('NETRAVA')).toBeInTheDocument();
+    expect(screen.getByText('NETRAVAHA')).toBeInTheDocument();
     expect(screen.getByText(/Unified CCTV Intelligence Platform/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/Officer Email \/ Identity/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/Passcode \/ Password/i)).toBeInTheDocument();

@@ -75,7 +75,7 @@ async function bootstrap() {
 
   // 6. Start HTTP Server
   const port = process.env.PORT || 4000;
-  await app.listen(port);
+  await app.listen(port, '0.0.0.0');
 
   // 7. Demo ONVIF Device Service in non-production environments
   if (process.env.NODE_ENV !== 'production') {

@@ -265,15 +265,38 @@ export class CameraHealthPollerService implements OnModuleInit, OnModuleDestroy 
 
     const runtime = this.getOrCreateRuntimeState(camera, pathName);
 
+    // If camera has a placeholder or mock stream, it is an unconnected vendor stub
+    const stream = camera.streams?.[0];
+    const streamUrl = stream?.urlOrHandle || stream?.url_or_handle || '';
+    if (this.mediaGatewayService?.isPlaceholderStream(streamUrl)) {
+      runtime.status = camera.operationalStatus || OperationalStatus.OFFLINE;
+      runtime.consecutiveFailures = 0;
+      runtime.reconnectAttempts = 0;
+      runtime.failureReason = 'Placeholder/mock stream not connected to live media gateway';
+      return runtime.status;
+    }
+
     // If camera is explicitly in ERROR state, it requires revalidation or credential update
     if (camera.operationalStatus === OperationalStatus.ERROR && runtime.status === OperationalStatus.ERROR) {
       return OperationalStatus.ERROR;
     }
 
-    // Inspect MediaMTX path state
-    const pathState = pathStates.get(pathName);
+    // Inspect MediaMTX path state (resolving by normalized path, extracted stream path, or flat path)
+    const rawPath = this.mediaGatewayService?.extractStreamPath(streamUrl) || '';
+    const flatStreamPath = rawPath.replace(/^live\//, '');
+
+    const pathState =
+      pathStates.get(pathName) ||
+      (rawPath ? pathStates.get(rawPath) : undefined) ||
+      (flatStreamPath ? pathStates.get(flatStreamPath) : undefined);
     const isStreamReady = Boolean(pathState && pathState.ready);
-    const pathExistsInGateway = Boolean(pathState || (pathStates.size > 0 && pathStates.has(pathName)));
+    const pathExistsInGateway = Boolean(
+      pathState ||
+      (pathStates.size > 0 &&
+        (pathStates.has(pathName) ||
+          (rawPath && pathStates.has(rawPath)) ||
+          (flatStreamPath && pathStates.has(flatStreamPath))))
+    );
 
     // Case 1: Stream is confirmed ONLINE and ready by MediaMTX
     if (mediaMtxAvailable && isStreamReady) {
@@ -504,7 +527,7 @@ export class CameraHealthPollerService implements OnModuleInit, OnModuleDestroy 
         const stream = camera.streams[0];
         const cleanEndpoint = stripCredentialsFromUrl(stream.urlOrHandle);
 
-        if (cleanEndpoint && !this.mediaGatewayService.isInternalGatewayStream(cleanEndpoint)) {
+        if (cleanEndpoint && this.mediaGatewayService.isPullableExternalSource(cleanEndpoint)) {
           // Resolve current credentials directly from CredentialStore in RAM only
           let sourceUrl = cleanEndpoint;
           if (this.credentialStore) {

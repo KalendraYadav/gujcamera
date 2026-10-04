@@ -158,6 +158,32 @@ describe('MediaGatewayService (MediaMTX v3 Control Plane)', () => {
       expect(result.error).not.toContain('SecretPass123');
       expect(result.error).toContain('***:***@');
     });
+
+    it('rejects mock and placeholder sources without querying MediaMTX API', async () => {
+      const httpRequestSpy = jest.spyOn(service as any, 'httpRequest');
+
+      const result = await service.registerPath(
+        'cam-gnd-01',
+        'mock://vendor-a/gnd-sec-01',
+      );
+
+      expect(result.success).toBe(false);
+      expect(result.isExternalSource).toBe(false);
+      expect(result.error).toContain('Unsupported stream protocol');
+      expect(httpRequestSpy).not.toHaveBeenCalled();
+    });
+
+    it('identifies placeholder and pullable stream protocols correctly', () => {
+      expect(service.isPlaceholderStream('mock://vendor-a/gnd-sec-01')).toBe(true);
+      expect(service.isPlaceholderStream('placeholder://cam-01')).toBe(true);
+      expect(service.isPlaceholderStream('rtsp://10.20.4.15:554/live')).toBe(false);
+
+      expect(service.isPullableExternalSource('rtsp://10.20.4.15:554/live')).toBe(true);
+      expect(service.isPullableExternalSource('rtsps://camera.lan/stream')).toBe(true);
+      expect(service.isPullableExternalSource('rtsp://video-gateway:8554/cam-01')).toBe(false);
+      expect(service.isPullableExternalSource('rtsp://simulator:8554/cam-01')).toBe(false);
+      expect(service.isPullableExternalSource('mock://vendor-a/gnd-sec-01')).toBe(false);
+    });
   });
 
   describe('Control API Authentication', () => {

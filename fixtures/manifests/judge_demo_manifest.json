@@ -1,0 +1,127 @@
+{
+  "$schema": "https://netravaha.police.gujarat.gov.in/schemas/v1/judge-demo-manifest.json",
+  "manifestVersion": "1.0.0",
+  "title": "NETRAVAHA Primary Judge Demonstration Scenario",
+  "scenarioName": "AHMEDABAD-GANDHINAGAR CORRIDOR INTER-DISTRICT VEHICLE PURSUIT",
+  "challenge": "Gujarat Police Innovation Challenge 2026",
+  "classification": "SIMULATED_REPRESENTATIVE_CORRIDOR",
+  "updatedAt": "2026-10-03T18:30:00Z",
+  "disclaimer": "This manifest defines the deterministic operational execution procedure for live judge demonstration. All streams operate via simulated live RTSP through MediaMTX and are analyzed at runtime by the AI worker. This file defines demonstration orchestration only; it does NOT inject detections, mock records, or bypass the real runtime pipeline.",
+  "targetVehicle": {
+    "plate": "GJ01AB1234",
+    "normalizedPlate": "GJ01AB1234",
+    "vehicleClass": "SUV",
+    "make": "Hyundai",
+    "model": "Creta",
+    "color": "White",
+    "caseReference": "FIR #102/2026 (Stolen Vehicle Investigation)",
+    "watchlistName": "Ahmedabad Stolen Vehicles Watchlist (DEMO)",
+    "watchlistSeverity": "CRITICAL"
+  },
+  "primaryDemonstrationNodes": [
+    {
+      "order": 1,
+      "cameraId": "CAM-AHM-01",
+      "role": "ENTRY_CAMERA",
+      "displayName": "CAM-AHM-01: SG Highway - Pakwan Crossroad Junction",
+      "jurisdiction": "Ahmedabad City Police Commissionerate",
+      "location": "Pakwan Crossroad, Sarkhej - Gandhinagar Hwy, Bodakdev",
+      "coordinates": {
+        "latitude": 23.0338142,
+        "longitude": 72.5073289
+      },
+      "sourceType": "SYNTHETIC_STREAM",
+      "videoFixture": "video-gateway/fixtures/cam-ahm-01.mp4",
+      "sha256": "53d479c2b7cd242523e53020c5e46e363fef42f908641873b89957c50ea891ad",
+      "rtspPath": "cam-ahm-01",
+      "targetRtspUrl": "rtsp://localhost:8554/cam-ahm-01",
+      "targetHlsUrl": "http://localhost:8888/cam-ahm-01/index.m3u8",
+      "expectedRuntimeBehavior": "Target SUV 'GJ01AB1234' enters Pakwan Crossroad junction. YOLO detects vehicle bounding box, OCR engine detects HSRP plate with multi-frame consensus. Evidence frame uploaded to MinIO vault with SHA-256 digest. Critical watchlist match event published to Redis Stream."
+    },
+    {
+      "order": 2,
+      "cameraId": "CAM-AHM-02",
+      "role": "TRANSIT_HOP_1",
+      "displayName": "CAM-AHM-02: C.G. Road - Swastik Char Rasta",
+      "jurisdiction": "Ahmedabad City Police Commissionerate",
+      "location": "Swastik Cross Road, Chimanlal Girdharlal Rd, Navrangpura",
+      "coordinates": {
+        "latitude": 23.0354120,
+        "longitude": 72.5592810
+      },
+      "sourceType": "SYNTHETIC_STREAM",
+      "videoFixture": "video-gateway/fixtures/cam-ahm-02.mp4",
+      "sha256": "fb0b650dc7cbc694d2f9c311a690f2e2f9784ae23dbdd5a2b7a02e266827d4a2",
+      "rtspPath": "cam-ahm-02",
+      "targetRtspUrl": "rtsp://localhost:8554/cam-ahm-02",
+      "targetHlsUrl": "http://localhost:8888/cam-ahm-02/index.m3u8",
+      "expectedRuntimeBehavior": "Target SUV arrives at Swastik Char Rasta ~5.3 km eastward. Second runtime sighting created. Spatio-temporal route velocity calculation validates plausible arterial transit speed (42 km/h). Multi-camera chronological timeline visualizes trajectory."
+    },
+    {
+      "order": 3,
+      "cameraId": "CAM-GND-02",
+      "role": "TRANSIT_HOP_2_INTER_DISTRICT",
+      "displayName": "CAM-GND-02: CH-0 Circle - Gandhinagar Entrance",
+      "jurisdiction": "Gandhinagar District Police",
+      "location": "CH-0 Circle, Koba Circle Highway Link, Gandhinagar",
+      "coordinates": {
+        "latitude": 23.1985400,
+        "longitude": 72.6288300
+      },
+      "sourceType": "SYNTHETIC_STREAM",
+      "videoFixture": "video-gateway/fixtures/cam-ahm-02.mp4",
+      "sha256": "fb0b650dc7cbc694d2f9c311a690f2e2f9784ae23dbdd5a2b7a02e266827d4a2",
+      "rtspPath": "cam-gnd-02",
+      "targetRtspUrl": "rtsp://localhost:8554/cam-gnd-02",
+      "targetHlsUrl": "http://localhost:8888/cam-gnd-02/index.m3u8",
+      "expectedRuntimeBehavior": "Target enters Gandhinagar jurisdiction via Koba Highway link. Cross-jurisdictional correlation links Ahmedabad City and Gandhinagar District sightings seamlessly into unified police intelligence map."
+    }
+  ],
+  "expectedUiSequence": [
+    {
+      "step": 1,
+      "page": "/login",
+      "action": "Authenticate with officer credentials (investigator / operator / admin role)"
+    },
+    {
+      "step": 2,
+      "page": "/live",
+      "action": "Observe tactical Live CCTV grid; verify 'SIMULATED LIVE CCTV' disclosure badge and online MediaMTX RTSP/HLS feeds"
+    },
+    {
+      "step": 3,
+      "page": "/investigation",
+      "action": "Search target plate 'GJ01AB1234'; observe multi-camera sightings populated by runtime AI worker"
+    },
+    {
+      "step": 4,
+      "page": "/investigation (Timeline Tab)",
+      "action": "Inspect chronological transit order: CAM-AHM-01 -> CAM-AHM-02 -> CAM-GND-02"
+    },
+    {
+      "step": 5,
+      "page": "/gis",
+      "action": "Review spatio-temporal route visualization showing corridor transit vector between Ahmedabad and Gandhinagar"
+    },
+    {
+      "step": 6,
+      "page": "/investigation (Correlation Candidates Tab)",
+      "action": "Demonstrate Phase 10 hybrid fuzzy-plate & spatio-temporal candidate scoring algorithm"
+    },
+    {
+      "step": 7,
+      "page": "/evidence/:id",
+      "action": "Open evidence inspection modal; observe forensic frame, metadata headers, and SHA-256 integrity match"
+    },
+    {
+      "step": 8,
+      "page": "/alerts",
+      "action": "Inspect CRITICAL alert automatically dispatched from Redis Stream on watchlist match for FIR #102/2026"
+    }
+  ],
+  "recoveryInstructions": {
+    "streamFailure": "If a stream stalls, execute 'node scripts/manage_judge_demo.js restart-stream <cameraId>'. MediaMTX will resume publication within 2 seconds.",
+    "aiWorkerStall": "Restart AI worker; the Redis Stream consumer group maintains offset without losing processed frame states.",
+    "cleanReset": "Execute 'node scripts/manage_judge_demo.js reset' to purge demonstration sightings and alerts without affecting migrations, user accounts, or camera topology."
+  }
+}

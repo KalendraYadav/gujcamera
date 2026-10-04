@@ -99,7 +99,7 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps = {}) {
                   lineHeight: 1.1,
                 }}
               >
-                NETRAVA
+                NETRAVAHA
               </div>
               <div
                 style={{

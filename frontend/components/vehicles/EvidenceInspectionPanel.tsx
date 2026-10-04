@@ -50,6 +50,11 @@ export function EvidenceInspectionPanel({
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Raw evidence frame streaming state
+  const [frameUrl, setFrameUrl] = useState<string | null>(null);
+  const [frameLoading, setFrameLoading] = useState<boolean>(false);
+  const [frameError, setFrameError] = useState<string | null>(null);
+
   useEffect(() => {
     if (!sightingId) {
       setEvidence(null);
@@ -81,6 +86,55 @@ export function EvidenceInspectionPanel({
       isMounted = false;
     };
   }, [sightingId]);
+
+  // Fetch original JPEG evidence frame when evidence is loaded
+  useEffect(() => {
+    if (!evidence?.id) {
+      setFrameUrl(null);
+      setFrameError(null);
+      return;
+    }
+
+    // Do not stream frame if integrity breach is detected
+    if (evidence.verification_status === 'INTEGRITY_BREACH') {
+      setFrameUrl(null);
+      setFrameError('INTEGRITY_BREACH');
+      return;
+    }
+
+    if (typeof evidenceApi.getFrameBlob !== 'function') {
+      return;
+    }
+
+    let isMounted = true;
+    let createdUrl: string | null = null;
+    setFrameLoading(true);
+    setFrameError(null);
+
+    evidenceApi
+      .getFrameBlob(evidence.id)
+      .then((blob) => {
+        if (isMounted) {
+          createdUrl = URL.createObjectURL(blob);
+          setFrameUrl(createdUrl);
+          setFrameLoading(false);
+        }
+      })
+      .catch((err) => {
+        if (isMounted) {
+          setFrameError(err.message || 'Storage vault frame unavailable');
+          setFrameUrl(null);
+          setFrameLoading(false);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+      if (createdUrl) {
+        URL.revokeObjectURL(createdUrl);
+      }
+    };
+  }, [evidence?.id, evidence?.verification_status]);
 
   if (!sightingId) {
     return (
@@ -249,61 +303,130 @@ export function EvidenceInspectionPanel({
             <div
               style={{
                 position: 'relative',
-                height: '180px',
+                minHeight: '220px',
+                height: '240px',
                 backgroundColor: '#030712',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
+                overflow: 'hidden',
                 background: 'radial-gradient(ellipse at center, rgba(30, 58, 138, 0.15) 0%, rgba(3, 7, 18, 0.95) 100%)',
               }}
             >
-              {/* Surveillance Crosshairs */}
-              <div
-                style={{
-                  position: 'absolute',
-                  inset: '16px',
-                  border: '1px dashed rgba(59, 130, 246, 0.25)',
-                  pointerEvents: 'none',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
+              {frameLoading ? (
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+                  <RefreshCw size={20} className="animate-spin" color="var(--accent-primary)" />
+                  <span style={{ fontSize: '11px', fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)' }}>
+                    STREAMING ORIGINAL FRAME FROM VAULT…
+                  </span>
+                </div>
+              ) : frameError === 'INTEGRITY_BREACH' || evidence.verification_status === 'INTEGRITY_BREACH' ? (
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', padding: '16px', textAlign: 'center' }}>
+                  <AlertTriangle size={24} color="var(--status-critical)" />
+                  <span style={{ fontSize: '11px', fontWeight: 700, fontFamily: 'var(--font-mono)', color: 'var(--status-critical)', letterSpacing: '0.06em' }}>
+                    INTEGRITY BREACH DETECTED
+                  </span>
+                  <span style={{ fontSize: '11px', color: 'var(--text-dim)', maxWidth: '320px' }}>
+                    Retrieved object bytes failed cryptographic SHA-256 verification. Visual streaming is blocked.
+                  </span>
+                </div>
+              ) : frameError ? (
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', padding: '16px', textAlign: 'center' }}>
+                  <HardDrive size={22} color="var(--text-dim)" opacity={0.6} />
+                  <span style={{ fontSize: '11px', fontWeight: 700, fontFamily: 'var(--font-mono)', color: 'var(--text-dim)', letterSpacing: '0.06em' }}>
+                    STORAGE VAULT OBJECT UNAVAILABLE
+                  </span>
+                  <span style={{ fontSize: '11px', color: 'var(--text-muted)', maxWidth: '300px' }}>
+                    {frameError}
+                  </span>
+                </div>
+              ) : frameUrl ? (
+                <>
+                  <img
+                    src={frameUrl}
+                    alt={`Evidence frame for plate ${plateNormalized}`}
+                    data-testid="evidence-frame-image"
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'contain',
+                      backgroundColor: '#000',
+                      display: 'block',
+                    }}
+                  />
+                  {/* Subtle Tactical HUD Overlay */}
+                  <div
+                    style={{
+                      position: 'absolute',
+                      bottom: '10px',
+                      right: '10px',
+                      padding: '4px 10px',
+                      borderRadius: 'var(--radius-xs)',
+                      backgroundColor: 'rgba(11, 17, 32, 0.85)',
+                      border: '1px solid rgba(59, 130, 246, 0.4)',
+                      boxShadow: '0 0 10px rgba(0, 0, 0, 0.5)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      zIndex: 2,
+                    }}
+                  >
+                    <span
+                      style={{
+                        fontSize: '13px',
+                        fontWeight: 800,
+                        fontFamily: 'var(--font-mono)',
+                        letterSpacing: '0.08em',
+                        color: '#F8FAFC',
+                      }}
+                    >
+                      {plateNormalized}
+                    </span>
+                    <span style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', color: '#60A5FA' }}>
+                      {Math.round((evidence.sighting?.confidence || 0.95) * 100)}% CONF
+                    </span>
+                  </div>
+                </>
+              ) : (
+                /* Fallback crosshair if no frame URL */
                 <div
                   style={{
-                    padding: '8px 16px',
-                    borderRadius: 'var(--radius-xs)',
-                    backgroundColor: 'rgba(11, 17, 32, 0.85)',
-                    border: '1px solid rgba(59, 130, 246, 0.4)',
-                    boxShadow: '0 0 15px rgba(59, 130, 246, 0.2)',
+                    position: 'absolute',
+                    inset: '16px',
+                    border: '1px dashed rgba(59, 130, 246, 0.25)',
+                    pointerEvents: 'none',
                     display: 'flex',
-                    flexDirection: 'column',
                     alignItems: 'center',
-                    gap: '4px',
+                    justifyContent: 'center',
                   }}
                 >
                   <div
                     style={{
-                      fontSize: '15px',
-                      fontWeight: 800,
-                      fontFamily: 'var(--font-mono)',
-                      letterSpacing: '0.12em',
-                      color: '#F8FAFC',
+                      padding: '8px 16px',
+                      borderRadius: 'var(--radius-xs)',
+                      backgroundColor: 'rgba(11, 17, 32, 0.85)',
+                      border: '1px solid rgba(59, 130, 246, 0.4)',
+                      boxShadow: '0 0 15px rgba(59, 130, 246, 0.2)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      gap: '4px',
                     }}
                   >
-                    {plateNormalized}
-                  </div>
-                  <div
-                    style={{
-                      fontSize: '10px',
-                      fontFamily: 'var(--font-mono)',
-                      color: '#60A5FA',
-                    }}
-                  >
-                    ANPR OCR DETECTED &bull; CONF: {Math.round((evidence.sighting?.confidence || 0.95) * 100)}%
+                    <div
+                      style={{
+                        fontSize: '15px',
+                        fontWeight: 800,
+                        fontFamily: 'var(--font-mono)',
+                        letterSpacing: '0.12em',
+                        color: '#F8FAFC',
+                      }}
+                    >
+                      {plateNormalized}
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
 
               {/* Viewport Overlay Tags */}
               <div
@@ -318,9 +441,10 @@ export function EvidenceInspectionPanel({
                   padding: '2px 6px',
                   borderRadius: '2px',
                   letterSpacing: '0.04em',
+                  zIndex: 2,
                 }}
               >
-                EVIDENCE INTEGRITY
+                EVIDENCE FRAME
               </div>
 
               <div
@@ -334,6 +458,11 @@ export function EvidenceInspectionPanel({
                   backgroundColor: 'rgba(0,0,0,0.6)',
                   padding: '2px 6px',
                   borderRadius: '2px',
+                  maxWidth: '55%',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                  zIndex: 2,
                 }}
               >
                 {evidence.file_path || 's3://police-evidence-vault/frame.jpg'}

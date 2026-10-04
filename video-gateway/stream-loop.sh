@@ -67,6 +67,8 @@ stream_channel "cam-gnd-02" "${FIXTURES_DIR}/cam-ahm-02.mp4" &
 stream_channel "live/cam-gnd-02" "${FIXTURES_DIR}/cam-ahm-02.mp4" &
 stream_channel "cam-ahm-03" "${FIXTURES_DIR}/cam-ahm-01.mp4" &
 stream_channel "live/cam-ahm-03" "${FIXTURES_DIR}/cam-ahm-01.mp4" &
+stream_channel "cam-gnd-01" "${FIXTURES_DIR}/cam-ahm-01.mp4" &
+stream_channel "live/cam-gnd-01" "${FIXTURES_DIR}/cam-ahm-01.mp4" &
 
 # Launch background streaming loops for realistic traffic research/demo footage
 if [ -f "${DEMO_VIDEO_FILE}" ]; then

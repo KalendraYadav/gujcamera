@@ -22,6 +22,8 @@ const prisma = new PrismaClient();
 // Config
 const REDIS_HOST = process.env.REDIS_HOST || 'localhost';
 const REDIS_PORT = Number(process.env.REDIS_PORT || 6379);
+const REDIS_PASSWORD = process.env.REDIS_PASSWORD || '';
+const REDIS_TLS = String(process.env.REDIS_TLS || '').trim().toLowerCase() === 'true';
 const STREAM_NAME = process.env.REDIS_STREAM_VEHICLE_SIGHTINGS || 'gujcamera:events:vehicle-sightings';
 
 const S3_ENDPOINT = process.env.MINIO_ENDPOINT || 'http://localhost:9000';
@@ -131,6 +133,8 @@ async function runDemoRehearsal(): Promise<void> {
   const redis = new Redis({
     host: REDIS_HOST,
     port: REDIS_PORT,
+    password: REDIS_PASSWORD ? REDIS_PASSWORD : undefined,
+    tls: REDIS_TLS ? { servername: REDIS_HOST } : undefined,
     maxRetriesPerRequest: 3,
   });
 

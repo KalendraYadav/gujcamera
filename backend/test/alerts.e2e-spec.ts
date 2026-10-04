@@ -88,6 +88,7 @@ describe('Alert Engine, Lifecycle & Matching (e2e)', () => {
     ahmedabadDeptId = dept!.id;
 
     // 4. Create a test DEPARTMENT_ADMIN user belonging to Ahmedabad City Police
+    await prisma.user.deleteMany({ where: { email: 'deptadmin.alert.test@gujcamera.local' } });
     const deptAdminRole = await prisma.role.findFirst({ where: { name: 'DEPARTMENT_ADMIN' } });
     const pwHash = await bcrypt.hash('PoliceDemo@2026!', 10);
     const deptAdmin = await prisma.user.create({
@@ -183,6 +184,7 @@ describe('Alert Engine, Lifecycle & Matching (e2e)', () => {
   });
 
   afterAll(async () => {
+    if (!prisma) return;
     // Clean up test alerts, sightings, vehicle, watchlist entries, and watchlist
     await prisma.alert.deleteMany({
       where: {

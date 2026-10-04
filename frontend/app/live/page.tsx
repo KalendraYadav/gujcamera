@@ -134,12 +134,29 @@ function LiveMonitoringContent() {
             <Video size={16} />
           </div>
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: 'var(--text-xs)', color: 'var(--text-dim)', fontFamily: 'var(--font-mono)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: 'var(--text-xs)', color: 'var(--text-dim)', fontFamily: 'var(--font-mono)', textTransform: 'uppercase', letterSpacing: '0.04em', flexWrap: 'wrap' }}>
               <Link href="/" style={{ color: 'var(--text-dim)', textDecoration: 'none' }}>
                 Command Center
               </Link>
               <ChevronRight size={11} />
               <span style={{ color: 'var(--text-secondary)' }}>Live Surveillance</span>
+              <span style={{ color: 'var(--border-default)' }}>•</span>
+              <span
+                data-testid="live-corridor-disclosure"
+                title="Demonstration Mode: Operating with representative CCTV recordings replayed over simulated RTSP gateway. Physical police NVR/VMS ready for authorized ingestion."
+                style={{
+                  color: '#93C5FD',
+                  backgroundColor: 'rgba(59, 130, 246, 0.12)',
+                  border: '1px solid rgba(59, 130, 246, 0.28)',
+                  padding: '1px 6px',
+                  borderRadius: 'var(--radius-xs)',
+                  fontSize: '10px',
+                  fontWeight: 600,
+                  letterSpacing: '0.04em',
+                }}
+              >
+                SIMULATED LIVE CCTV (REPRESENTATIVE CORRIDOR DEPLOYMENT)
+              </span>
             </div>
             <h1
               style={{

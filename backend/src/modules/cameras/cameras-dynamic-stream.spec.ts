@@ -55,6 +55,12 @@ describe('CamerasService Dynamic Stream Lifecycle', () => {
       isInternalGatewayStream: jest.fn((url: string) => {
         return url.includes('video-gateway:8554') || url.includes('simulator:8554');
       }),
+      isPullableExternalSource: jest.fn((url: string) => {
+        return !url.includes('video-gateway') && !url.includes('simulator') && !url.startsWith('mock://') && !url.startsWith('placeholder://');
+      }),
+      isPlaceholderStream: jest.fn((url: string) => {
+        return url.startsWith('mock://') || url.startsWith('placeholder://');
+      }),
       registerPath: jest.fn().mockResolvedValue({
         success: true,
         pathName: 'cam-sur-01',

@@ -80,7 +80,7 @@ export function Header({ onToggleMobileNav }: HeaderProps = {}) {
               whiteSpace: 'nowrap',
             }}
           >
-            NETRAVA /
+            NETRAVAHA /
           </span>
           <h2
             style={{
@@ -155,6 +155,39 @@ export function Header({ onToggleMobileNav }: HeaderProps = {}) {
             }}
           />
           <span>API 200 OK</span>
+        </div>
+
+        {/* Environment / Demonstration Mode Indicator */}
+        <div
+          id="environment-simulated-indicator"
+          data-testid="environment-simulated-indicator"
+          title="Demonstration Mode: Representative corridor recordings replayed via normalized RTSP media gateway. Physical police NVR/VMS ready for authorized ingestion."
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            fontSize: 'var(--text-xs)',
+            color: '#93C5FD',
+            backgroundColor: 'rgba(59, 130, 246, 0.10)',
+            border: '1px solid rgba(59, 130, 246, 0.28)',
+            padding: '2px 8px',
+            borderRadius: 'var(--radius-xs)',
+            fontFamily: 'var(--font-mono)',
+            fontWeight: 600,
+            letterSpacing: '0.04em',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          <span
+            style={{
+              width: '5px',
+              height: '5px',
+              borderRadius: '50%',
+              backgroundColor: '#60A5FA',
+              flexShrink: 0,
+            }}
+          />
+          <span>SIMULATED LIVE CCTV</span>
         </div>
 
         {/* System Auditor Oversight Mode Indicator */}

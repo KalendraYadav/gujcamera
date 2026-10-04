@@ -118,7 +118,7 @@ export function NationwideMapBadge() {
             textTransform: 'uppercase',
           }}
         >
-          Nationwide Intelligence
+          Representative Corridor
         </div>
         <div
           style={{
@@ -140,9 +140,9 @@ export function NationwideMapBadge() {
               fontWeight: 600,
             }}
           >
-            <div>Connected Cities</div>
-            <div>Safer Routes</div>
-            <div>Stronger Communities</div>
+            <div>Gujarat Jurisdictions</div>
+            <div>Simulated RTSP Gateway</div>
+            <div>ANPR Intelligence Pipeline</div>
           </div>
         </div>
       </div>

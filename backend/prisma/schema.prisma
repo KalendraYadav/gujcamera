@@ -12,6 +12,7 @@ generator client {
 datasource db {
   provider   = "postgresql"
   url        = env("DATABASE_URL")
+  directUrl  = env("DIRECT_URL")
   extensions = [postgis]
 }
 
@@ -312,6 +313,7 @@ model VehicleSighting {
   vehicle         Vehicle  @relation(fields: [plateNormalized], references: [plateNormalized], onDelete: Cascade)
   camera          Camera   @relation(fields: [cameraId], references: [id], onDelete: Cascade)
   alerts          Alert[]
+  evidence        Evidence?
 
   @@index([plateNormalized, ts])
   @@index([cameraId, ts])
@@ -401,11 +403,14 @@ model Incident {
 model Evidence {
   id         String             @id @default(uuid()) @db.Uuid
   sourceType EvidenceSourceType @map("source_type")
-  sourceId   String             @map("source_id") @db.Uuid
+  sourceId   String             @unique @map("source_id") @db.Uuid
   storageRef String             @map("storage_ref")
   hash       String             // SHA-256 integrity hash
   capturedAt DateTime           @default(now()) @map("captured_at")
   createdAt  DateTime           @default(now()) @map("created_at")
+
+  // Relationships
+  sighting   VehicleSighting    @relation(fields: [sourceId], references: [id], onDelete: Restrict)
 
   @@index([sourceId])
   @@map("evidence")
