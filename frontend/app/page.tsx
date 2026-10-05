@@ -471,7 +471,7 @@ export default function OperationalCommandCenterPage() {
                   >
                     <span style={{ color: '#64748B', fontWeight: 600 }}>ORGANIZATION:</span>
                     <span style={{ color: 'var(--text-primary)' }}>
-                      {user?.department_name || 'Ahmedabad City Police Commissionerate'}
+                      {user?.department_name || 'Gujarat Police Department'}
                     </span>
                   </div>
                 </div>
@@ -779,7 +779,7 @@ export default function OperationalCommandCenterPage() {
                   </div>
 
                   {/* Subordinate Count for Additional Events */}
-                  {data.alerts.recent.length > 1 && (
+                  {(data.alerts.total_active > 1 || data.alerts.recent.length > 1) && (
                     <div
                       style={{
                         padding: '4px 10px',
@@ -795,7 +795,7 @@ export default function OperationalCommandCenterPage() {
                       }}
                     >
                       <span>
-                        + {data.alerts.recent.length - 1} additional active events in queue
+                        + {Math.max(data.alerts.total_active - 1, data.alerts.recent.length - 1)} additional active events in queue
                       </span>
                       <Link
                         href="/alerts"
@@ -1211,7 +1211,8 @@ export default function OperationalCommandCenterPage() {
                     icon={Car}
                   />
                 ) : (
-                  <div
+                  <>
+                    <div
                     style={{
                       padding: '6px 10px',
                       backgroundColor: 'rgba(11, 16, 32, 0.75)',
@@ -1316,7 +1317,14 @@ export default function OperationalCommandCenterPage() {
                       </div>
                     )}
                   </div>
-                )}
+
+                  {data.sightings.recent_observations.length > 1 && (
+                    <div style={{ fontSize: '9px', color: 'var(--text-dim)', fontFamily: 'var(--font-mono)', paddingLeft: '2px', marginTop: '4px' }}>
+                      + {data.sightings.recent_observations.length - 1} additional observations in recent buffer
+                    </div>
+                  )}
+                </>
+              )}
               </div>
 
               {/* GUJARAT CORRIDOR MONITOR (COMPACT MATRIX CHIP STRIP) */}
@@ -1335,7 +1343,7 @@ export default function OperationalCommandCenterPage() {
                       Jurisdiction Activity (Gujarat Corridor)
                     </span>
                     <span style={{ fontSize: '9px', color: 'var(--text-dim)', fontFamily: 'var(--font-mono)' }}>
-                      6 ZONES
+                      {data.jurisdictions.length} ZONES
                     </span>
                   </div>
 

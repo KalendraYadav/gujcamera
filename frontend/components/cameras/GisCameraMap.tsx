@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react';
+import { useSearchParams } from 'next/navigation';
 import {
   MapPin,
   ZoomIn,
@@ -124,6 +125,7 @@ export function GisCameraMap() {
   const markersRef = useRef<Map<string, any>>(new Map());
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
 
+  const searchParams = useSearchParams();
   const [cameras, setCameras] = useState<Camera[]>([]);
   const [selectedCamera, setSelectedCamera] = useState<Camera | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -141,6 +143,7 @@ export function GisCameraMap() {
   const [activeDropdown, setActiveDropdown] = useState<'LOCATION' | 'STATUS' | 'SOURCE' | null>(null);
   const [locationSearchTerm, setLocationSearchTerm] = useState<string>('');
   const filterContainerRef = useRef<HTMLDivElement>(null);
+  const initialParamSelectionDoneRef = useRef<boolean>(false);
 
   // Close dropdown on outside click or Escape key
   useEffect(() => {
@@ -200,6 +203,16 @@ export function GisCameraMap() {
       cams.forEach((camera) => {
         if (markersRef.current.has(camera.id)) {
           // Marker already exists
+          return;
+        }
+
+        // Exclude cameras with missing or invalid coordinates from geographic marker layer
+        if (
+          camera.lat == null ||
+          camera.long == null ||
+          isNaN(Number(camera.lat)) ||
+          isNaN(Number(camera.long))
+        ) {
           return;
         }
 
@@ -286,7 +299,7 @@ export function GisCameraMap() {
         };
 
         const marker = new MapLibreMarker({ element: el })
-          .setLngLat([camera.long, camera.lat])
+          .setLngLat([Number(camera.long), Number(camera.lat)])
           .addTo(map);
 
         markersRef.current.set(camera.id, marker);
@@ -457,12 +470,17 @@ export function GisCameraMap() {
   // Filter cameras for the accessible sidebar and map markers
   const filteredCameras = useMemo(() => {
     return cameras.filter((cam) => {
+      const q = searchFilter.toLowerCase().trim();
       const matchesSearch =
-        !searchFilter ||
-        cam.name.toLowerCase().includes(searchFilter.toLowerCase()) ||
-        cam.location?.address?.toLowerCase().includes(searchFilter.toLowerCase()) ||
-        cam.location?.district?.toLowerCase().includes(searchFilter.toLowerCase()) ||
-        cam.location?.zone?.toLowerCase().includes(searchFilter.toLowerCase());
+        !q ||
+        cam.id?.toLowerCase().includes(q) ||
+        cam.name.toLowerCase().includes(q) ||
+        cam.location?.address?.toLowerCase().includes(q) ||
+        cam.location?.district?.toLowerCase().includes(q) ||
+        cam.location?.zone?.toLowerCase().includes(q) ||
+        getCameraCity(cam).toLowerCase().includes(q) ||
+        getCameraState(cam).toLowerCase().includes(q) ||
+        cam.department_name?.toLowerCase().includes(q);
 
       const camState = getCameraState(cam);
       const matchesState = stateFilter === 'ALL' || camState === stateFilter;
@@ -496,6 +514,29 @@ export function GisCameraMap() {
     });
   }, []);
 
+  // Handle query parameter camera selection (e.g. from Live Monitoring navigation: /map?camera=CAM-AHM-01)
+  useEffect(() => {
+    const target = searchParams?.get('camera');
+    if (target && cameras.length > 0 && !initialParamSelectionDoneRef.current) {
+      const q = target.toLowerCase();
+      const matched = cameras.find(
+        (c) => c.id.toLowerCase() === q || c.name.toLowerCase().includes(q)
+      );
+      if (matched) {
+        initialParamSelectionDoneRef.current = true;
+        setSelectedCamera(matched);
+        if (
+          matched.lat != null &&
+          matched.long != null &&
+          !isNaN(Number(matched.lat)) &&
+          !isNaN(Number(matched.long))
+        ) {
+          flyToCamera(Number(matched.lat), Number(matched.long));
+        }
+      }
+    }
+  }, [cameras, searchParams, flyToCamera]);
+
   // Hierarchical state selection with dynamic camera centroid fly-to
   const handleStateSelect = useCallback((state: string) => {
     setStateFilter(state);
@@ -518,11 +559,18 @@ export function GisCameraMap() {
       });
       return;
     }
-    // Fly to state centroid calculated from cameras in that state
-    const stateCameras = cameras.filter((cam) => getCameraState(cam) === state);
+    // Fly to state centroid calculated from cameras in that state with valid coordinates
+    const stateCameras = cameras.filter(
+      (cam) =>
+        getCameraState(cam) === state &&
+        cam.lat != null &&
+        cam.long != null &&
+        !isNaN(Number(cam.lat)) &&
+        !isNaN(Number(cam.long))
+    );
     if (stateCameras.length > 0) {
-      const avgLat = stateCameras.reduce((acc, c) => acc + c.lat, 0) / stateCameras.length;
-      const avgLong = stateCameras.reduce((acc, c) => acc + c.long, 0) / stateCameras.length;
+      const avgLat = stateCameras.reduce((acc, c) => acc + Number(c.lat), 0) / stateCameras.length;
+      const avgLong = stateCameras.reduce((acc, c) => acc + Number(c.long), 0) / stateCameras.length;
       mapInstanceRef.current.flyTo({
         center: [avgLong, avgLat],
         zoom: 9,
@@ -539,10 +587,17 @@ export function GisCameraMap() {
 
     if (city === 'ALL') {
       if (stateFilter !== 'ALL') {
-        const stateCameras = cameras.filter((cam) => getCameraState(cam) === stateFilter);
+        const stateCameras = cameras.filter(
+          (cam) =>
+            getCameraState(cam) === stateFilter &&
+            cam.lat != null &&
+            cam.long != null &&
+            !isNaN(Number(cam.lat)) &&
+            !isNaN(Number(cam.long))
+        );
         if (stateCameras.length > 0) {
-          const avgLat = stateCameras.reduce((acc, c) => acc + c.lat, 0) / stateCameras.length;
-          const avgLong = stateCameras.reduce((acc, c) => acc + c.long, 0) / stateCameras.length;
+          const avgLat = stateCameras.reduce((acc, c) => acc + Number(c.lat), 0) / stateCameras.length;
+          const avgLong = stateCameras.reduce((acc, c) => acc + Number(c.long), 0) / stateCameras.length;
           mapInstanceRef.current.flyTo({
             center: [avgLong, avgLat],
             zoom: 9,
@@ -572,11 +627,18 @@ export function GisCameraMap() {
       return;
     }
 
-    // Centroid calculation from actual cameras in that city
-    const cityCameras = cameras.filter((cam) => getCameraCity(cam).toLowerCase() === city.toLowerCase());
+    // Centroid calculation from actual cameras in that city with valid coordinates
+    const cityCameras = cameras.filter(
+      (cam) =>
+        getCameraCity(cam).toLowerCase() === city.toLowerCase() &&
+        cam.lat != null &&
+        cam.long != null &&
+        !isNaN(Number(cam.lat)) &&
+        !isNaN(Number(cam.long))
+    );
     if (cityCameras.length > 0) {
-      const avgLat = cityCameras.reduce((acc, c) => acc + c.lat, 0) / cityCameras.length;
-      const avgLong = cityCameras.reduce((acc, c) => acc + c.long, 0) / cityCameras.length;
+      const avgLat = cityCameras.reduce((acc, c) => acc + Number(c.lat), 0) / cityCameras.length;
+      const avgLong = cityCameras.reduce((acc, c) => acc + Number(c.long), 0) / cityCameras.length;
       mapInstanceRef.current.flyTo({
         center: [avgLong, avgLat],
         zoom: 12,
@@ -701,7 +763,7 @@ export function GisCameraMap() {
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <span style={{ fontSize: '11px', fontFamily: 'var(--font-mono)', color: 'var(--accent-primary)', fontWeight: 600 }}>
-              {cameras.length} Active in View
+              {hasActiveFilters ? `${filteredCameras.length} of ${cameras.length} in View` : `${cameras.length} Active in View`}
             </span>
             <button
               onClick={reloadViewport}
@@ -1406,7 +1468,7 @@ export function GisCameraMap() {
                   </div>
 
                   <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>
-                    {cam.location?.address || `${cam.lat.toFixed(4)}, ${cam.long.toFixed(4)}`}
+                    {cam.location?.address || (cam.lat != null && cam.long != null ? `${Number(cam.lat).toFixed(4)}, ${Number(cam.long).toFixed(4)}` : 'Coordinates Unavailable')}
                   </div>
 
                   <div
@@ -1434,7 +1496,7 @@ export function GisCameraMap() {
                           border: `1px solid ${cam.source_type === 'RESEARCH_VIDEO' ? 'rgba(234, 179, 8, 0.3)' : 'rgba(59, 130, 246, 0.25)'}`,
                         }}
                       >
-                        {cam.source_type === 'RESEARCH_VIDEO' ? 'RESEARCH' : 'SYNTHETIC'}
+                        {formatSourceLabel(cam.source_type || 'SYNTHETIC_STREAM').toUpperCase()}
                       </span>
                       <span>{cam.protocol}</span>
                     </div>

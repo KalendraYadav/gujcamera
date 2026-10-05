@@ -601,6 +601,111 @@ describe('GIS Camera Map Component (Phase 4B)', () => {
         expect(mockMarkerInstance.remove).toHaveBeenCalled();
       });
     });
+
+    it('filters cameras and synchronizes markers by camera ID search', async () => {
+      (camerasApi.getCameras as any).mockResolvedValue({
+        data: MOCK_MULTI_STATE_CAMERAS,
+        pagination: { limit: 100, total: 4, next_cursor: null },
+      });
+
+      render(<GisCameraMap />);
+
+      await waitFor(() => {
+        expect(screen.getByText('CAM-AHM-01: SG Highway')).toBeInTheDocument();
+      });
+
+      // Search by camera ID 'cam-mrt-03'
+      const searchInput = screen.getByPlaceholderText('Filter cameras in view...');
+      fireEvent.change(searchInput, { target: { value: 'cam-mrt-03' } });
+
+      expect(screen.getByText('CAM-MRT-03: Meerut Clock Tower')).toBeInTheDocument();
+      expect(screen.queryByText('CAM-AHM-01: SG Highway')).not.toBeInTheDocument();
+      expect(screen.queryByText('CAM-MUM-04: Marine Drive')).not.toBeInTheDocument();
+    });
+
+    it('safely excludes cameras with missing coordinates from geographic map placement', async () => {
+      const cameraWithoutCoords: Camera = {
+        id: 'cam-no-coord',
+        name: 'CAM-NO-COORD: Virtual Node',
+        department_id: 'dept-virtual',
+        department_name: 'Gujarat Headquarters',
+        lat: null as any,
+        long: null as any,
+        protocol: 'RTSP',
+        connector_type_id: 'conn-1',
+        operational_status: 'ONLINE',
+        is_active: true,
+        created_at: '2026-09-09T01:58:24.045Z',
+        updated_at: '2026-09-09T01:58:24.045Z',
+        location: {
+          address: 'No GPS Assigned',
+          district: 'Gandhinagar',
+          state: 'Gujarat',
+        },
+        streams: [],
+        health: { status: 'ONLINE' },
+      };
+
+      createdMarkers = [];
+      (camerasApi.getCameras as any).mockResolvedValue({
+        data: [cameraWithoutCoords],
+        pagination: { limit: 100, total: 1, next_cursor: null },
+      });
+
+      render(<GisCameraMap />);
+
+      await waitFor(() => {
+        expect(screen.getByText('CAM-NO-COORD: Virtual Node')).toBeInTheDocument();
+      });
+
+      // No marker should be placed on the MapLibre canvas for missing coordinates
+      expect(createdMarkers.length).toBe(0);
+    });
+
+    it('displays truthful UNAVAILABLE coordinates and unmeasured packet loss in drawer', async () => {
+      const bareCamera: Camera = {
+        id: 'cam-bare-drawer',
+        name: 'CAM-BARE-DRAWER: Testing Terminal',
+        department_id: 'dept-bare',
+        department_name: 'Police Telecom Branch',
+        lat: null as any,
+        long: null as any,
+        protocol: 'RTSP',
+        connector_type_id: 'conn-bare',
+        operational_status: 'OFFLINE',
+        is_active: false,
+        created_at: '2026-09-09T01:58:24.045Z',
+        updated_at: '2026-09-09T01:58:24.045Z',
+        location: {
+          address: '',
+          district: 'Ahmedabad',
+          state: 'Gujarat',
+        },
+        streams: [],
+        health: { status: 'OFFLINE', packet_loss: undefined },
+      };
+
+      (camerasApi.getCameras as any).mockResolvedValue({
+        data: [bareCamera],
+        pagination: { limit: 100, total: 1, next_cursor: null },
+      });
+
+      render(<GisCameraMap />);
+
+      await waitFor(() => {
+        expect(screen.getByText('CAM-BARE-DRAWER: Testing Terminal')).toBeInTheDocument();
+      });
+
+      // Open drawer
+      fireEvent.click(screen.getByText('CAM-BARE-DRAWER: Testing Terminal'));
+
+      // Check coordinates say UNAVAILABLE
+      expect(screen.getByText('UNAVAILABLE')).toBeInTheDocument();
+
+      // Check packet loss displays '—' instead of fake '0.0%'
+      expect(screen.getByText('—')).toBeInTheDocument();
+    });
   });
 });
+
 

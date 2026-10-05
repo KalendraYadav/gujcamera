@@ -162,7 +162,8 @@ export function AlertCard({ alert, onStatusUpdated }: AlertCardProps) {
   };
 
   const style = getSeverityStyle(alert.severity);
-  const plate = alert.watchlist_match?.plate_normalized || alert.sighting?.vehicle?.plate_normalized || 'UNKNOWN';
+  const sighting = alert.sighting || alert.source_sighting;
+  const plate = alert.watchlist_match?.plate_normalized || sighting?.vehicle?.plate_normalized || 'UNKNOWN';
 
   return (
     <div
@@ -248,11 +249,32 @@ export function AlertCard({ alert, onStatusUpdated }: AlertCardProps) {
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: 700, color: 'var(--text-primary)' }}>
             <Camera size={13} color="var(--accent-blue)" />
-            <span>{alert.sighting?.camera?.name || 'CCTV Camera'}</span>
+            {sighting?.camera?.id ? (
+              <Link
+                href={`/live?camera=${sighting.camera.id}`}
+                style={{ color: 'var(--text-primary)', textDecoration: 'none' }}
+                title="View camera in Live Monitoring"
+              >
+                {sighting.camera.name || sighting.camera.id}
+              </Link>
+            ) : (
+              <span>{sighting?.camera?.name || 'CCTV Camera'}</span>
+            )}
           </div>
-          {alert.sighting?.camera?.location && (
-            <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '2px' }}>
-              {alert.sighting.camera.location.address}, {alert.sighting.camera.location.district}
+          {sighting?.camera?.location && (
+            <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span>
+                {sighting.camera.location.address ? `${sighting.camera.location.address}, ` : ''}{sighting.camera.location.district || sighting.camera.location.zone || ''}
+              </span>
+              {sighting.camera.id && (
+                <Link
+                  href={`/map?camera=${sighting.camera.id}`}
+                  style={{ fontSize: '10px', color: 'var(--accent-blue)', textDecoration: 'none' }}
+                  title="Locate camera on GIS Map"
+                >
+                  [Map]
+                </Link>
+              )}
             </div>
           )}
         </div>
@@ -444,14 +466,34 @@ export function AlertCard({ alert, onStatusUpdated }: AlertCardProps) {
             <strong>Alert ID:</strong> <span style={{ color: 'var(--text-secondary)' }}>{alert.id}</span>
           </div>
           <div>
-            <strong>Sighting ID:</strong> <span style={{ color: 'var(--text-secondary)' }}>{alert.sighting?.id || 'N/A'}</span>
+            <strong>Sighting ID:</strong> <span style={{ color: 'var(--text-secondary)' }}>{sighting?.id || 'N/A'}</span>
           </div>
+          {sighting?.camera?.id && (
+            <div>
+              <strong>Camera ID:</strong> <span style={{ color: 'var(--text-secondary)' }}>{sighting.camera.id}</span>
+            </div>
+          )}
+          {(sighting?.camera?.department?.name || alert.watchlist_match?.watchlist?.department?.name) && (
+            <div>
+              <strong>Department:</strong> <span style={{ color: 'var(--text-secondary)' }}>{sighting?.camera?.department?.name || alert.watchlist_match?.watchlist?.department?.name}</span>
+            </div>
+          )}
+          {sighting?.confidence !== undefined && sighting.confidence !== null && (
+            <div>
+              <strong>ANPR Confidence:</strong> <span style={{ color: 'var(--text-secondary)' }}>{(Number(sighting.confidence) * 100).toFixed(1)}%</span>
+            </div>
+          )}
           <div>
             <strong>Acknowledged By:</strong> <span style={{ color: 'var(--text-secondary)' }}>{alert.acknowledged_by?.email || 'None'}</span>
           </div>
           <div>
             <strong>Resolved By:</strong> <span style={{ color: 'var(--text-secondary)' }}>{alert.resolved_by?.email || 'None'}</span>
           </div>
+          {alert.created_at && (
+            <div>
+              <strong>Logged At:</strong> <span style={{ color: 'var(--text-secondary)' }}>{new Date(alert.created_at).toLocaleString('en-IN', { hour12: false })}</span>
+            </div>
+          )}
           <div style={{ gridColumn: '1 / -1', marginTop: '4px', color: 'var(--text-muted)', fontStyle: 'italic', fontFamily: 'var(--font-sans)' }}>
             Disclaimer: {alert.disclaimer || 'Watchlist plate match does not confirm suspect guilt; corroborating physical evidence required.'}
           </div>

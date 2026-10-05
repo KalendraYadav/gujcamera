@@ -356,7 +356,29 @@ export class DashboardService {
     const allCameras = camerasWithLocRes.status === 'fulfilled' ? camerasWithLocRes.value : [];
     const cameraCityMap = new Map<string, string>(); // cameraId -> jurisdiction id
 
-    const jurisdictions: JurisdictionSummaryItem[] = CANONICAL_JURISDICTIONS.map((j) => {
+    // Dynamically discover any registered districts from camera records beyond canonical fixtures
+    const canonicalNames = new Set(CANONICAL_JURISDICTIONS.map((j) => j.name.toUpperCase()));
+    const discoveredDistricts = new Set<string>();
+    for (const c of allCameras) {
+      const dist = c.location?.district?.trim();
+      const nameUpper = (c.name || '').toUpperCase();
+      const addrUpper = (c.location?.address || '').toUpperCase();
+      const isExpressway = nameUpper.includes('EXPRESSWAY') || addrUpper.includes('EXPRESSWAY') || nameUpper.includes('CORRIDOR');
+      if (dist && !isExpressway && !canonicalNames.has(dist.toUpperCase())) {
+        discoveredDistricts.add(dist);
+      }
+    }
+
+    const allJurisdictionTargets = [
+      ...CANONICAL_JURISDICTIONS,
+      ...Array.from(discoveredDistricts).map((dist) => ({
+        id: dist.toLowerCase().replace(/[^a-z0-9]/g, '-'),
+        name: dist,
+        code: dist.substring(0, 3).toUpperCase(),
+      })),
+    ];
+
+    const jurisdictions: JurisdictionSummaryItem[] = allJurisdictionTargets.map((j) => {
       // Find matching cameras
       const matchingCameras = allCameras.filter((c) => {
         const nameUpper = (c.name || '').toUpperCase();

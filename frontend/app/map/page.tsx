@@ -96,7 +96,9 @@ export default function GisMapPage() {
         </div>
 
         {/* GIS Map Core */}
-        <GisCameraMap />
+        <React.Suspense fallback={<div className="netrava-card" style={{ flex: 1, minHeight: '600px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)' }}>Initializing GIS Map Engine...</div>}>
+          <GisCameraMap />
+        </React.Suspense>
       </div>
     </AppShell>
   );

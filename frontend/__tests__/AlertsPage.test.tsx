@@ -372,4 +372,74 @@ describe('Alerts Live Console Page (Phase 4E)', () => {
     const elements = screen.getAllByText('GJ27XX9999');
     expect(elements.length).toBe(1);
   });
+
+  it('correctly handles backend source_sighting property and renders camera and map links', async () => {
+    const backendAlert: AlertItem = {
+      id: 'alt-backend-1',
+      severity: 'CRITICAL',
+      status: 'NEW',
+      timestamp: '2026-09-10T09:00:00.000Z',
+      source_sighting: {
+        id: 'sight-backend-1',
+        confidence: 0.94,
+        camera: {
+          id: 'CAM-DEMO-01',
+          name: 'Expressway Flyover',
+          location: {
+            address: 'SG Highway KM 12',
+            zone: 'West Zone',
+            district: 'Ahmedabad',
+          },
+          department: {
+            id: 'dept-traffic',
+            name: 'Traffic Police',
+          },
+        },
+        vehicle: {
+          plate_normalized: 'GJ01XY9999',
+        },
+      },
+      watchlist_match: {
+        entry_id: 'ent-bk-1',
+        plate_normalized: 'GJ01XY9999',
+        category: 'STOLEN',
+        reason: 'Vehicle reported stolen',
+        priority: 'CRITICAL',
+        added_by: 'usr-admin-1',
+      },
+      created_at: '2026-09-10T09:00:01.000Z',
+      updated_at: '2026-09-10T09:00:01.000Z',
+    };
+
+    vi.mocked(alertsApi.listAlerts).mockResolvedValue({
+      data: [backendAlert],
+      pagination: { total: 1, page: 1, limit: 25, total_pages: 1 },
+    });
+
+    render(<AlertsPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText('GJ01XY9999')).toBeInTheDocument();
+      expect(screen.getByText('Expressway Flyover')).toBeInTheDocument();
+      expect(screen.getByText(/SG Highway KM 12/)).toBeInTheDocument();
+    });
+
+    // Check camera live link
+    const cameraLink = screen.getByText('Expressway Flyover').closest('a');
+    expect(cameraLink).toHaveAttribute('href', '/live?camera=CAM-DEMO-01');
+
+    // Check map link
+    const mapLink = screen.getByText('[Map]').closest('a');
+    expect(mapLink).toHaveAttribute('href', '/map?camera=CAM-DEMO-01');
+
+    // Expand details
+    const toggleBtn = screen.getByTitle('Toggle Audit & Evidence Details');
+    fireEvent.click(toggleBtn);
+
+    expect(screen.getByText('sight-backend-1')).toBeInTheDocument();
+    expect(screen.getByText('CAM-DEMO-01')).toBeInTheDocument();
+    expect(screen.getByText('Traffic Police')).toBeInTheDocument();
+    expect(screen.getByText('94.0%')).toBeInTheDocument();
+  });
 });
+

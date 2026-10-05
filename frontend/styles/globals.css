@@ -1138,11 +1138,11 @@ textarea:focus {
 
 /* Contextual Opaque Specification Popover */
 .camera-info-popover {
-  position: absolute;
-  z-index: 150;
-  width: 290px;
-  max-width: calc(100vw - 32px);
-  max-height: 360px;
+  position: fixed;
+  z-index: 9999;
+  width: 350px;
+  max-width: calc(100vw - 24px);
+  max-height: min(460px, calc(100vh - 24px));
   overflow-y: auto;
   overflow-x: hidden;
   background-color: #0D1527 !important;
@@ -1150,7 +1150,7 @@ textarea:focus {
   border: 1px solid rgba(59, 130, 246, 0.35);
   border-radius: var(--radius-sm);
   box-shadow: 0 16px 36px rgba(0, 0, 0, 0.95), 0 0 14px rgba(59, 130, 246, 0.2);
-  padding: 8px 10px;
+  padding: 10px 12px;
   display: flex;
   flex-direction: column;
   gap: 7px;

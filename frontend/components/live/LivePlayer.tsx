@@ -200,12 +200,14 @@ export const LivePlayer: React.FC<LivePlayerProps> = ({
         });
       }
 
-      hls.on(Hls.Events.LEVEL_LOADED, (_event, data) => {
+      hls.on(Hls.Events.LEVEL_LOADED, (_event, _data) => {
         const streamDetails = camera.streams?.[0];
-        setVideoStats({
-          width: data.details.totalduration ? undefined : 1920,
-          fps: streamDetails?.fps || 25,
-        });
+        if (streamDetails?.fps) {
+          setVideoStats((prev) => ({
+            ...prev,
+            fps: streamDetails.fps,
+          }));
+        }
       });
 
       hls.on(Hls.Events.ERROR, (_event, data) => {
@@ -609,11 +611,23 @@ export const LivePlayer: React.FC<LivePlayerProps> = ({
             backdropFilter: 'blur(4px)',
           }}
         >
-          <span>{videoStats.width ? `${videoStats.width}x${videoStats.height || 1080}` : '1080p'}</span>
+          <span>
+            {videoStats.width && videoStats.height
+              ? `${videoStats.width}x${videoStats.height}`
+              : camera.streams?.[0]?.resolution || 'RESOLUTION UNAVAILABLE'}
+          </span>
           <span style={{ color: 'var(--border-default)' }}>•</span>
-          <span>{camera.streams?.[0]?.codec || 'H.264'}</span>
+          <span>{camera.streams?.[0]?.codec || 'CODEC UNAVAILABLE'}</span>
           <span style={{ color: 'var(--border-default)' }}>•</span>
-          <span>{camera.health?.fps_actual ? `${camera.health.fps_actual.toFixed(0)} FPS` : `${videoStats.fps || 25} FPS`}</span>
+          <span>
+            {camera.health?.fps_actual != null
+              ? `${camera.health.fps_actual.toFixed(0)} FPS`
+              : videoStats.fps != null
+              ? `${videoStats.fps} FPS`
+              : camera.streams?.[0]?.fps != null
+              ? `${camera.streams[0].fps} FPS`
+              : 'FPS UNAVAILABLE'}
+          </span>
         </div>
       </div>
 

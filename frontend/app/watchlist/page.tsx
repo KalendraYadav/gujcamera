@@ -319,7 +319,10 @@ export default function WatchlistPage() {
                 const term = searchTerm.toLowerCase().trim();
                 return (
                   w.name.toLowerCase().includes(term) ||
-                  (w.owner && w.owner.toLowerCase().includes(term))
+                  (w.owner && w.owner.toLowerCase().includes(term)) ||
+                  (w.department?.name && w.department.name.toLowerCase().includes(term)) ||
+                  (w.department_name && w.department_name.toLowerCase().includes(term)) ||
+                  w.id.toLowerCase().includes(term)
                 );
               });
 

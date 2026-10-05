@@ -636,6 +636,61 @@ describe('Live CCTV Monitoring Page & Components', () => {
         )
       ).not.toBeInTheDocument();
     });
+
+    it('toggles popover when clicking the same info button and switches smoothly between cameras', () => {
+      render(
+        <CameraSelector
+          cameras={MOCK_MULTI_REGION_CAMERAS}
+          selectedCameraId="cam-ahm-01"
+          onSelectCamera={vi.fn()}
+        />
+      );
+
+      const infoBtnA = screen.getByTestId(
+        'camera-info-btn-CAM-AHM-01: SG Highway Pakwan Junction (RESEARCH)'
+      );
+      const infoBtnB = screen.getByTestId(
+        'camera-info-btn-CAM-SUR-01: Ring Road Majura Gate'
+      );
+
+      // Open Camera A popover
+      fireEvent.click(infoBtnA);
+      const popoverA = screen.getByTestId(
+        'camera-info-popover-CAM-AHM-01: SG Highway Pakwan Junction (RESEARCH)'
+      );
+      expect(popoverA).toBeInTheDocument();
+      expect(popoverA).toHaveStyle({ position: 'fixed' });
+
+      // Click same button to toggle close
+      fireEvent.click(infoBtnA);
+      expect(
+        screen.queryByTestId(
+          'camera-info-popover-CAM-AHM-01: SG Highway Pakwan Junction (RESEARCH)'
+        )
+      ).not.toBeInTheDocument();
+
+      // Open Camera A again
+      fireEvent.click(infoBtnA);
+      expect(
+        screen.getByTestId(
+          'camera-info-popover-CAM-AHM-01: SG Highway Pakwan Junction (RESEARCH)'
+        )
+      ).toBeInTheDocument();
+
+      // Click Camera B info button: must switch to Camera B immediately without stale Camera A popover
+      fireEvent.click(infoBtnB);
+      expect(
+        screen.queryByTestId(
+          'camera-info-popover-CAM-AHM-01: SG Highway Pakwan Junction (RESEARCH)'
+        )
+      ).not.toBeInTheDocument();
+
+      const popoverB = screen.getByTestId(
+        'camera-info-popover-CAM-SUR-01: Ring Road Majura Gate'
+      );
+      expect(popoverB).toBeInTheDocument();
+      expect(screen.getByText('Surat City Police')).toBeInTheDocument();
+    });
   });
 
   describe('Scalable Dynamic Location & Multi-faceted Filtering (Part 2)', () => {
@@ -779,6 +834,63 @@ describe('Live CCTV Monitoring Page & Components', () => {
         )
       ).toBeInTheDocument();
     });
+
+    it('filters cameras directly by camera ID', () => {
+      render(
+        <CameraSelector
+          cameras={MOCK_MULTI_REGION_CAMERAS}
+          selectedCameraId="cam-ahm-01"
+          onSelectCamera={vi.fn()}
+        />
+      );
+
+      // Search by camera ID 'cam-mrt-01'
+      const searchInput = screen.getByTestId('camera-search-input');
+      fireEvent.change(searchInput, { target: { value: 'cam-mrt-01' } });
+
+      expect(screen.getByTestId('camera-item-CAM-MRT-01: Clock Tower Meerut')).toBeInTheDocument();
+      expect(
+        screen.queryByTestId('camera-item-CAM-AHM-01: SG Highway Pakwan Junction (RESEARCH)')
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByTestId('camera-item-CAM-SUR-01: Ring Road Majura Gate')
+      ).not.toBeInTheDocument();
+    });
+  });
+
+  describe('Functional Truth & Zero Fabricated Telemetry', () => {
+    it('displays UNAVAILABLE when telemetry metrics and stream specs are missing', () => {
+      const bareCamera: Camera = {
+        id: 'cam-bare-01',
+        name: 'CAM-BARE-01',
+        department_id: 'dept-bare',
+        department_name: 'Gujarat Police Traffic Branch',
+        lat: null as any,
+        long: null as any,
+        protocol: 'RTSP',
+        connector_type_id: 'conn-bare',
+        operational_status: 'OFFLINE',
+        is_active: false,
+        created_at: '2026-01-01T00:00:00Z',
+        updated_at: '2026-01-01T00:00:00Z',
+        streams: [],
+        health: undefined,
+      };
+
+      render(
+        <LivePlayer
+          streamUrl="http://localhost:8888/live/cam-bare-01/index.m3u8"
+          camera={bareCamera}
+          autoPlay={false}
+        />
+      );
+
+      // Should show UNAVAILABLE instead of hardcoded 1080p, H.264, or 25 FPS
+      expect(screen.getByText(/RESOLUTION UNAVAILABLE/i)).toBeInTheDocument();
+      expect(screen.getByText(/CODEC UNAVAILABLE/i)).toBeInTheDocument();
+      expect(screen.getByText(/FPS UNAVAILABLE/i)).toBeInTheDocument();
+    });
   });
 });
+
 

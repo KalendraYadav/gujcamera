@@ -189,7 +189,7 @@ export function CameraDetailDrawer({ camera, onClose, onCenterOnMap }: CameraDet
                   letterSpacing: '0.02em',
                 }}
               >
-                {camera.source_type === 'RESEARCH_VIDEO' || camera.name?.includes('RESEARCH') ? 'RESEARCH_VIDEO' : 'SYNTHETIC_STREAM'}
+                {camera.source_type || (camera.name?.includes('RESEARCH') ? 'RESEARCH_VIDEO' : 'SYNTHETIC_STREAM')}
               </span>
             </div>
             <h3
@@ -306,30 +306,34 @@ export function CameraDetailDrawer({ camera, onClose, onCenterOnMap }: CameraDet
                   WGS-84 Coordinates
                 </div>
                 <div style={{ fontSize: '12px', fontFamily: 'var(--font-mono)', color: 'var(--text-primary)', marginTop: '2px' }}>
-                  {camera.lat.toFixed(6)}, {camera.long.toFixed(6)}
+                  {camera.lat != null && camera.long != null
+                    ? `${Number(camera.lat).toFixed(6)}, ${Number(camera.long).toFixed(6)}`
+                    : 'UNAVAILABLE'}
                 </div>
               </div>
 
               <div style={{ display: 'flex', gap: '6px' }}>
-                <button
-                  onClick={() => copyToClipboard(`${camera.lat},${camera.long}`, 'coords')}
-                  title="Copy Coordinates"
-                  className="btn-secondary"
-                  style={{
-                    padding: '4px 8px',
-                    fontSize: '11px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '4px',
-                  }}
-                >
-                  {copiedField === 'coords' ? <Check size={12} color="var(--status-success)" /> : <Copy size={12} />}
-                  <span>{copiedField === 'coords' ? 'Copied' : 'Copy'}</span>
-                </button>
-
-                {onCenterOnMap && (
+                {camera.lat != null && camera.long != null && (
                   <button
-                    onClick={() => onCenterOnMap(camera.lat, camera.long)}
+                    onClick={() => copyToClipboard(`${camera.lat},${camera.long}`, 'coords')}
+                    title="Copy Coordinates"
+                    className="btn-secondary"
+                    style={{
+                      padding: '4px 8px',
+                      fontSize: '11px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                    }}
+                  >
+                    {copiedField === 'coords' ? <Check size={12} color="var(--status-success)" /> : <Copy size={12} />}
+                    <span>{copiedField === 'coords' ? 'Copied' : 'Copy'}</span>
+                  </button>
+                )}
+
+                {onCenterOnMap && camera.lat != null && camera.long != null && (
+                  <button
+                    onClick={() => onCenterOnMap(Number(camera.lat), Number(camera.long))}
                     title="Center view on map"
                     className="btn-secondary"
                     style={{
@@ -631,7 +635,7 @@ export function CameraDetailDrawer({ camera, onClose, onCenterOnMap }: CameraDet
                 >
                   {camera.health?.packet_loss !== null && camera.health?.packet_loss !== undefined
                     ? `${camera.health.packet_loss}%`
-                    : '0.0%'}
+                    : '—'}
                 </div>
               </div>
             </div>

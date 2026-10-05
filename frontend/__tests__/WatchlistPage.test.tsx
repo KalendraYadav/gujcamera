@@ -317,4 +317,26 @@ describe('Watchlist Management Page (Phase 4E)', () => {
     expect(screen.queryByRole('link', { name: /^Track$/i })).not.toBeInTheDocument();
     expect(screen.queryByTestId('track-action-btn-ent-1')).not.toBeInTheDocument();
   });
+
+  it('filters watchlists by watchlist ID and owner unit', async () => {
+    render(<WatchlistPage />);
+
+    await waitFor(() => {
+      expect(screen.getAllByText('Ahmedabad Stolen Vehicles Watchlist (DEMO)').length).toBeGreaterThanOrEqual(1);
+    });
+
+    const searchInput = screen.getByPlaceholderText('Search watchlists...');
+
+    // Search by watchlist ID "wl-2"
+    fireEvent.change(searchInput, { target: { value: 'wl-2' } });
+
+    expect(document.getElementById('watchlist-item-wl-1')).not.toBeInTheDocument();
+    expect(document.getElementById('watchlist-item-wl-2')).toBeInTheDocument();
+
+    // Search by owner "Crime Branch"
+    fireEvent.change(searchInput, { target: { value: 'Crime Branch' } });
+
+    expect(document.getElementById('watchlist-item-wl-1')).toBeInTheDocument();
+    expect(document.getElementById('watchlist-item-wl-2')).not.toBeInTheDocument();
+  });
 });

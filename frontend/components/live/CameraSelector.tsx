@@ -8,6 +8,7 @@
 'use client';
 
 import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Search,
   Video,
@@ -69,10 +70,17 @@ export const CameraSelector: React.FC<CameraSelectorProps> = ({
   // Popover State (Card Information)
   const [activePopoverId, setActivePopoverId] = useState<string | null>(null);
   const [isPopoverPinned, setIsPopoverPinned] = useState<boolean>(false);
-  const [popoverPlacement, setPopoverPlacement] = useState<'down' | 'up'>('down');
+  const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
+  const [popoverCoords, setPopoverCoords] = useState<{ top: number; left: number } | null>(null);
+  const popoverRef = useRef<HTMLDivElement>(null);
   const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [mounted, setMounted] = useState<boolean>(false);
 
-  // Close dropdowns and unpinned popovers on outside click or Escape key
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Close dropdowns and popovers on outside click or Escape key
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       const target = event.target as HTMLElement;
@@ -82,13 +90,17 @@ export const CameraSelector: React.FC<CameraSelectorProps> = ({
         setActiveDropdown(null);
       }
 
-      // Close popover if click is outside any camera card and outside the popover
-      if (
-        !target.closest('[data-testid^="camera-item-"]') &&
-        !target.closest('[data-testid^="camera-info-popover-"]')
-      ) {
+      // Close popover if click is outside popover and outside the anchor button
+      if (activePopoverId) {
+        if (popoverRef.current && popoverRef.current.contains(target)) {
+          return;
+        }
+        if (anchorEl && anchorEl.contains(target)) {
+          return;
+        }
         setActivePopoverId(null);
         setIsPopoverPinned(false);
+        setAnchorEl(null);
       }
     }
 
@@ -97,6 +109,7 @@ export const CameraSelector: React.FC<CameraSelectorProps> = ({
         setActiveDropdown(null);
         setActivePopoverId(null);
         setIsPopoverPinned(false);
+        setAnchorEl(null);
       }
     }
 
@@ -109,7 +122,7 @@ export const CameraSelector: React.FC<CameraSelectorProps> = ({
         clearTimeout(hoverTimeoutRef.current);
       }
     };
-  }, []);
+  }, [activePopoverId, anchorEl]);
 
   // ----------------------------------------------------------------------------
   // DYNAMIC FILTER GENERATION (DATA-DRIVEN FROM CAMERAS DATASET)
@@ -240,16 +253,17 @@ export const CameraSelector: React.FC<CameraSelectorProps> = ({
         }
       }
 
-      // 5. Search Query
+      // 5. Search Query (Search by camera ID, camera name, address, zone, city, state, department)
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
+        const matchId = cam.id?.toLowerCase().includes(q);
         const matchName = cam.name.toLowerCase().includes(q);
         const matchAddr = cam.location?.address?.toLowerCase().includes(q);
         const matchZone = cam.location?.zone?.toLowerCase().includes(q);
         const matchCity = getCameraCity(cam).toLowerCase().includes(q);
         const matchState = getCameraState(cam).toLowerCase().includes(q);
         const matchDept = cam.department_name?.toLowerCase().includes(q);
-        return matchName || matchAddr || matchZone || matchCity || matchState || matchDept;
+        return matchId || matchName || matchAddr || matchZone || matchCity || matchState || matchDept;
       }
 
       return true;
@@ -257,24 +271,88 @@ export const CameraSelector: React.FC<CameraSelectorProps> = ({
   }, [cameras, searchQuery, statusFilter, stateFilter, cityFilter, sourceTypeFilter]);
 
   // ----------------------------------------------------------------------------
-  // POPOVER INTERACTION HELPERS WITH VIEWPORT CONSTRAINTS
+  // ANCHORED FLOATING POPOVER POSITIONING WITH VIEWPORT AWARENESS
   // ----------------------------------------------------------------------------
-  const checkPlacement = (buttonElement: HTMLElement | null) => {
-    if (!buttonElement) return;
-    const rect = buttonElement.getBoundingClientRect();
-    const spaceBelow = window.innerHeight - rect.bottom;
-    if (spaceBelow < 280) {
-      setPopoverPlacement('up');
+  const calculateCoords = useCallback((element: HTMLElement) => {
+    const rect = element.getBoundingClientRect();
+    const popoverEl = popoverRef.current;
+    const popoverWidth = popoverEl ? popoverEl.offsetWidth : 350;
+    const popoverHeight = popoverEl ? popoverEl.offsetHeight : 340;
+    const margin = 12;
+    const gap = 8;
+    const winWidth = typeof window !== 'undefined' ? window.innerWidth || 1024 : 1024;
+    const winHeight = typeof window !== 'undefined' ? window.innerHeight || 768 : 768;
+
+    // Horizontal placement:
+    // If button is in the right half of the viewport, prefer opening to the left
+    let left: number;
+    if (rect.left > winWidth / 2) {
+      if (rect.left - popoverWidth - gap >= margin) {
+        left = rect.left - popoverWidth - gap;
+      } else {
+        left = Math.max(margin, rect.right - popoverWidth);
+      }
     } else {
-      setPopoverPlacement('down');
+      if (rect.right + popoverWidth + gap <= winWidth - margin) {
+        left = rect.right + gap;
+      } else {
+        left = Math.min(winWidth - popoverWidth - margin, rect.left);
+      }
     }
-  };
+    left = Math.max(margin, Math.min(winWidth - popoverWidth - margin, left));
+
+    // Vertical placement:
+    let top = rect.top - 4;
+    if (top + popoverHeight > winHeight - margin) {
+      top = winHeight - popoverHeight - margin;
+    }
+    top = Math.max(margin, top);
+
+    return { top, left };
+  }, []);
+
+  const updatePopoverPosition = useCallback(() => {
+    if (!anchorEl) return;
+    setPopoverCoords(calculateCoords(anchorEl));
+  }, [anchorEl, calculateCoords]);
+
+  useEffect(() => {
+    if (activePopoverId && anchorEl) {
+      updatePopoverPosition();
+    }
+  }, [activePopoverId, anchorEl, updatePopoverPosition]);
+
+  useEffect(() => {
+    if (!activePopoverId || !anchorEl) return;
+
+    function handleScrollOrResize() {
+      if (!anchorEl) return;
+      const rect = anchorEl.getBoundingClientRect();
+      if (rect.bottom < 0 || rect.top > (window.innerHeight || 768)) {
+        setActivePopoverId(null);
+        setIsPopoverPinned(false);
+        setAnchorEl(null);
+        return;
+      }
+      updatePopoverPosition();
+    }
+
+    window.addEventListener('resize', handleScrollOrResize);
+    window.addEventListener('scroll', handleScrollOrResize, true);
+    return () => {
+      window.removeEventListener('resize', handleScrollOrResize);
+      window.removeEventListener('scroll', handleScrollOrResize, true);
+    };
+  }, [activePopoverId, anchorEl, updatePopoverPosition]);
 
   const handleInfoMouseEnter = (cameraId: string, buttonElement: HTMLElement | null) => {
     if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
     if (!isPopoverPinned) {
-      checkPlacement(buttonElement);
       setActivePopoverId(cameraId);
+      setAnchorEl(buttonElement);
+      if (buttonElement) {
+        setPopoverCoords(calculateCoords(buttonElement));
+      }
     }
   };
 
@@ -282,6 +360,7 @@ export const CameraSelector: React.FC<CameraSelectorProps> = ({
     if (!isPopoverPinned) {
       hoverTimeoutRef.current = setTimeout(() => {
         setActivePopoverId(null);
+        setAnchorEl(null);
       }, 200);
     }
   };
@@ -296,17 +375,27 @@ export const CameraSelector: React.FC<CameraSelectorProps> = ({
     if (activePopoverId === cameraId && isPopoverPinned) {
       setActivePopoverId(null);
       setIsPopoverPinned(false);
+      setAnchorEl(null);
     } else {
-      checkPlacement(buttonElement);
       setActivePopoverId(cameraId);
       setIsPopoverPinned(true);
+      setAnchorEl(buttonElement);
+      if (buttonElement) {
+        setPopoverCoords(calculateCoords(buttonElement));
+      }
     }
   };
 
   const closeInfoPopover = () => {
     setActivePopoverId(null);
     setIsPopoverPinned(false);
+    setAnchorEl(null);
   };
+
+  const activePopoverCamera = useMemo(
+    () => cameras.find((c) => c.id === activePopoverId) || null,
+    [cameras, activePopoverId]
+  );
 
   const hasActiveFilters =
     stateFilter !== 'ALL' ||
@@ -1169,286 +1258,299 @@ export const CameraSelector: React.FC<CameraSelectorProps> = ({
                     </span>
                   )}
                 </div>
-
-                {/* -------------------------------------------------------------- */}
-                {/* CONTEXTUAL INFORMATION POPOVER (OPAQUE & COMPACT VIA ⓘ)       */}
-                {/* -------------------------------------------------------------- */}
-                {isPopoverOpen && (
-                  <div
-                    role="dialog"
-                    aria-label={`Specifications for ${camera.name}`}
-                    data-testid={`camera-info-popover-${camera.name}`}
-                    className="camera-info-popover"
-                    style={{
-                      ...(popoverPlacement === 'up'
-                        ? { bottom: '26px', top: 'auto' }
-                        : { top: '26px', bottom: 'auto' }),
-                      right: '4px',
-                    }}
-                    onClick={(e) => {
-                      // Prevent clicking inside the popover from selecting the camera behind it
-                      e.stopPropagation();
-                    }}
-                    onMouseEnter={cancelInfoCloseTimer}
-                    onMouseLeave={handleInfoMouseLeave}
-                  >
-                    {/* Popover Header */}
-                    <div
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
-                        paddingBottom: '4px',
-                      }}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                        <Info size={11} color="#60A5FA" />
-                        <span
-                          style={{
-                            fontSize: '10px',
-                            fontWeight: 700,
-                            textTransform: 'uppercase',
-                            letterSpacing: '0.06em',
-                            color: '#93C5FD',
-                            fontFamily: 'var(--font-mono)',
-                          }}
-                        >
-                          Camera Information
-                        </span>
-                      </div>
-                      <button
-                        type="button"
-                        aria-label="Close specifications"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          closeInfoPopover();
-                        }}
-                        style={{
-                          background: 'none',
-                          border: 'none',
-                          color: 'var(--text-muted)',
-                          cursor: 'pointer',
-                          padding: '1px',
-                          display: 'flex',
-                        }}
-                      >
-                        <X size={11} />
-                      </button>
-                    </div>
-
-                    {/* Popover Content (Compact Label / Value Matrix) */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', fontSize: '10.5px' }}>
-                      {/* Camera Name */}
-                      <div>
-                        <div
-                          style={{
-                            fontSize: '8.5px',
-                            textTransform: 'uppercase',
-                            color: 'var(--text-dim)',
-                            fontFamily: 'var(--font-mono)',
-                            letterSpacing: '0.04em',
-                          }}
-                        >
-                          Camera
-                        </div>
-                        <div style={{ color: '#FFFFFF', fontWeight: 600, wordBreak: 'break-word', fontSize: '11px' }}>
-                          {camera.name}
-                        </div>
-                      </div>
-
-                      {/* Location / Address */}
-                      {camera.location?.address && (
-                        <div>
-                          <div
-                            style={{
-                              fontSize: '8.5px',
-                              textTransform: 'uppercase',
-                              color: 'var(--text-dim)',
-                              fontFamily: 'var(--font-mono)',
-                              letterSpacing: '0.04em',
-                            }}
-                          >
-                            Location
-                          </div>
-                          <div style={{ color: 'var(--text-secondary)', lineHeight: 1.3 }}>
-                            {camera.location.address}
-                            {camera.location.zone ? ` (${camera.location.zone})` : ''}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Department / Authority */}
-                      {camera.department_name && (
-                        <div>
-                          <div
-                            style={{
-                              fontSize: '8.5px',
-                              textTransform: 'uppercase',
-                              color: 'var(--text-dim)',
-                              fontFamily: 'var(--font-mono)',
-                              letterSpacing: '0.04em',
-                            }}
-                          >
-                            Department
-                          </div>
-                          <div style={{ color: '#E2E8F0', fontWeight: 500, fontSize: '10.5px' }}>
-                            {camera.department_name}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* City & State Grid */}
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
-                        <div>
-                          <div
-                            style={{
-                              fontSize: '8.5px',
-                              textTransform: 'uppercase',
-                              color: 'var(--text-dim)',
-                              fontFamily: 'var(--font-mono)',
-                              letterSpacing: '0.04em',
-                            }}
-                          >
-                            City
-                          </div>
-                          <div style={{ color: '#FFFFFF', fontWeight: 600 }}>
-                            {getCameraCity(camera) || 'Unspecified'}
-                          </div>
-                        </div>
-                        <div>
-                          <div
-                            style={{
-                              fontSize: '8.5px',
-                              textTransform: 'uppercase',
-                              color: 'var(--text-dim)',
-                              fontFamily: 'var(--font-mono)',
-                              letterSpacing: '0.04em',
-                            }}
-                          >
-                            State
-                          </div>
-                          <div style={{ color: '#FFFFFF', fontWeight: 600 }}>
-                            {getCameraState(camera) || 'Gujarat'}
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Source & Protocol */}
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
-                        <div>
-                          <div
-                            style={{
-                              fontSize: '8.5px',
-                              textTransform: 'uppercase',
-                              color: 'var(--text-dim)',
-                              fontFamily: 'var(--font-mono)',
-                              letterSpacing: '0.04em',
-                            }}
-                          >
-                            Source
-                          </div>
-                          <div style={{ color: '#93C5FD', fontFamily: 'var(--font-mono)', fontSize: '10px' }}>
-                            {formatSourceLabel(camera.source_type || 'SYNTHETIC_STREAM')}
-                          </div>
-                        </div>
-                        <div>
-                          <div
-                            style={{
-                              fontSize: '8.5px',
-                              textTransform: 'uppercase',
-                              color: 'var(--text-dim)',
-                              fontFamily: 'var(--font-mono)',
-                              letterSpacing: '0.04em',
-                            }}
-                          >
-                            Stream Type
-                          </div>
-                          <div style={{ color: '#FFFFFF', fontFamily: 'var(--font-mono)', fontSize: '10px' }}>
-                            {isRtsp ? 'LIVE HLS' : camera.protocol}
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Stream Specs */}
-                      {primaryStream && (
-                        <div>
-                          <div
-                            style={{
-                              fontSize: '8.5px',
-                              textTransform: 'uppercase',
-                              color: 'var(--text-dim)',
-                              fontFamily: 'var(--font-mono)',
-                              letterSpacing: '0.04em',
-                            }}
-                          >
-                            Resolution & Codec
-                          </div>
-                          <div
-                            style={{
-                              fontFamily: 'var(--font-mono)',
-                              fontSize: '10px',
-                              color: '#FFFFFF',
-                            }}
-                          >
-                            {primaryStream.resolution} • {primaryStream.fps} FPS • {primaryStream.codec}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Status Health & Coordinates */}
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
-                        <div>
-                          <div
-                            style={{
-                              fontSize: '8.5px',
-                              textTransform: 'uppercase',
-                              color: 'var(--text-dim)',
-                              fontFamily: 'var(--font-mono)',
-                              letterSpacing: '0.04em',
-                            }}
-                          >
-                            Status
-                          </div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                            <StatusBadge
-                              status={camera.operational_status}
-                              label={camera.operational_status}
-                              size="sm"
-                            />
-                          </div>
-                        </div>
-                        <div>
-                          <div
-                            style={{
-                              fontSize: '8.5px',
-                              textTransform: 'uppercase',
-                              color: 'var(--text-dim)',
-                              fontFamily: 'var(--font-mono)',
-                              letterSpacing: '0.04em',
-                            }}
-                          >
-                            Coordinates
-                          </div>
-                          <div
-                            style={{
-                              fontFamily: 'var(--font-mono)',
-                              fontSize: '9.5px',
-                              color: 'var(--text-muted)',
-                            }}
-                          >
-                            {camera.lat.toFixed(4)}°N, {camera.long.toFixed(4)}°E
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
               </div>
             );
           })
         )}
       </div>
+
+      {/* ---------------------------------------------------------------------- */}
+      {/* ANCHORED CONTEXTUAL INFORMATION POPOVER (PORTAL ESCAPING OVERFLOW)     */}
+      {/* ---------------------------------------------------------------------- */}
+      {mounted &&
+        activePopoverCamera &&
+        anchorEl &&
+        popoverCoords &&
+        createPortal(
+          <div
+            ref={popoverRef}
+            role="dialog"
+            aria-label={`Specifications for ${activePopoverCamera.name}`}
+            data-testid={`camera-info-popover-${activePopoverCamera.name}`}
+            className="camera-info-popover"
+            style={{
+              position: 'fixed',
+              top: `${popoverCoords.top}px`,
+              left: `${popoverCoords.left}px`,
+              zIndex: 9999,
+            }}
+            onClick={(e) => {
+              // Prevent clicking inside the popover from selecting anything behind it
+              e.stopPropagation();
+            }}
+            onMouseEnter={cancelInfoCloseTimer}
+            onMouseLeave={handleInfoMouseLeave}
+          >
+            {/* Popover Header */}
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+                paddingBottom: '4px',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                <Info size={11} color="#60A5FA" />
+                <span
+                  style={{
+                    fontSize: '10px',
+                    fontWeight: 700,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.06em',
+                    color: '#93C5FD',
+                    fontFamily: 'var(--font-mono)',
+                  }}
+                >
+                  Camera Information
+                </span>
+              </div>
+              <button
+                type="button"
+                aria-label="Close specifications"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  closeInfoPopover();
+                }}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: 'var(--text-muted)',
+                  cursor: 'pointer',
+                  padding: '1px',
+                  display: 'flex',
+                }}
+              >
+                <X size={11} />
+              </button>
+            </div>
+
+            {/* Popover Content (Compact Label / Value Matrix) */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', fontSize: '10.5px' }}>
+              {/* Camera Name */}
+              <div>
+                <div
+                  style={{
+                    fontSize: '8.5px',
+                    textTransform: 'uppercase',
+                    color: 'var(--text-dim)',
+                    fontFamily: 'var(--font-mono)',
+                    letterSpacing: '0.04em',
+                  }}
+                >
+                  Camera
+                </div>
+                <div style={{ color: '#FFFFFF', fontWeight: 600, wordBreak: 'break-word', fontSize: '11px' }}>
+                  {activePopoverCamera.name}
+                </div>
+              </div>
+
+              {/* Location / Address */}
+              {activePopoverCamera.location?.address && (
+                <div>
+                  <div
+                    style={{
+                      fontSize: '8.5px',
+                      textTransform: 'uppercase',
+                      color: 'var(--text-dim)',
+                      fontFamily: 'var(--font-mono)',
+                      letterSpacing: '0.04em',
+                    }}
+                  >
+                    Location
+                  </div>
+                  <div style={{ color: 'var(--text-secondary)', lineHeight: 1.3 }}>
+                    {activePopoverCamera.location.address}
+                    {activePopoverCamera.location.zone ? ` (${activePopoverCamera.location.zone})` : ''}
+                  </div>
+                </div>
+              )}
+
+              {/* Department / Authority */}
+              {activePopoverCamera.department_name && (
+                <div>
+                  <div
+                    style={{
+                      fontSize: '8.5px',
+                      textTransform: 'uppercase',
+                      color: 'var(--text-dim)',
+                      fontFamily: 'var(--font-mono)',
+                      letterSpacing: '0.04em',
+                    }}
+                  >
+                    Department
+                  </div>
+                  <div style={{ color: '#E2E8F0', fontWeight: 500, fontSize: '10.5px' }}>
+                    {activePopoverCamera.department_name}
+                  </div>
+                </div>
+              )}
+
+              {/* City & State Grid */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
+                <div>
+                  <div
+                    style={{
+                      fontSize: '8.5px',
+                      textTransform: 'uppercase',
+                      color: 'var(--text-dim)',
+                      fontFamily: 'var(--font-mono)',
+                      letterSpacing: '0.04em',
+                    }}
+                  >
+                    City
+                  </div>
+                  <div style={{ color: '#FFFFFF', fontWeight: 600 }}>
+                    {getCameraCity(activePopoverCamera) || 'Unspecified'}
+                  </div>
+                </div>
+                <div>
+                  <div
+                    style={{
+                      fontSize: '8.5px',
+                      textTransform: 'uppercase',
+                      color: 'var(--text-dim)',
+                      fontFamily: 'var(--font-mono)',
+                      letterSpacing: '0.04em',
+                    }}
+                  >
+                    State
+                  </div>
+                  <div style={{ color: '#FFFFFF', fontWeight: 600 }}>
+                    {getCameraState(activePopoverCamera) || 'Gujarat'}
+                  </div>
+                </div>
+              </div>
+
+              {/* Source & Protocol */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
+                <div>
+                  <div
+                    style={{
+                      fontSize: '8.5px',
+                      textTransform: 'uppercase',
+                      color: 'var(--text-dim)',
+                      fontFamily: 'var(--font-mono)',
+                      letterSpacing: '0.04em',
+                    }}
+                  >
+                    Source
+                  </div>
+                  <div style={{ color: '#93C5FD', fontFamily: 'var(--font-mono)', fontSize: '10px' }}>
+                    {formatSourceLabel(activePopoverCamera.source_type || 'SYNTHETIC_STREAM')}
+                  </div>
+                </div>
+                <div>
+                  <div
+                    style={{
+                      fontSize: '8.5px',
+                      textTransform: 'uppercase',
+                      color: 'var(--text-dim)',
+                      fontFamily: 'var(--font-mono)',
+                      letterSpacing: '0.04em',
+                    }}
+                  >
+                    Stream Type
+                  </div>
+                  <div style={{ color: '#FFFFFF', fontFamily: 'var(--font-mono)', fontSize: '10px' }}>
+                    {activePopoverCamera.streams?.[0]?.url_or_handle?.startsWith('rtsp://')
+                      ? 'LIVE HLS'
+                      : activePopoverCamera.protocol}
+                  </div>
+                </div>
+              </div>
+
+              {/* Stream Specs */}
+              <div>
+                <div
+                  style={{
+                    fontSize: '8.5px',
+                    textTransform: 'uppercase',
+                    color: 'var(--text-dim)',
+                    fontFamily: 'var(--font-mono)',
+                    letterSpacing: '0.04em',
+                  }}
+                >
+                  Resolution & Codec
+                </div>
+                <div
+                  style={{
+                    fontFamily: 'var(--font-mono)',
+                    fontSize: '10px',
+                    color: '#FFFFFF',
+                  }}
+                >
+                  {activePopoverCamera.streams?.[0]?.resolution || 'UNKNOWN'} •{' '}
+                  {activePopoverCamera.streams?.[0]?.fps
+                    ? `${activePopoverCamera.streams[0].fps} FPS`
+                    : 'FPS UNAVAILABLE'}{' '}
+                  • {activePopoverCamera.streams?.[0]?.codec || 'CODEC UNAVAILABLE'}
+                </div>
+              </div>
+
+              {/* Status Health & Coordinates */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
+                <div>
+                  <div
+                    style={{
+                      fontSize: '8.5px',
+                      textTransform: 'uppercase',
+                      color: 'var(--text-dim)',
+                      fontFamily: 'var(--font-mono)',
+                      letterSpacing: '0.04em',
+                    }}
+                  >
+                    Status
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <StatusBadge
+                      status={activePopoverCamera.operational_status}
+                      label={activePopoverCamera.operational_status}
+                      size="sm"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <div
+                    style={{
+                      fontSize: '8.5px',
+                      textTransform: 'uppercase',
+                      color: 'var(--text-dim)',
+                      fontFamily: 'var(--font-mono)',
+                      letterSpacing: '0.04em',
+                    }}
+                  >
+                    Coordinates
+                  </div>
+                  <div
+                    style={{
+                      fontFamily: 'var(--font-mono)',
+                      fontSize: '9.5px',
+                      color: 'var(--text-muted)',
+                    }}
+                  >
+                    {activePopoverCamera.lat != null && activePopoverCamera.long != null
+                      ? `${Number(activePopoverCamera.lat).toFixed(4)}°N, ${Number(activePopoverCamera.long).toFixed(4)}°E`
+                      : 'UNAVAILABLE'}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>,
+          document.body
+        )}
     </div>
   );
 };
+

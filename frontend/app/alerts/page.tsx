@@ -152,9 +152,10 @@ export default function AlertsPage() {
     return true;
   });
 
-  // Severity counts
-  const criticalCount = alerts.filter((a) => a.severity === 'CRITICAL' && a.status === 'NEW').length;
-  const highCount = alerts.filter((a) => a.severity === 'HIGH' && a.status === 'NEW').length;
+  // Active alert severity counts (NEW, ACKNOWLEDGED, INVESTIGATING per Section 6.3)
+  const isAlertActive = (status: string) => status !== 'RESOLVED' && status !== 'DISMISSED';
+  const criticalCount = alerts.filter((a) => a.severity === 'CRITICAL' && isAlertActive(a.status)).length;
+  const highCount = alerts.filter((a) => a.severity === 'HIGH' && isAlertActive(a.status)).length;
 
   return (
     <AppShell>

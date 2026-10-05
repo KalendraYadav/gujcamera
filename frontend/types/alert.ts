@@ -15,6 +15,7 @@ export type AlertStatus =
 
 export interface AlertSightingSummary {
   id: string;
+  confidence?: number;
   camera: {
     id: string;
     name: string;
@@ -63,6 +64,7 @@ export interface AlertItem {
   status: AlertStatus;
   timestamp: string;
   sighting?: AlertSightingSummary | null;
+  source_sighting?: AlertSightingSummary | null;
   watchlist_match?: AlertWatchlistMatch | null;
   acknowledged_by?: { id: string; email: string } | null;
   resolved_by?: { id: string; email: string } | null;

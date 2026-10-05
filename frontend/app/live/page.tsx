@@ -449,8 +449,9 @@ function LiveMonitoringContent() {
                       fontVariantNumeric: 'tabular-nums',
                     }}
                   >
-                    {selectedCamera.streams?.[0]?.resolution || '1080p'} (
-                    {selectedCamera.streams?.[0]?.codec || 'H.264'})
+                    {selectedCamera.streams?.[0]?.resolution
+                      ? `${selectedCamera.streams[0].resolution}${selectedCamera.streams[0].codec ? ` (${selectedCamera.streams[0].codec})` : ''}`
+                      : 'UNAVAILABLE'}
                   </div>
                 </div>
 
@@ -469,7 +470,9 @@ function LiveMonitoringContent() {
                   >
                     {selectedCamera.health?.fps_actual != null
                       ? `${selectedCamera.health.fps_actual.toFixed(1)} FPS`
-                      : `${selectedCamera.streams?.[0]?.fps || 25} FPS`}
+                      : selectedCamera.streams?.[0]?.fps != null
+                      ? `${selectedCamera.streams[0].fps} FPS`
+                      : 'UNAVAILABLE'}
                   </div>
                 </div>
 
@@ -491,7 +494,7 @@ function LiveMonitoringContent() {
                   >
                     {selectedCamera.health?.packet_loss != null
                       ? `${selectedCamera.health.packet_loss.toFixed(2)}%`
-                      : '0.00%'}
+                      : '—'}
                   </div>
                 </div>
 
@@ -507,7 +510,9 @@ function LiveMonitoringContent() {
                       fontVariantNumeric: 'tabular-nums',
                     }}
                   >
-                    {selectedCamera.lat.toFixed(4)}°N, {selectedCamera.long.toFixed(4)}°E
+                    {selectedCamera.lat != null && selectedCamera.long != null
+                      ? `${Number(selectedCamera.lat).toFixed(4)}°N, ${Number(selectedCamera.long).toFixed(4)}°E`
+                      : 'UNAVAILABLE'}
                   </div>
                 </div>
               </div>

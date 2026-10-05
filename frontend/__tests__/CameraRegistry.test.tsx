@@ -15,14 +15,16 @@ vi.mock('@/lib/api/cameras', () => ({
 }));
 
 // Mock AuthContext
+let mockCurrentUser = {
+  id: 'usr-admin-1',
+  email: 'admin.demo@gujcamera.local',
+  role: 'SUPER_ADMIN',
+  department_name: 'DGP Headquarters',
+};
+
 vi.mock('@/lib/auth/context', () => ({
   useAuth: () => ({
-    user: {
-      id: 'usr-admin-1',
-      email: 'admin.demo@gujcamera.local',
-      role: 'SUPER_ADMIN',
-      department_name: 'DGP Headquarters',
-    },
+    user: mockCurrentUser,
     isAuthenticated: true,
     isLoading: false,
     logout: vi.fn(),
@@ -120,6 +122,12 @@ const MOCK_SUMMARY: CameraHealthSummary = {
 describe('Camera Registry UI Component (Phase 4B)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockCurrentUser = {
+      id: 'usr-admin-1',
+      email: 'admin.demo@gujcamera.local',
+      role: 'SUPER_ADMIN',
+      department_name: 'DGP Headquarters',
+    };
   });
 
   it('renders loading state initially during API fetch', () => {
@@ -296,6 +304,76 @@ describe('Camera Registry UI Component (Phase 4B)', () => {
     await waitFor(() => {
       expect(screen.getByText('Fleet Onboarding')).toBeInTheDocument();
     });
+  });
+
+  it('hides Fleet Onboarding action for OPERATOR role', async () => {
+    mockCurrentUser = {
+      id: 'usr-operator-1',
+      email: 'operator.demo@gujcamera.local',
+      role: 'OPERATOR',
+      department_name: 'Ahmedabad Police',
+    };
+
+    (camerasApi.getCameras as any).mockResolvedValueOnce({
+      data: MOCK_CAMERAS,
+      pagination: { limit: 100, total: 2, next_cursor: null },
+    });
+    (camerasApi.getCameraHealthSummary as any).mockResolvedValueOnce(MOCK_SUMMARY);
+
+    render(<CameraRegistryPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText('CCTV Camera Registry')).toBeInTheDocument();
+    });
+
+    // Fleet Onboarding should NOT be rendered for an OPERATOR
+    expect(screen.queryByText('Fleet Onboarding')).not.toBeInTheDocument();
+  });
+
+  it('filters cameras by UUID search', async () => {
+    (camerasApi.getCameras as any).mockResolvedValueOnce({
+      data: MOCK_CAMERAS,
+      pagination: { limit: 100, total: 2, next_cursor: null },
+    });
+    (camerasApi.getCameraHealthSummary as any).mockResolvedValueOnce(MOCK_SUMMARY);
+
+    render(<CameraRegistryPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText('CAM-AHM-01: SG Highway - Pakwan Crossroad')).toBeInTheDocument();
+    });
+
+    const searchInput = screen.getByLabelText(/Search camera registry/i);
+    // Search by partial UUID of CAM-AHM-01
+    fireEvent.change(searchInput, { target: { value: '3c93c2d0' } });
+
+    expect(screen.getByText('CAM-AHM-01: SG Highway - Pakwan Crossroad')).toBeInTheDocument();
+    expect(screen.queryByText('CAM-GND-02: CH-0 Circle')).not.toBeInTheDocument();
+  });
+
+  it('safely displays UNAVAILABLE for missing camera coordinates', async () => {
+    const cameraWithMissingCoords: Camera = {
+      ...MOCK_CAMERAS[0],
+      id: 'cam-null-coords',
+      name: 'CAM-NULL-COORDS',
+      lat: null as any,
+      long: null as any,
+    };
+
+    (camerasApi.getCameras as any).mockResolvedValueOnce({
+      data: [cameraWithMissingCoords],
+      pagination: { limit: 100, total: 1, next_cursor: null },
+    });
+    (camerasApi.getCameraHealthSummary as any).mockResolvedValueOnce(MOCK_SUMMARY);
+
+    render(<CameraRegistryPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText('CAM-NULL-COORDS')).toBeInTheDocument();
+    });
+
+    // Should display UNAVAILABLE instead of crashing with TypeError
+    expect(screen.getByText('UNAVAILABLE')).toBeInTheDocument();
   });
 });
 
