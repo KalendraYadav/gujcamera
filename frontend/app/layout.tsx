@@ -2,6 +2,7 @@ import React from 'react';
 import type { Metadata, Viewport } from 'next';
 import '@/styles/globals.css';
 import { AuthProvider } from '@/lib/auth/context';
+import { NavigationProvider } from '@/lib/navigation/context';
 
 export const viewport: Viewport = {
   width: 'device-width',
@@ -24,7 +25,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        <AuthProvider>{children}</AuthProvider>
+        <AuthProvider>
+          <NavigationProvider>{children}</NavigationProvider>
+        </AuthProvider>
       </body>
     </html>
   );

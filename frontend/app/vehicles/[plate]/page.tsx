@@ -298,7 +298,7 @@ export default function VehicleInvestigationPage() {
           gap: 'var(--space-4)',
         }}
       >
-        {/* Navigation Breadcrumb & Quick Switch */}
+        {/* Navigation Breadcrumb, Quick Target Switch & Prioritized Action Command Bar */}
         <div
           style={{
             display: 'flex',
@@ -308,64 +308,140 @@ export default function VehicleInvestigationPage() {
             gap: 'var(--space-3)',
           }}
         >
-          <button
-            id="vehicle-detail-back"
-            onClick={() => router.push('/vehicles')}
-            className="btn-secondary"
-            style={{
-              padding: '5px 12px',
-              fontSize: 'var(--text-xs)',
-              gap: '6px',
-            }}
-          >
-            <ArrowLeft size={13} />
-            <span>Vehicle Search Directory</span>
-          </button>
-
-          {/* Quick Target Switch Form */}
-          <form
-            onSubmit={handleQuickSearch}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-            }}
-          >
-            <div style={{ position: 'relative' }}>
-              <input
-                type="text"
-                value={quickSearchInput}
-                onChange={(e) => setQuickSearchInput(e.target.value)}
-                placeholder="Switch Plate (e.g. GJ01AB1234)…"
-                style={{
-                  padding: '5px 10px 5px 28px',
-                  fontSize: '11px',
-                  fontFamily: 'var(--font-mono)',
-                  backgroundColor: 'var(--bg-primary)',
-                  border: '1px solid var(--border-default)',
-                  borderRadius: 'var(--radius-xs)',
-                  color: 'var(--text-primary)',
-                  width: '240px',
-                  textTransform: 'uppercase',
-                }}
-              />
-              <Search
-                size={13}
-                color="var(--text-dim)"
-                style={{ position: 'absolute', left: '8px', top: '7px' }}
-              />
-            </div>
+          {/* Left: Return & Search Again Button + Quick Switch */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
             <button
-              type="submit"
+              id="vehicle-detail-back"
+              onClick={() => router.push('/vehicles')}
               className="btn-secondary"
               style={{
-                padding: '5px 10px',
-                fontSize: '11px',
+                padding: '5px 12px',
+                fontSize: 'var(--text-xs)',
+                gap: '6px',
               }}
             >
-              Inspect
+              <ArrowLeft size={13} />
+              <span>Vehicle Search Directory</span>
             </button>
-          </form>
+
+            {/* Quick Target Switch Form */}
+            <form
+              onSubmit={handleQuickSearch}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+              }}
+            >
+              <div style={{ position: 'relative' }}>
+                <input
+                  type="text"
+                  value={quickSearchInput}
+                  onChange={(e) => setQuickSearchInput(e.target.value)}
+                  placeholder="Switch Plate (e.g. GJ01AB1234)…"
+                  style={{
+                    padding: '5px 10px 5px 28px',
+                    fontSize: '11px',
+                    fontFamily: 'var(--font-mono)',
+                    backgroundColor: 'var(--bg-primary)',
+                    border: '1px solid var(--border-default)',
+                    borderRadius: 'var(--radius-xs)',
+                    color: 'var(--text-primary)',
+                    width: '240px',
+                    textTransform: 'uppercase',
+                  }}
+                />
+                <Search
+                  size={13}
+                  color="var(--text-dim)"
+                  style={{ position: 'absolute', left: '8px', top: '7px' }}
+                />
+              </div>
+              <button
+                type="submit"
+                className="btn-secondary"
+                style={{
+                  padding: '5px 10px',
+                  fontSize: '11px',
+                }}
+              >
+                Inspect
+              </button>
+            </form>
+          </div>
+
+          {/* Right: Prioritized Operational Actions */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+            <button
+              id="action-search-again"
+              onClick={() => router.push('/vehicles')}
+              className="btn-secondary"
+              style={{ fontSize: '11px', padding: '5px 10px', gap: '5px' }}
+            >
+              <Search size={12} />
+              <span>Search Directory</span>
+            </button>
+
+            <button
+              id="action-view-on-gis"
+              onClick={() => router.push('/map')}
+              className="btn-secondary"
+              style={{ fontSize: '11px', padding: '5px 10px', gap: '5px' }}
+            >
+              <Map size={12} />
+              <span>View on GIS Map</span>
+            </button>
+
+            {activeAlert && (
+              <button
+                id="action-view-alert"
+                onClick={() => router.push(`/alerts?plate=${plate}`)}
+                className="btn-secondary"
+                style={{
+                  fontSize: '11px',
+                  padding: '5px 12px',
+                  gap: '5px',
+                  color: 'var(--status-critical)',
+                  borderColor: 'var(--status-critical-border)',
+                  backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                  fontWeight: 700,
+                }}
+              >
+                <AlertTriangle size={12} />
+                <span>View Active Alert ({activeAlert.severity})</span>
+              </button>
+            )}
+
+            {isEvidenceExportAuthorized && selectedSighting && (
+              <button
+                id="header-export-evidence-btn"
+                onClick={() => setEvidenceSightingId(selectedSighting.id)}
+                className="btn-secondary"
+                style={{
+                  fontSize: '11px',
+                  padding: '5px 12px',
+                  gap: '5px',
+                  color: 'var(--accent-primary)',
+                  borderColor: 'var(--accent-primary-border)',
+                  fontWeight: 600,
+                }}
+              >
+                <FileArchive size={12} />
+                <span>Export Evidence Package</span>
+              </button>
+            )}
+
+            <button
+              id="action-refresh-dossier"
+              onClick={loadData}
+              className="btn-secondary"
+              style={{ fontSize: '11px', padding: '5px 10px', gap: '5px' }}
+              title="Synchronize investigation intelligence"
+            >
+              <RefreshCw size={12} />
+              <span>Sync Intelligence</span>
+            </button>
+          </div>
         </div>
 
         {/* State: Empty Search */}
@@ -509,16 +585,12 @@ export default function VehicleInvestigationPage() {
             )}
 
             {/* ============================================================== */}
-            {/* 3. INSTITUTIONAL INVESTIGATION HEADER                          */}
+            {/* MASTER INVESTIGATION COMMAND DOSSIER (LEVEL 1 & LEVEL 2)        */}
             {/* ============================================================== */}
             <div
-              className="netrava-card"
-              style={{
-                padding: 'var(--space-5) var(--space-6)',
-                position: 'relative',
-                backgroundColor: vehicleDetail.is_watchlisted ? 'rgba(239, 68, 68, 0.03)' : 'var(--bg-surface)',
-                borderColor: vehicleDetail.is_watchlisted ? 'var(--status-critical-border)' : 'var(--border-default)',
-              }}
+              className={`netrava-card investigation-dossier-card ${
+                vehicleDetail.is_watchlisted ? 'watchlisted' : ''
+              }`}
             >
               {/* Header Top Accent Border */}
               <div
@@ -534,7 +606,7 @@ export default function VehicleInvestigationPage() {
                 }}
               />
 
-              {/* Title & Identity Row */}
+              {/* LEVEL 1 — HERO SUBJECT IDENTITY ROW */}
               <div
                 style={{
                   display: 'flex',
@@ -542,14 +614,14 @@ export default function VehicleInvestigationPage() {
                   justifyContent: 'space-between',
                   gap: 'var(--space-4)',
                   flexWrap: 'wrap',
-                  marginBottom: 'var(--space-4)',
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
+                {/* Left: Vehicle Identity */}
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '14px' }}>
                   <div
                     style={{
-                      width: '46px',
-                      height: '46px',
+                      width: '52px',
+                      height: '52px',
                       borderRadius: 'var(--radius-sm)',
                       backgroundColor: vehicleDetail.is_watchlisted
                         ? 'var(--status-critical-bg)'
@@ -557,15 +629,19 @@ export default function VehicleInvestigationPage() {
                       border: `1px solid ${
                         vehicleDetail.is_watchlisted
                           ? 'var(--status-critical-border)'
-                          : 'rgba(59, 130, 246, 0.3)'
+                          : 'rgba(59, 130, 246, 0.35)'
                       }`,
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
+                      flexShrink: 0,
+                      boxShadow: vehicleDetail.is_watchlisted
+                        ? '0 0 14px rgba(239, 68, 68, 0.3)'
+                        : '0 0 14px rgba(59, 130, 246, 0.2)',
                     }}
                   >
                     <Car
-                      size={22}
+                      size={26}
                       color={vehicleDetail.is_watchlisted ? 'var(--status-critical)' : '#60A5FA'}
                     />
                   </div>
@@ -573,65 +649,202 @@ export default function VehicleInvestigationPage() {
                   <div>
                     <div
                       style={{
-                        fontSize: '10px',
+                        fontSize: '9.5px',
                         fontFamily: 'var(--font-mono)',
                         fontWeight: 700,
                         color: 'var(--text-dim)',
                         letterSpacing: '0.1em',
                         textTransform: 'uppercase',
-                        marginBottom: '2px',
+                        marginBottom: '3px',
                       }}
                     >
                       VEHICLE INVESTIGATION COMMAND CENTER
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', flexWrap: 'wrap' }}>
+
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: '12px', flexWrap: 'wrap' }}>
                       <h1
                         style={{
-                          fontSize: 'var(--text-2xl)',
-                          fontWeight: 800,
+                          fontSize: '26px',
+                          fontWeight: 900,
                           fontFamily: 'var(--font-mono)',
-                          letterSpacing: '0.12em',
-                          color: 'var(--text-primary)',
+                          letterSpacing: '0.1em',
+                          color: '#FFFFFF',
                           margin: 0,
+                          lineHeight: 1.1,
                         }}
                       >
                         {vehicleDetail.plate_normalized}
                       </h1>
 
+                      {/* Vehicle Description / Attributes */}
                       {vehicleDetail.attributes && (
-                        <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
-                          {[
-                            vehicleDetail.attributes.color,
-                            vehicleDetail.attributes.make,
-                            vehicleDetail.attributes.model,
-                            vehicleDetail.attributes.type,
-                          ]
-                            .filter(Boolean)
-                            .map((attr, i) => (
-                              <span
-                                key={i}
-                                style={{
-                                  fontSize: '11px',
-                                  fontWeight: 600,
-                                  color: 'var(--text-secondary)',
-                                  backgroundColor: 'var(--bg-primary)',
-                                  padding: '2px 8px',
-                                  borderRadius: 'var(--radius-xs)',
-                                  border: '1px solid var(--border-subtle)',
-                                  fontFamily: 'var(--font-mono)',
-                                }}
-                              >
-                                {attr}
-                              </span>
-                            ))}
+                        <div
+                          style={{
+                            fontSize: '13px',
+                            fontWeight: 600,
+                            color: '#CBD5E1',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                          }}
+                        >
+                          {vehicleDetail.attributes.color && (
+                            <span>{vehicleDetail.attributes.color}</span>
+                          )}
+                          {vehicleDetail.attributes.make && (
+                            <span>{vehicleDetail.attributes.make}</span>
+                          )}
+                          {vehicleDetail.attributes.model && (
+                            <span>{vehicleDetail.attributes.model}</span>
+                          )}
+                          {vehicleDetail.attributes.type && (
+                            <>
+                              <span style={{ color: 'var(--text-dim)' }}>&bull;</span>
+                              <span style={{ color: '#94A3B8' }}>{vehicleDetail.attributes.type}</span>
+                            </>
+                          )}
                         </div>
                       )}
+                    </div>
+
+                    {/* Prominent Subject Status Badges Row */}
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        flexWrap: 'wrap',
+                        marginTop: '8px',
+                      }}
+                    >
+                      {vehicleDetail.is_watchlisted ? (
+                        <span
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '5px',
+                            padding: '2px 8px',
+                            borderRadius: 'var(--radius-xs)',
+                            backgroundColor: 'rgba(239, 68, 68, 0.15)',
+                            border: '1px solid var(--status-critical-border)',
+                            color: '#FCA5A5',
+                            fontSize: '11px',
+                            fontWeight: 800,
+                            fontFamily: 'var(--font-mono)',
+                            letterSpacing: '0.04em',
+                          }}
+                        >
+                          <span
+                            style={{
+                              width: '6px',
+                              height: '6px',
+                              borderRadius: '50%',
+                              backgroundColor: 'var(--status-critical)',
+                              boxShadow: '0 0 6px var(--status-critical)',
+                            }}
+                          />
+                          <span>
+                            {activeAlert?.severity || vehicleDetail.watchlist_details?.priority || 'CRITICAL'} &bull; WATCHLIST MATCH
+                          </span>
+                        </span>
+                      ) : (
+                        <span
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '5px',
+                            padding: '2px 8px',
+                            borderRadius: 'var(--radius-xs)',
+                            backgroundColor: 'rgba(16, 185, 129, 0.12)',
+                            border: '1px solid var(--status-success-border)',
+                            color: '#6EE7B7',
+                            fontSize: '11px',
+                            fontWeight: 700,
+                            fontFamily: 'var(--font-mono)',
+                          }}
+                        >
+                          <span
+                            style={{
+                              width: '6px',
+                              height: '6px',
+                              borderRadius: '50%',
+                              backgroundColor: 'var(--status-success)',
+                            }}
+                          />
+                          <span>REGISTRY CLEAR &bull; NO WATCHLIST MATCH</span>
+                        </span>
+                      )}
+
+                      {/* Route Validity Semantic Pill */}
+                      <span
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '5px',
+                          padding: '2px 8px',
+                          borderRadius: 'var(--radius-xs)',
+                          backgroundColor:
+                            routeStatus === 'PLAUSIBLE'
+                              ? 'rgba(16, 185, 129, 0.1)'
+                              : routeStatus === 'ANOMALOUS'
+                              ? 'rgba(239, 68, 68, 0.12)'
+                              : 'rgba(148, 163, 184, 0.1)',
+                          border: `1px solid ${
+                            routeStatus === 'PLAUSIBLE'
+                              ? 'rgba(16, 185, 129, 0.3)'
+                              : routeStatus === 'ANOMALOUS'
+                              ? 'rgba(239, 68, 68, 0.3)'
+                              : 'rgba(148, 163, 184, 0.25)'
+                          }`,
+                          color:
+                            routeStatus === 'PLAUSIBLE'
+                              ? '#6EE7B7'
+                              : routeStatus === 'ANOMALOUS'
+                              ? '#FCA5A5'
+                              : 'var(--text-muted)',
+                          fontSize: '10.5px',
+                          fontWeight: 700,
+                          fontFamily: 'var(--font-mono)',
+                        }}
+                      >
+                        <span>ROUTE: {routeStatus}</span>
+                      </span>
+
+                      {/* Evidence Semantic Pill */}
+                      <span
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '5px',
+                          padding: '2px 8px',
+                          borderRadius: 'var(--radius-xs)',
+                          backgroundColor:
+                            evidenceStatus === 'EVIDENCE AVAILABLE'
+                              ? 'rgba(59, 130, 246, 0.12)'
+                              : 'rgba(148, 163, 184, 0.08)',
+                          border: `1px solid ${
+                            evidenceStatus === 'EVIDENCE AVAILABLE'
+                              ? 'rgba(59, 130, 246, 0.35)'
+                              : 'rgba(148, 163, 184, 0.2)'
+                          }`,
+                          color:
+                            evidenceStatus === 'EVIDENCE AVAILABLE'
+                              ? '#93C5FD'
+                              : 'var(--text-muted)',
+                          fontSize: '10.5px',
+                          fontWeight: 700,
+                          fontFamily: 'var(--font-mono)',
+                        }}
+                      >
+                        <ShieldCheck size={11} />
+                        <span>EVIDENCE: {evidenceStatus}</span>
+                      </span>
                     </div>
                   </div>
                 </div>
 
-                {/* Right Metadata Tag */}
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
+                {/* Right: Administrative & Classification Metadata */}
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '3px' }}>
                   <div
                     style={{
                       fontSize: '10px',
@@ -640,88 +853,198 @@ export default function VehicleInvestigationPage() {
                     }}
                   >
                     INVESTIGATION ID:{' '}
-                    <span style={{ color: 'var(--text-secondary)', fontWeight: 700 }}>
+                    <span style={{ color: '#FFFFFF', fontWeight: 700 }}>
                       INV-{vehicleDetail.plate_normalized}
                     </span>
                   </div>
                   <div style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', color: 'var(--text-dim)' }}>
                     SECURITY LEVEL: <span style={{ color: '#60A5FA' }}>CONFIDENTIAL // POLICE LAW ENFORCEMENT</span>
                   </div>
+                  <div style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', color: 'var(--text-dim)', marginTop: '2px' }}>
+                    OBSERVATION WINDOW:{' '}
+                    <span style={{ color: '#E2E8F0' }}>
+                      {formatTimestamp(vehicleDetail.first_seen)} &rarr; {formatTimestamp(vehicleDetail.last_seen)}
+                    </span>
+                  </div>
                 </div>
               </div>
 
-              {/* KPI Metrics Strip */}
-              <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
-                  gap: 'var(--space-2)',
-                }}
-              >
-                {/* 1. First Observed */}
+              {/* INTEGRATED WATCHLIST & ALERT CONTEXT BANNER */}
+              {vehicleDetail.is_watchlisted ? (
                 <div
                   style={{
-                    padding: 'var(--space-2) var(--space-3)',
-                    backgroundColor: 'var(--bg-primary)',
-                    border: '1px solid var(--border-subtle)',
-                    borderRadius: 'var(--radius-xs)',
+                    backgroundColor: 'rgba(239, 68, 68, 0.08)',
+                    border: '1px solid var(--status-critical-border)',
+                    borderRadius: 'var(--radius-sm)',
+                    padding: '10px 14px',
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    justifyContent: 'space-between',
+                    gap: '12px',
+                    flexWrap: 'wrap',
                   }}
                 >
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
+                    <AlertTriangle
+                      size={18}
+                      color="var(--status-critical)"
+                      style={{ flexShrink: 0, marginTop: '2px' }}
+                    />
+                    <div>
+                      <div
+                        style={{
+                          fontWeight: 800,
+                          fontSize: '12.5px',
+                          color: 'var(--status-critical)',
+                          letterSpacing: '0.04em',
+                          fontFamily: 'var(--font-mono)',
+                          marginBottom: '3px',
+                        }}
+                      >
+                        WATCHLIST MATCH — {vehicleDetail.watchlist_details?.category?.replace(/_/g, ' ') || 'SECURITY NOTICE'}
+                      </div>
+
+                      <div style={{ fontSize: '12px', color: '#F1F5F9', marginBottom: '6px', fontWeight: 500 }}>
+                        {vehicleDetail.watchlist_details?.reason || 'Vehicle flagged in active security database.'}
+                      </div>
+
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '10px',
+                          flexWrap: 'wrap',
+                          fontSize: '11px',
+                          fontFamily: 'var(--font-mono)',
+                          color: 'var(--text-muted)',
+                        }}
+                      >
+                        <span>
+                          Severity:{' '}
+                          <strong style={{ color: 'var(--status-critical)' }}>
+                            {activeAlert?.severity || vehicleDetail.watchlist_details?.priority || 'CRITICAL'}
+                          </strong>
+                        </span>
+                        <span>&bull;</span>
+                        <span>
+                          Alert Status:{' '}
+                          <strong style={{ color: '#FFFFFF' }}>
+                            {activeAlert?.status || 'NEW'}
+                          </strong>
+                        </span>
+                        <span>&bull;</span>
+                        <span>
+                          Observing Camera:{' '}
+                          <strong style={{ color: '#FFFFFF' }}>
+                            {activeAlert?.sighting?.camera?.name || timeline.sightings[0]?.camera_name || 'REGISTERED CAMERA'}
+                          </strong>
+                        </span>
+                        <span>&bull;</span>
+                        <span>
+                          Jurisdiction:{' '}
+                          <strong style={{ color: '#FFFFFF' }}>
+                            {activeAlert?.sighting?.camera?.location?.district || timeline.sightings[0]?.location?.district || 'GUJARAT'}
+                          </strong>
+                        </span>
+                        <span>&bull;</span>
+                        <span>
+                          Flagged At:{' '}
+                          {formatTimestamp(vehicleDetail.watchlist_details?.flagged_at || activeAlert?.timestamp || activeAlert?.created_at)}
+                        </span>
+                      </div>
+
+                      <div
+                        style={{
+                          marginTop: '4px',
+                          fontSize: '9.5px',
+                          color: 'var(--text-dim)',
+                          fontStyle: 'italic',
+                        }}
+                      >
+                        Statutory Governance: ANPR plate correlation confirms detection only. Manual verification required before enforcement.
+                      </div>
+                    </div>
+                  </div>
+
+                  {activeAlert && (
+                    <button
+                      id="open-alert-action-btn"
+                      onClick={() => router.push(`/alerts?plate=${plate}`)}
+                      className="btn-primary"
+                      style={{
+                        fontSize: 'var(--text-xs)',
+                        padding: '6px 12px',
+                        backgroundColor: 'var(--status-critical)',
+                        borderColor: 'var(--status-critical-border)',
+                        gap: '6px',
+                        flexShrink: 0,
+                      }}
+                    >
+                      <span>OPEN ALERT #{activeAlert.id.substring(0, 8)}</span>
+                      <ExternalLink size={12} />
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <div
+                  style={{
+                    backgroundColor: 'rgba(16, 185, 129, 0.06)',
+                    border: '1px solid var(--status-success-border)',
+                    borderRadius: 'var(--radius-sm)',
+                    padding: '8px 12px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px',
+                  }}
+                >
+                  <Shield size={16} color="var(--status-success)" style={{ flexShrink: 0 }} />
+                  <span style={{ fontSize: '11.5px', color: 'var(--text-secondary)' }}>
+                    <strong style={{ color: 'var(--status-success)', fontFamily: 'var(--font-mono)' }}>
+                      NO WATCHLIST MATCH:
+                    </strong>{' '}
+                    Vehicle registration {vehicleDetail.plate_normalized} is clear across all active security and stolen vehicle registries.
+                  </span>
+                </div>
+              )}
+
+              {/* LEVEL 2 — UNIFIED OPERATIONAL SUMMARY STRIP */}
+              <div className="investigation-telemetry-strip">
+                {/* 1. First Observed */}
+                <div className="investigation-telemetry-cell">
                   <div style={{ fontSize: '9px', fontWeight: 700, fontFamily: 'var(--font-mono)', color: 'var(--text-dim)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
                     FIRST OBSERVED
                   </div>
-                  <div style={{ fontSize: '11px', fontWeight: 700, fontFamily: 'var(--font-mono)', color: 'var(--text-primary)', marginTop: '2px' }}>
+                  <div style={{ fontSize: '11px', fontWeight: 700, fontFamily: 'var(--font-mono)', color: '#FFFFFF' }}>
                     {formatTimestamp(vehicleDetail.first_seen)}
                   </div>
                 </div>
 
                 {/* 2. Last Observed */}
-                <div
-                  style={{
-                    padding: 'var(--space-2) var(--space-3)',
-                    backgroundColor: 'var(--bg-primary)',
-                    border: '1px solid var(--border-subtle)',
-                    borderRadius: 'var(--radius-xs)',
-                  }}
-                >
+                <div className="investigation-telemetry-cell">
                   <div style={{ fontSize: '9px', fontWeight: 700, fontFamily: 'var(--font-mono)', color: 'var(--text-dim)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
                     LAST OBSERVED
                   </div>
-                  <div style={{ fontSize: '11px', fontWeight: 700, fontFamily: 'var(--font-mono)', color: 'var(--text-primary)', marginTop: '2px' }}>
+                  <div style={{ fontSize: '11px', fontWeight: 700, fontFamily: 'var(--font-mono)', color: '#FFFFFF' }}>
                     {formatTimestamp(vehicleDetail.last_seen)}
                   </div>
                 </div>
 
                 {/* 3. Sightings Count */}
-                <div
-                  style={{
-                    padding: 'var(--space-2) var(--space-3)',
-                    backgroundColor: 'var(--bg-primary)',
-                    border: '1px solid var(--border-subtle)',
-                    borderRadius: 'var(--radius-xs)',
-                  }}
-                >
+                <div className="investigation-telemetry-cell">
                   <div style={{ fontSize: '9px', fontWeight: 700, fontFamily: 'var(--font-mono)', color: 'var(--text-dim)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
                     SIGHTINGS
                   </div>
-                  <div style={{ fontSize: '12px', fontWeight: 800, fontFamily: 'var(--font-mono)', color: 'var(--text-primary)', marginTop: '2px' }}>
+                  <div style={{ fontSize: '11.5px', fontWeight: 800, fontFamily: 'var(--font-mono)', color: '#FFFFFF' }}>
                     {vehicleDetail.total_sightings} OBSERVED
                   </div>
                 </div>
 
                 {/* 4. Jurisdictions Count */}
-                <div
-                  style={{
-                    padding: 'var(--space-2) var(--space-3)',
-                    backgroundColor: 'var(--bg-primary)',
-                    border: '1px solid var(--border-subtle)',
-                    borderRadius: 'var(--radius-xs)',
-                  }}
-                >
+                <div className="investigation-telemetry-cell">
                   <div style={{ fontSize: '9px', fontWeight: 700, fontFamily: 'var(--font-mono)', color: 'var(--text-dim)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
                     JURISDICTIONS
                   </div>
-                  <div style={{ fontSize: '11px', fontWeight: 700, fontFamily: 'var(--font-mono)', color: '#60A5FA', marginTop: '2px' }}>
+                  <div style={{ fontSize: '11px', fontWeight: 700, fontFamily: 'var(--font-mono)', color: '#60A5FA' }}>
                     {jurisdictionsList.length > 0
                       ? `${jurisdictionsList.length} CITIES: ${jurisdictionsList.join(', ')}`
                       : 'NO DATA'}
@@ -729,281 +1052,36 @@ export default function VehicleInvestigationPage() {
                 </div>
 
                 {/* 5. Watchlist Status */}
-                <div
-                  style={{
-                    padding: 'var(--space-2) var(--space-3)',
-                    backgroundColor: vehicleDetail.is_watchlisted ? 'var(--status-critical-bg)' : 'var(--bg-primary)',
-                    border: `1px solid ${vehicleDetail.is_watchlisted ? 'var(--status-critical-border)' : 'var(--border-subtle)'}`,
-                    borderRadius: 'var(--radius-xs)',
-                  }}
-                >
+                <div className="investigation-telemetry-cell">
                   <div style={{ fontSize: '9px', fontWeight: 700, fontFamily: 'var(--font-mono)', color: vehicleDetail.is_watchlisted ? 'var(--status-critical)' : 'var(--text-dim)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
                     WATCHLIST
                   </div>
-                  <div style={{ fontSize: '11px', fontWeight: 800, fontFamily: 'var(--font-mono)', color: vehicleDetail.is_watchlisted ? 'var(--status-critical)' : 'var(--status-success)', marginTop: '2px' }}>
+                  <div style={{ fontSize: '11px', fontWeight: 800, fontFamily: 'var(--font-mono)', color: vehicleDetail.is_watchlisted ? 'var(--status-critical)' : 'var(--status-success)' }}>
                     {vehicleDetail.is_watchlisted ? 'MATCH' : 'NO MATCH'}
                   </div>
                 </div>
 
                 {/* 6. Route Status */}
-                <div
-                  style={{
-                    padding: 'var(--space-2) var(--space-3)',
-                    backgroundColor: routeStatus === 'ANOMALOUS' ? 'rgba(239, 68, 68, 0.08)' : 'var(--bg-primary)',
-                    border: `1px solid ${routeStatus === 'ANOMALOUS' ? 'var(--status-critical-border)' : 'var(--border-subtle)'}`,
-                    borderRadius: 'var(--radius-xs)',
-                  }}
-                >
+                <div className="investigation-telemetry-cell">
                   <div style={{ fontSize: '9px', fontWeight: 700, fontFamily: 'var(--font-mono)', color: routeStatus === 'ANOMALOUS' ? 'var(--status-critical)' : 'var(--text-dim)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
                     ROUTE STATUS
                   </div>
-                  <div style={{ fontSize: '11px', fontWeight: 800, fontFamily: 'var(--font-mono)', color: routeStatus === 'PLAUSIBLE' ? 'var(--status-success)' : routeStatus === 'ANOMALOUS' ? 'var(--status-critical)' : 'var(--text-dim)', marginTop: '2px' }}>
+                  <div style={{ fontSize: '11px', fontWeight: 800, fontFamily: 'var(--font-mono)', color: routeStatus === 'PLAUSIBLE' ? 'var(--status-success)' : routeStatus === 'ANOMALOUS' ? 'var(--status-critical)' : 'var(--text-dim)' }}>
                     {routeStatus}
                   </div>
                 </div>
 
                 {/* 7. Evidence Availability */}
-                <div
-                  style={{
-                    padding: 'var(--space-2) var(--space-3)',
-                    backgroundColor: 'var(--bg-primary)',
-                    border: '1px solid var(--border-subtle)',
-                    borderRadius: 'var(--radius-xs)',
-                  }}
-                >
+                <div className="investigation-telemetry-cell">
                   <div style={{ fontSize: '9px', fontWeight: 700, fontFamily: 'var(--font-mono)', color: 'var(--text-dim)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
                     EVIDENCE
                   </div>
-                  <div style={{ fontSize: '11px', fontWeight: 800, fontFamily: 'var(--font-mono)', color: evidenceStatus === 'EVIDENCE AVAILABLE' ? 'var(--status-success)' : 'var(--text-dim)', marginTop: '2px' }}>
+                  <div style={{ fontSize: '11px', fontWeight: 800, fontFamily: 'var(--font-mono)', color: evidenceStatus === 'EVIDENCE AVAILABLE' ? 'var(--status-success)' : 'var(--text-dim)' }}>
                     {evidenceStatus}
                   </div>
                 </div>
               </div>
             </div>
-
-            {/* ============================================================== */}
-            {/* 9. INVESTIGATION ACTION COMMAND BAR                           */}
-            {/* ============================================================== */}
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                flexWrap: 'wrap',
-                gap: 'var(--space-2)',
-                padding: 'var(--space-2) var(--space-1)',
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
-                <button
-                  id="action-search-again"
-                  onClick={() => router.push('/vehicles')}
-                  className="btn-secondary"
-                  style={{ fontSize: '11px', padding: '5px 12px', gap: '5px' }}
-                >
-                  <Search size={12} />
-                  <span>Search Directory</span>
-                </button>
-
-                <button
-                  id="action-view-on-gis"
-                  onClick={() => router.push('/map')}
-                  className="btn-secondary"
-                  style={{ fontSize: '11px', padding: '5px 12px', gap: '5px' }}
-                >
-                  <Map size={12} />
-                  <span>View on GIS Map</span>
-                </button>
-
-                {activeAlert && (
-                  <button
-                    id="action-view-alert"
-                    onClick={() => router.push(`/alerts?plate=${plate}`)}
-                    className="btn-secondary"
-                    style={{
-                      fontSize: '11px',
-                      padding: '5px 12px',
-                      gap: '5px',
-                      color: 'var(--status-critical)',
-                      borderColor: 'var(--status-critical-border)',
-                      backgroundColor: 'rgba(239, 68, 68, 0.08)',
-                    }}
-                  >
-                    <AlertTriangle size={12} />
-                    <span>View Active Alert ({activeAlert.severity})</span>
-                  </button>
-                )}
-
-                {isEvidenceExportAuthorized && selectedSighting && (
-                  <button
-                    id="header-export-evidence-btn"
-                    onClick={() => setEvidenceSightingId(selectedSighting.id)}
-                    className="btn-secondary"
-                    style={{
-                      fontSize: '11px',
-                      padding: '5px 12px',
-                      gap: '5px',
-                      color: 'var(--accent-primary)',
-                      borderColor: 'var(--accent-primary-border)',
-                    }}
-                  >
-                    <FileArchive size={12} />
-                    <span>Export Evidence Package</span>
-                  </button>
-                )}
-              </div>
-
-              <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
-                <button
-                  id="action-refresh-dossier"
-                  onClick={loadData}
-                  className="btn-secondary"
-                  style={{ fontSize: '11px', padding: '5px 12px', gap: '5px' }}
-                >
-                  <RefreshCw size={12} />
-                  <span>Sync Intelligence</span>
-                </button>
-              </div>
-            </div>
-
-            {/* ============================================================== */}
-            {/* 6. WATCHLIST + ALERT CORRELATION BANNER                       */}
-            {/* ============================================================== */}
-            {vehicleDetail.is_watchlisted ? (
-              <div
-                style={{
-                  backgroundColor: 'var(--status-critical-bg)',
-                  border: '1px solid var(--status-critical-border)',
-                  borderRadius: 'var(--radius-sm)',
-                  padding: 'var(--space-4) var(--space-5)',
-                  display: 'flex',
-                  alignItems: 'flex-start',
-                  justifyContent: 'space-between',
-                  gap: 'var(--space-4)',
-                  flexWrap: 'wrap',
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 'var(--space-3)' }}>
-                  <AlertTriangle
-                    size={20}
-                    color="var(--status-critical)"
-                    style={{ flexShrink: 0, marginTop: '2px' }}
-                  />
-                  <div>
-                    <div
-                      style={{
-                        fontWeight: 800,
-                        fontSize: 'var(--text-sm)',
-                        color: 'var(--status-critical)',
-                        letterSpacing: '0.04em',
-                        fontFamily: 'var(--font-mono)',
-                        marginBottom: '4px',
-                      }}
-                    >
-                      WATCHLIST MATCH — {vehicleDetail.watchlist_details?.category?.replace(/_/g, ' ') || 'SECURITY NOTICE'}
-                    </div>
-
-                    <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)', marginBottom: '6px' }}>
-                      {vehicleDetail.watchlist_details?.reason || 'Vehicle flagged in active security database.'}
-                    </div>
-
-                    <div
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 'var(--space-3)',
-                        flexWrap: 'wrap',
-                        fontSize: '11px',
-                        fontFamily: 'var(--font-mono)',
-                        color: 'var(--text-muted)',
-                      }}
-                    >
-                      <span>
-                        Severity:{' '}
-                        <strong style={{ color: 'var(--status-critical)' }}>
-                          {activeAlert?.severity || vehicleDetail.watchlist_details?.priority || 'CRITICAL'}
-                        </strong>
-                      </span>
-                      <span>&bull;</span>
-                      <span>
-                        Alert Status:{' '}
-                        <strong style={{ color: 'var(--text-primary)' }}>
-                          {activeAlert?.status || 'NEW'}
-                        </strong>
-                      </span>
-                      <span>&bull;</span>
-                      <span>
-                        Observing Camera:{' '}
-                        <strong style={{ color: 'var(--text-primary)' }}>
-                          {activeAlert?.sighting?.camera?.name || timeline.sightings[0]?.camera_name || 'REGISTERED CAMERA'}
-                        </strong>
-                      </span>
-                      <span>&bull;</span>
-                      <span>
-                        Jurisdiction:{' '}
-                        <strong style={{ color: 'var(--text-primary)' }}>
-                          {activeAlert?.sighting?.camera?.location?.district || timeline.sightings[0]?.location?.district || 'GUJARAT'}
-                        </strong>
-                      </span>
-                      <span>&bull;</span>
-                      <span>
-                        Flagged At:{' '}
-                        {formatTimestamp(vehicleDetail.watchlist_details?.flagged_at || activeAlert?.timestamp || activeAlert?.created_at)}
-                      </span>
-                    </div>
-
-                    <div
-                      style={{
-                        marginTop: 'var(--space-2)',
-                        fontSize: '10px',
-                        color: 'var(--text-muted)',
-                        fontStyle: 'italic',
-                      }}
-                    >
-                      Statutory Governance: ANPR plate correlation confirms detection only. Manual verification required before enforcement.
-                    </div>
-                  </div>
-                </div>
-
-                {activeAlert && (
-                  <button
-                    id="open-alert-action-btn"
-                    onClick={() => router.push(`/alerts?plate=${plate}`)}
-                    className="btn-primary"
-                    style={{
-                      fontSize: 'var(--text-xs)',
-                      padding: '7px 14px',
-                      backgroundColor: 'var(--status-critical)',
-                      borderColor: 'var(--status-critical-border)',
-                      gap: '6px',
-                    }}
-                  >
-                    <span>OPEN ALERT #{activeAlert.id.substring(0, 8)}</span>
-                    <ExternalLink size={12} />
-                  </button>
-                )}
-              </div>
-            ) : (
-              <div
-                style={{
-                  backgroundColor: 'var(--status-success-bg)',
-                  border: '1px solid var(--status-success-border)',
-                  borderRadius: 'var(--radius-sm)',
-                  padding: 'var(--space-3) var(--space-4)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 'var(--space-3)',
-                }}
-              >
-                <Shield size={16} color="var(--status-success)" style={{ flexShrink: 0 }} />
-                <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
-                  <strong style={{ color: 'var(--status-success)', fontFamily: 'var(--font-mono)' }}>
-                    NO WATCHLIST MATCH:
-                  </strong>{' '}
-                  Vehicle registration {vehicleDetail.plate_normalized} is clear across all active security and stolen vehicle registries.
-                </span>
-              </div>
-            )}
 
             {/* ============================================================== */}
             {/* SPATIO-TEMPORAL ANOMALY HIGHLIGHT                             */}
@@ -1012,7 +1090,7 @@ export default function VehicleInvestigationPage() {
               <div
                 className="netrava-card"
                 style={{
-                  padding: 'var(--space-4) var(--space-5)',
+                  padding: 'var(--space-3) var(--space-4)',
                   borderColor: 'var(--status-critical-border)',
                   backgroundColor: 'rgba(239, 68, 68, 0.04)',
                 }}

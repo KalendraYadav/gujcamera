@@ -388,4 +388,397 @@ describe('Live CCTV Monitoring Page & Components', () => {
       expect(screen.queryByText('450.00%')).not.toBeInTheDocument();
     });
   });
+
+  // --------------------------------------------------------------------------
+  // PART 1 & 2 TESTS: COMPACT CAMERA CARDS, INFO POPOVER & SCALABLE LOCATION FILTERING
+  // --------------------------------------------------------------------------
+
+  const MOCK_MULTI_REGION_CAMERAS: Camera[] = [
+    {
+      id: 'cam-ahm-01',
+      name: 'CAM-AHM-01: SG Highway Pakwan Junction (RESEARCH)',
+      department_id: 'dept-ahm',
+      department_name: 'Ahmedabad Police',
+      lat: 23.0338,
+      long: 72.5073,
+      protocol: 'RTSP',
+      connector_type_id: 'conn-01',
+      operational_status: 'ONLINE',
+      source_type: 'REAL_RTSP',
+      is_active: true,
+      created_at: '2026-01-01T00:00:00Z',
+      updated_at: '2026-01-01T00:00:00Z',
+      location: {
+        address: 'SG Highway Pakwan Crossroad, Sector 4',
+        zone: 'West Zone',
+        district: 'Ahmedabad',
+        state: 'Gujarat',
+      },
+      streams: [
+        {
+          id: 'stream-1',
+          codec: 'h264',
+          resolution: '1920x1080',
+          fps: 25,
+          url_or_handle: 'rtsp://simulator:8554/live/cam-ahm-01',
+        },
+      ],
+      health: {
+        status: 'ONLINE',
+        last_heartbeat: '2026-09-10T06:00:00Z',
+        fps_actual: 25.0,
+        packet_loss: 0.0,
+      },
+    },
+    {
+      id: 'cam-sur-01',
+      name: 'CAM-SUR-01: Ring Road Majura Gate',
+      department_id: 'dept-sur',
+      department_name: 'Surat City Police',
+      lat: 21.1702,
+      long: 72.8311,
+      protocol: 'RTSP',
+      connector_type_id: 'conn-02',
+      operational_status: 'DEGRADED',
+      source_type: 'RESEARCH_VIDEO',
+      is_active: true,
+      created_at: '2026-01-01T00:00:00Z',
+      updated_at: '2026-01-01T00:00:00Z',
+      location: {
+        address: 'Majura Gate Junction',
+        zone: 'Central Zone',
+        district: 'Surat',
+        state: 'Gujarat',
+      },
+      streams: [
+        {
+          id: 'stream-2',
+          codec: 'h265',
+          resolution: '1280x720',
+          fps: 30,
+          url_or_handle: 'rtsp://simulator:8554/live/cam-sur-01',
+        },
+      ],
+      health: {
+        status: 'DEGRADED',
+        last_heartbeat: '2026-09-10T06:00:00Z',
+        fps_actual: 18.0,
+        packet_loss: 4.2,
+      },
+    },
+    {
+      id: 'cam-mrt-01',
+      name: 'CAM-MRT-01: Clock Tower Meerut',
+      department_id: 'dept-up-01',
+      department_name: 'Meerut Police',
+      lat: 28.9845,
+      long: 77.7064,
+      protocol: 'ONVIF',
+      connector_type_id: 'conn-03',
+      operational_status: 'OFFLINE',
+      source_type: 'SYNTHETIC_STREAM',
+      is_active: true,
+      created_at: '2026-01-01T00:00:00Z',
+      updated_at: '2026-01-01T00:00:00Z',
+      location: {
+        address: 'Ghanta Ghar Chowk',
+        zone: 'City Zone',
+        district: 'Meerut',
+        state: 'Uttar Pradesh',
+      },
+      streams: [],
+      health: {
+        status: 'OFFLINE',
+        last_heartbeat: '2026-09-10T06:00:00Z',
+        fps_actual: 0,
+        packet_loss: 100.0,
+      },
+    },
+  ];
+
+  describe('Compact Camera Cards & Information Popover (Part 1)', () => {
+    it('renders compact camera identity and hides long secondary specs from permanent card', () => {
+      render(
+        <CameraSelector
+          cameras={MOCK_MULTI_REGION_CAMERAS}
+          selectedCameraId="cam-ahm-01"
+          onSelectCamera={vi.fn()}
+        />
+      );
+
+      // Camera ID code is prominently visible
+      expect(screen.getByText('CAM-AHM-01')).toBeInTheDocument();
+      // Short name is visible
+      expect(screen.getByText('SG Highway Pakwan Junction (RESEARCH)')).toBeInTheDocument();
+      // Operational status is visible
+      expect(screen.getByText('ONLINE')).toBeInTheDocument();
+
+      // Technical stream specs (1920x1080 • 25 FPS • h264) are NOT permanently displayed on card
+      expect(screen.queryByText(/1920x1080/)).not.toBeInTheDocument();
+      expect(screen.queryByText(/25 FPS • h264/)).not.toBeInTheDocument();
+
+      // Information icon button exists
+      expect(
+        screen.getByTestId('camera-info-btn-CAM-AHM-01: SG Highway Pakwan Junction (RESEARCH)')
+      ).toBeInTheDocument();
+    });
+
+    it('opens information popover on demand with full specifications and closes on outside click', () => {
+      const mockSelect = vi.fn();
+      render(
+        <CameraSelector
+          cameras={MOCK_MULTI_REGION_CAMERAS}
+          selectedCameraId="cam-ahm-01"
+          onSelectCamera={mockSelect}
+        />
+      );
+
+      const infoBtn = screen.getByTestId(
+        'camera-info-btn-CAM-AHM-01: SG Highway Pakwan Junction (RESEARCH)'
+      );
+
+      // Clicking info icon opens popover without selecting camera
+      fireEvent.click(infoBtn);
+      expect(mockSelect).not.toHaveBeenCalled();
+
+      // Popover is now rendered
+      const popover = screen.getByTestId(
+        'camera-info-popover-CAM-AHM-01: SG Highway Pakwan Junction (RESEARCH)'
+      );
+      expect(popover).toBeInTheDocument();
+
+      // Contains detailed secondary specs
+      expect(screen.getByText('Camera Information')).toBeInTheDocument();
+      expect(screen.getByText(/1920x1080 • 25 FPS • h264/)).toBeInTheDocument();
+      expect(screen.getByText('SG Highway Pakwan Crossroad, Sector 4 (West Zone)')).toBeInTheDocument();
+      expect(screen.getByText('Ahmedabad Police')).toBeInTheDocument();
+      expect(screen.getByText('23.0338°N, 72.5073°E')).toBeInTheDocument();
+
+      // Verify compact popover container styling class
+      expect(popover).toHaveClass('camera-info-popover');
+
+      // Clicking inside popover does not select camera
+      fireEvent.click(popover);
+      expect(mockSelect).not.toHaveBeenCalled();
+
+      // Outside click closes popover
+      fireEvent.mouseDown(document.body);
+      expect(
+        screen.queryByTestId(
+          'camera-info-popover-CAM-AHM-01: SG Highway Pakwan Junction (RESEARCH)'
+        )
+      ).not.toBeInTheDocument();
+    });
+
+    it('enforces dark institutional camera-feed-card styling without netrava-nav-link white hover regression', () => {
+      render(
+        <CameraSelector
+          cameras={MOCK_MULTI_REGION_CAMERAS}
+          selectedCameraId="cam-ahm-01"
+          onSelectCamera={vi.fn()}
+        />
+      );
+
+      const selectedCard = screen.getByTestId(
+        'camera-item-CAM-AHM-01: SG Highway Pakwan Junction (RESEARCH)'
+      );
+      const unselectedCard = screen.getByTestId(
+        'camera-item-CAM-SUR-01: Ring Road Majura Gate'
+      );
+
+      // Must have dedicated .camera-feed-card class
+      expect(selectedCard).toHaveClass('camera-feed-card');
+      expect(unselectedCard).toHaveClass('camera-feed-card');
+
+      // Must NOT use .netrava-nav-link which caused the cream/white hover regression
+      expect(selectedCard).not.toHaveClass('netrava-nav-link');
+      expect(unselectedCard).not.toHaveClass('netrava-nav-link');
+
+      // Selected card retains .active crimson operational highlight class
+      expect(selectedCard).toHaveClass('active');
+      expect(unselectedCard).not.toHaveClass('active');
+    });
+
+    it('closes information popover when Escape key or close button is pressed', () => {
+      render(
+        <CameraSelector
+          cameras={MOCK_MULTI_REGION_CAMERAS}
+          selectedCameraId="cam-ahm-01"
+          onSelectCamera={vi.fn()}
+        />
+      );
+
+      const infoBtn = screen.getByTestId(
+        'camera-info-btn-CAM-AHM-01: SG Highway Pakwan Junction (RESEARCH)'
+      );
+      fireEvent.click(infoBtn);
+      expect(
+        screen.getByTestId(
+          'camera-info-popover-CAM-AHM-01: SG Highway Pakwan Junction (RESEARCH)'
+        )
+      ).toBeInTheDocument();
+
+      // Press Escape key
+      fireEvent.keyDown(document, { key: 'Escape' });
+      expect(
+        screen.queryByTestId(
+          'camera-info-popover-CAM-AHM-01: SG Highway Pakwan Junction (RESEARCH)'
+        )
+      ).not.toBeInTheDocument();
+
+      // Test close button
+      fireEvent.click(infoBtn);
+      const closeBtn = screen.getByRole('button', { name: 'Close specifications' });
+      fireEvent.click(closeBtn);
+      expect(
+        screen.queryByTestId(
+          'camera-info-popover-CAM-AHM-01: SG Highway Pakwan Junction (RESEARCH)'
+        )
+      ).not.toBeInTheDocument();
+    });
+  });
+
+  describe('Scalable Dynamic Location & Multi-faceted Filtering (Part 2)', () => {
+    it('populates state and city options dynamically from camera dataset', () => {
+      render(
+        <CameraSelector
+          cameras={MOCK_MULTI_REGION_CAMERAS}
+          selectedCameraId="cam-ahm-01"
+          onSelectCamera={vi.fn()}
+        />
+      );
+
+      // Open location dropdown
+      fireEvent.click(screen.getByTestId('live-filter-dropdown-location'));
+
+      // Dynamically derived states
+      expect(screen.getByTestId('live-filter-state-all')).toBeInTheDocument();
+      expect(screen.getByTestId('live-filter-state-gujarat')).toBeInTheDocument();
+      expect(screen.getByTestId('live-filter-state-uttar-pradesh')).toBeInTheDocument();
+
+      // Dynamically derived cities
+      expect(screen.getByTestId('live-filter-city-all')).toBeInTheDocument();
+      expect(screen.getByTestId('live-filter-city-ahmedabad')).toBeInTheDocument();
+      expect(screen.getByTestId('live-filter-city-surat')).toBeInTheDocument();
+      expect(screen.getByTestId('live-filter-city-meerut')).toBeInTheDocument();
+    });
+
+    it('filters dependent cities based on selected state and resets invalid city when state changes', () => {
+      render(
+        <CameraSelector
+          cameras={MOCK_MULTI_REGION_CAMERAS}
+          selectedCameraId="cam-ahm-01"
+          onSelectCamera={vi.fn()}
+        />
+      );
+
+      // Open location dropdown
+      fireEvent.click(screen.getByTestId('live-filter-dropdown-location'));
+
+      // Select Uttar Pradesh
+      fireEvent.click(screen.getByTestId('live-filter-state-uttar-pradesh'));
+
+      // When Uttar Pradesh is selected, only Meerut should be visible in cities list
+      expect(screen.getByTestId('live-filter-city-meerut')).toBeInTheDocument();
+      expect(screen.queryByTestId('live-filter-city-ahmedabad')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('live-filter-city-surat')).not.toBeInTheDocument();
+
+      // Camera list now contains only Uttar Pradesh cameras
+      expect(
+        screen.getByTestId('camera-item-CAM-MRT-01: Clock Tower Meerut')
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByTestId(
+          'camera-item-CAM-AHM-01: SG Highway Pakwan Junction (RESEARCH)'
+        )
+      ).not.toBeInTheDocument();
+
+      // Select Meerut city
+      fireEvent.click(screen.getByTestId('live-filter-city-meerut'));
+      expect(screen.getByTestId('active-filter-city')).toHaveTextContent('Meerut');
+
+      // Now switch state to Gujarat -> City should automatically reset to ALL
+      fireEvent.click(screen.getByTestId('live-filter-dropdown-location'));
+      fireEvent.click(screen.getByTestId('live-filter-state-gujarat'));
+      expect(screen.queryByTestId('active-filter-city')).not.toBeInTheDocument();
+      expect(screen.getByTestId('active-filter-state')).toHaveTextContent('Gujarat');
+    });
+
+    it('filters by status and source and supports combined filtering', () => {
+      render(
+        <CameraSelector
+          cameras={MOCK_MULTI_REGION_CAMERAS}
+          selectedCameraId="cam-ahm-01"
+          onSelectCamera={vi.fn()}
+        />
+      );
+
+      // Filter by Status: DEGRADED
+      fireEvent.click(screen.getByTestId('live-filter-dropdown-status'));
+      fireEvent.click(screen.getByTestId('filter-degraded'));
+
+      // Only Surat camera (DEGRADED) is visible
+      expect(
+        screen.getByTestId('camera-item-CAM-SUR-01: Ring Road Majura Gate')
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByTestId(
+          'camera-item-CAM-AHM-01: SG Highway Pakwan Junction (RESEARCH)'
+        )
+      ).not.toBeInTheDocument();
+
+      // Filter by Source: RESEARCH_VIDEO
+      fireEvent.click(screen.getByTestId('live-filter-dropdown-source'));
+      fireEvent.click(screen.getByTestId('live-filter-source-research-video'));
+
+      expect(
+        screen.getByTestId('camera-item-CAM-SUR-01: Ring Road Majura Gate')
+      ).toBeInTheDocument();
+
+      // Clear all filters
+      fireEvent.click(screen.getByTestId('live-filter-clear-all'));
+
+      // All 3 cameras restored
+      expect(
+        screen.getByTestId(
+          'camera-item-CAM-AHM-01: SG Highway Pakwan Junction (RESEARCH)'
+        )
+      ).toBeInTheDocument();
+      expect(
+        screen.getByTestId('camera-item-CAM-SUR-01: Ring Road Majura Gate')
+      ).toBeInTheDocument();
+      expect(
+        screen.getByTestId('camera-item-CAM-MRT-01: Clock Tower Meerut')
+      ).toBeInTheDocument();
+    });
+
+    it('shows empty state when no cameras match combined filters and provides reset', () => {
+      render(
+        <CameraSelector
+          cameras={MOCK_MULTI_REGION_CAMERAS}
+          selectedCameraId="cam-ahm-01"
+          onSelectCamera={vi.fn()}
+        />
+      );
+
+      // Search for nonexistent camera
+      const searchInput = screen.getByTestId('camera-search-input');
+      fireEvent.change(searchInput, { target: { value: 'NonexistentLocationXYZ' } });
+
+      expect(screen.getByTestId('camera-empty-state')).toBeInTheDocument();
+      expect(screen.getByText('No cameras match your current filters.')).toBeInTheDocument();
+
+      // Reset filters button
+      const resetBtn = screen.getByRole('button', { name: 'Reset All Filters' });
+      fireEvent.click(resetBtn);
+
+      expect(screen.queryByTestId('camera-empty-state')).not.toBeInTheDocument();
+      expect(
+        screen.getByTestId(
+          'camera-item-CAM-AHM-01: SG Highway Pakwan Junction (RESEARCH)'
+        )
+      ).toBeInTheDocument();
+    });
+  });
 });
+

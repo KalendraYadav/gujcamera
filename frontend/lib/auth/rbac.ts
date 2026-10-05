@@ -126,3 +126,17 @@ export const EVIDENCE_EXPORT_ROLES: PoliceRole[] = [
 export function canExportEvidence(userRole: PoliceRole | undefined): boolean {
   return hasRoleAccess(userRole, EVIDENCE_EXPORT_ROLES);
 }
+
+/**
+ * Roles authorized to access Vehicle Intelligence, vehicle route inspection, and cross-camera tracking.
+ * Aligned with backend @Roles('INVESTIGATOR', 'DEPARTMENT_ADMIN', 'SUPER_ADMIN') in vehicles.controller.ts.
+ */
+export const VEHICLE_INSPECTION_ROLES: PoliceRole[] = [
+  'INVESTIGATOR',
+  'DEPARTMENT_ADMIN',
+  'SUPER_ADMIN',
+];
+
+export function canInspectVehicles(userRole: PoliceRole | undefined): boolean {
+  return hasRoleAccess(userRole, VEHICLE_INSPECTION_ROLES);
+}

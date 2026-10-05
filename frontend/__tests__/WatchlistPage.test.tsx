@@ -297,4 +297,24 @@ describe('Watchlist Management Page (Phase 4E)', () => {
     expect(screen.getByText('No camera sightings recorded')).toBeInTheDocument();
     expect(screen.queryByRole('link', { name: /GJ05CD5678/i })).not.toBeInTheDocument();
   });
+
+  it('omits Track action button and plate tracking links for OPERATOR role', async () => {
+    mockUserRole = 'OPERATOR';
+    render(<WatchlistPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText('GJ01AB1234')).toBeInTheDocument();
+    });
+
+    // Plate with sightings is displayed as text, not a link
+    expect(screen.queryByRole('link', { name: /GJ01AB1234/i })).not.toBeInTheDocument();
+    expect(screen.getByText('GJ01AB1234')).toBeInTheDocument();
+
+    // Sightings count is visible for situational awareness
+    expect(screen.getByText('2 camera sightings recorded')).toBeInTheDocument();
+
+    // Track button is completely omitted for OPERATOR
+    expect(screen.queryByRole('link', { name: /^Track$/i })).not.toBeInTheDocument();
+    expect(screen.queryByTestId('track-action-btn-ent-1')).not.toBeInTheDocument();
+  });
 });

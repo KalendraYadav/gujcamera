@@ -672,7 +672,7 @@ textarea:focus {
 }
 
 /* ============================================================================
-   APPLICATION SHELL RESPONSIVE ARCHITECTURE
+   APPLICATION SHELL RESPONSIVE ARCHITECTURE & COLLAPSIBLE RAIL
    ============================================================================ */
 .netrava-sidebar {
   width: var(--sidebar-width);
@@ -689,6 +689,17 @@ textarea:focus {
   z-index: 100;
   user-select: none;
   box-shadow: 4px 0 24px rgba(0, 0, 0, 0.4);
+  transition: width 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.netrava-sidebar.collapsed {
+  width: var(--sidebar-collapsed-width);
+}
+
+.netrava-sidebar.collapsed .nav-text,
+.netrava-sidebar.collapsed .nav-group-header,
+.netrava-sidebar.collapsed .nav-badge {
+  display: none !important;
 }
 
 .netrava-main-layout {
@@ -700,6 +711,47 @@ textarea:focus {
   position: relative;
   z-index: 1;
   transition: margin-left 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.netrava-main-layout.sidebar-collapsed {
+  margin-left: var(--sidebar-collapsed-width);
+}
+
+.netrava-rail-toggle-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: var(--radius-sm);
+  background-color: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.netrava-rail-toggle-btn:hover {
+  background-color: rgba(59, 130, 246, 0.15);
+  border-color: rgba(59, 130, 246, 0.4);
+  color: #FFFFFF;
+}
+
+.netrava-rail-toggle-btn:focus-visible {
+  outline: 2px solid #3B82F6;
+  outline-offset: 1px;
+}
+
+.visually-hidden-rail {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
 }
 
 .netrava-sidebar-backdrop {
@@ -714,22 +766,125 @@ textarea:focus {
   display: none;
 }
 
+/* ============================================================================
+   PROFILE DETAIL PANEL (Left-side auto-closing overlay)
+   ============================================================================ */
+.netrava-profile-panel {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(-10px) scale(0.98);
+  transition: opacity 160ms cubic-bezier(0.16, 1, 0.3, 1),
+              transform 160ms cubic-bezier(0.16, 1, 0.3, 1),
+              left 200ms cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.05);
+}
+
+.netrava-profile-panel.open {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateX(0) scale(1);
+}
+
+.netrava-compact-profile-btn {
+  background-color: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.netrava-compact-profile-btn:hover {
+  background-color: rgba(59, 130, 246, 0.12) !important;
+  border-color: rgba(59, 130, 246, 0.35) !important;
+}
+
+.netrava-compact-profile-btn:focus-visible {
+  outline: 2px solid #3B82F6;
+  outline-offset: 1px;
+}
+
+.netrava-rail-avatar-btn {
+  transition: transform 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.netrava-rail-avatar-btn:hover {
+  transform: scale(1.08);
+}
+
+.netrava-rail-avatar-btn:focus-visible {
+  outline: 2px solid #3B82F6;
+  outline-offset: 2px;
+}
+
+.netrava-panel-close-btn {
+  transition: all 0.15s ease;
+}
+
+.netrava-panel-close-btn:hover {
+  background-color: rgba(255, 255, 255, 0.12) !important;
+  color: #FFFFFF !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+.netrava-panel-menu-item {
+  transition: all 0.12s ease;
+}
+
+.netrava-panel-menu-item:hover {
+  background-color: rgba(255, 255, 255, 0.05) !important;
+  color: #FFFFFF !important;
+}
+
+.netrava-panel-menu-item:hover svg {
+  color: #60A5FA !important;
+}
+
+.netrava-panel-signout-btn {
+  transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.netrava-panel-signout-btn:hover {
+  background-color: #E11D48 !important;
+  border-color: #F43F5E !important;
+  color: #FFFFFF !important;
+  box-shadow: 0 4px 14px rgba(225, 29, 72, 0.45);
+}
+
+.netrava-panel-signout-btn:focus-visible {
+  outline: 2px solid #F43F5E;
+  outline-offset: 1px;
+}
+
 /* Tablet & Mobile Layout Adaptation (<= 1024px) */
 @media (max-width: 1024px) {
-  .netrava-sidebar {
-    width: 280px;
+  .netrava-profile-panel {
+    left: 12px !important;
+    bottom: 12px !important;
+    width: calc(100vw - 24px) !important;
+    max-width: 320px !important;
+    z-index: 400 !important;
+  }
+  .netrava-sidebar,
+  .netrava-sidebar.collapsed {
+    width: 280px !important;
     max-width: 85vw;
     z-index: 300;
     transform: translateX(-100%);
     transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
   }
 
-  .netrava-sidebar.mobile-open {
+  .netrava-sidebar.collapsed .nav-text,
+  .netrava-sidebar.collapsed .nav-group-header,
+  .netrava-sidebar.collapsed .nav-badge {
+    display: inline-block !important;
+  }
+
+  .netrava-sidebar.mobile-open,
+  .netrava-sidebar.collapsed.mobile-open {
     transform: translateX(0);
     box-shadow: 8px 0 36px rgba(0, 0, 0, 0.85);
   }
 
-  .netrava-main-layout {
+  .netrava-main-layout,
+  .netrava-main-layout.sidebar-collapsed {
     margin-left: 0 !important;
   }
 
@@ -775,6 +930,297 @@ textarea:focus {
   .netrava-menu-toggle-btn:hover {
     background-color: var(--bg-surface-elevated);
     border-color: var(--border-medium);
+  }
+}
+
+/* ============================================================================
+   COMMAND CENTER COMPACT HEADER & DISCLOSURE CONTROL
+   ============================================================================ */
+.command-center-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-xs);
+  padding: 3px 8px;
+  color: #FFFFFF;
+  cursor: pointer;
+  outline: none;
+  transition: all 160ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.command-center-toggle-btn:hover {
+  background: rgba(59, 130, 246, 0.12);
+  border-color: rgba(59, 130, 246, 0.35);
+  color: #93C5FD;
+}
+
+.command-center-toggle-btn:focus-visible {
+  outline: 2px solid #3B82F6;
+  outline-offset: 1px;
+}
+
+/* ============================================================================
+   GIS CAMERA MAP SCALABLE FILTER CONTROLS
+   ============================================================================ */
+.gis-filter-dropdown-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  background-color: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-xs);
+  cursor: pointer;
+  transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+  outline: none;
+  white-space: nowrap;
+  user-select: none;
+}
+
+.gis-filter-dropdown-btn:hover {
+  background-color: rgba(59, 130, 246, 0.12);
+  border-color: rgba(59, 130, 246, 0.35);
+  color: #FFFFFF;
+}
+
+.gis-filter-dropdown-btn.active {
+  background-color: rgba(59, 130, 246, 0.16);
+  border-color: rgba(59, 130, 246, 0.5);
+  color: #93C5FD;
+  box-shadow: 0 0 8px rgba(59, 130, 246, 0.25);
+}
+
+.gis-filter-dropdown-btn:focus-visible {
+  outline: 2px solid #3B82F6;
+  outline-offset: 1px;
+}
+
+.gis-filter-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 120;
+  background-color: #0B1120;
+  border: 1px solid rgba(59, 130, 246, 0.28);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.85), 0 0 0 1px rgba(255, 255, 255, 0.05);
+  animation: filterDropdownFade 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+  max-height: 380px;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.gis-filter-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 6px 10px;
+  font-size: 11px;
+  color: var(--text-secondary);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  transition: background-color 0.12s ease, color 0.12s ease;
+  outline: none;
+}
+
+.gis-filter-option:hover {
+  background-color: rgba(59, 130, 246, 0.14);
+  color: #FFFFFF;
+}
+
+.gis-filter-option.selected {
+  background-color: rgba(59, 130, 246, 0.22);
+  color: #93C5FD;
+  font-weight: 700;
+}
+
+.gis-filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 7px;
+  font-size: 10px;
+  font-family: var(--font-mono);
+  font-weight: 600;
+  color: #93C5FD;
+  background-color: rgba(59, 130, 246, 0.14);
+  border: 1px solid rgba(59, 130, 246, 0.35);
+  border-radius: var(--radius-xs);
+  line-height: 1.2;
+}
+
+.gis-filter-chip-remove {
+  background: transparent;
+  border: none;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  color: #60A5FA;
+  cursor: pointer;
+}
+
+.gis-filter-chip-remove:hover {
+  color: #FFFFFF;
+}
+
+@keyframes filterDropdownFade {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* ============================================================================
+   LIVE MONITORING CAMERA CARDS & COMPACT INFORMATION POPOVER
+   Institutional Dark Navy Architecture - Never Turns White/Cream on Hover
+   ============================================================================ */
+
+.camera-feed-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 8px 10px;
+  background-color: #0E1726;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  text-align: left;
+  transition: background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+  user-select: none;
+  outline: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .camera-feed-card:hover:not(.active) {
+    background-color: #172338 !important;
+    border-color: rgba(59, 130, 246, 0.45) !important;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(59, 130, 246, 0.18) !important;
+    transform: translateY(-1px);
+  }
+}
+
+.camera-feed-card:focus-visible {
+  outline: 2px solid #3B82F6;
+  outline-offset: 1px;
+}
+
+/* Active / Selected Camera Card: Preserve Existing Crimson Operational Treatment */
+.camera-feed-card.active {
+  background: var(--nav-active-bg-gradient, linear-gradient(180deg, #A82020 0%, #8A1515 100%)) !important;
+  background-color: var(--nav-active-bg, #8A1515) !important;
+  border-color: var(--nav-active-border, #C53030) !important;
+  box-shadow: var(--nav-active-shadow, 0 4px 12px rgba(185, 28, 28, 0.35)) !important;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .camera-feed-card.active:hover {
+    filter: brightness(1.06);
+    transform: none;
+  }
+}
+
+.camera-feed-card:active:not(.active) {
+  transform: translateY(0);
+}
+
+/* Contextual Opaque Specification Popover */
+.camera-info-popover {
+  position: absolute;
+  z-index: 150;
+  width: 290px;
+  max-width: calc(100vw - 32px);
+  max-height: 360px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  background-color: #0D1527 !important;
+  background: #0D1527 !important;
+  border: 1px solid rgba(59, 130, 246, 0.35);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.95), 0 0 14px rgba(59, 130, 246, 0.2);
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  cursor: default;
+  animation: popoverFadeIn 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes popoverFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(3px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* ============================================================================
+   INVESTIGATION COMMAND CENTER DOSSIER HIERARCHY
+   Institutional Police Workstation Design Grammar
+   ============================================================================ */
+
+.investigation-dossier-card {
+  position: relative;
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  padding: var(--space-5) var(--space-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+}
+
+.investigation-dossier-card.watchlisted {
+  background-color: rgba(239, 68, 68, 0.03);
+  border-color: var(--status-critical-border);
+  box-shadow: 0 4px 24px rgba(225, 29, 72, 0.12), 0 0 0 1px rgba(239, 68, 68, 0.2);
+}
+
+.investigation-telemetry-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 0;
+  background-color: var(--bg-primary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-xs);
+  overflow: hidden;
+}
+
+.investigation-telemetry-cell {
+  padding: 8px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  border-right: 1px solid var(--border-subtle);
+}
+
+.investigation-telemetry-cell:last-child {
+  border-right: none;
+}
+
+@media (max-width: 768px) {
+  .investigation-telemetry-cell {
+    border-right: none;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+  .investigation-telemetry-cell:last-child {
+    border-bottom: none;
   }
 }
 

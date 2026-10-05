@@ -2,10 +2,9 @@
 
 import React, { useState, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
-import { Shield, Wifi, Clock, Server, Bell, Activity, Menu } from 'lucide-react';
+import { Shield, Clock, Menu } from 'lucide-react';
 import { useAuth } from '@/lib/auth/context';
 import { NAV_ITEMS } from '@/lib/auth/rbac';
-import { getApiBaseUrl } from '@/lib/api/client';
 
 export interface HeaderProps {
   onToggleMobileNav?: () => void;
@@ -56,7 +55,7 @@ export function Header({ onToggleMobileNav }: HeaderProps = {}) {
         gap: '10px',
       }}
     >
-      {/* Left: Mobile Menu Button + Active Screen Title & Subsystem Breadcrumb */}
+      {/* Left: Mobile Menu Button + Active Screen Title (without redundant NETRAVAHA / prefix) */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
         {/* Mobile Hamburger Toggle Button */}
         <button
@@ -69,20 +68,7 @@ export function Header({ onToggleMobileNav }: HeaderProps = {}) {
           <Menu size={18} />
         </button>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0 }}>
-          <span
-            style={{
-              color: 'var(--text-dim)',
-              fontSize: 'var(--text-xs)',
-              fontFamily: 'var(--font-mono)',
-              textTransform: 'uppercase',
-              letterSpacing: '0.08em',
-              fontWeight: 600,
-              whiteSpace: 'nowrap',
-            }}
-          >
-            NETRAVAHA /
-          </span>
+        <div style={{ display: 'flex', alignItems: 'center', minWidth: 0 }}>
           <h2
             style={{
               fontSize: 'clamp(13px, 3.5vw, 16px)',
@@ -100,7 +86,7 @@ export function Header({ onToggleMobileNav }: HeaderProps = {}) {
         </div>
       </div>
 
-      {/* Center/Right Status Indicators */}
+      {/* Right: Operational Status / Context */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
         {/* Tactical Clock in IST */}
         {timeStr && (
@@ -125,71 +111,6 @@ export function Header({ onToggleMobileNav }: HeaderProps = {}) {
           >
             <Clock size={13} color="#60A5FA" />
             <span>{timeStr}</span>
-          </div>
-        )}
-
-        {/* Backend API Connectivity Indicator */}
-        <div
-          title={`Connected to Backend REST API (${getApiBaseUrl()})`}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            fontSize: 'var(--text-xs)',
-            color: '#34D399',
-            backgroundColor: 'rgba(16, 185, 129, 0.12)',
-            border: '1px solid rgba(16, 185, 129, 0.30)',
-            padding: '2px 8px',
-            borderRadius: 'var(--radius-xs)',
-            fontFamily: 'var(--font-mono)',
-            fontWeight: 600,
-            letterSpacing: '0.04em',
-          }}
-        >
-          <span
-            style={{
-              width: '5px',
-              height: '5px',
-              borderRadius: '50%',
-              backgroundColor: '#10B981',
-              flexShrink: 0,
-            }}
-          />
-          <span>API 200 OK</span>
-        </div>
-
-        {/* Environment / Demonstration Mode Indicator */}
-        {process.env.NEXT_PUBLIC_SIMULATED_DATA_BADGE !== 'false' && (
-          <div
-            id="environment-simulated-indicator"
-            data-testid="environment-simulated-indicator"
-            title="Demonstration Mode: Representative corridor recordings replayed via normalized RTSP media gateway. Physical police NVR/VMS ready for authorized ingestion."
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              fontSize: 'var(--text-xs)',
-              color: '#93C5FD',
-              backgroundColor: 'rgba(59, 130, 246, 0.10)',
-              border: '1px solid rgba(59, 130, 246, 0.28)',
-              padding: '2px 8px',
-              borderRadius: 'var(--radius-xs)',
-              fontFamily: 'var(--font-mono)',
-              fontWeight: 600,
-              letterSpacing: '0.04em',
-              whiteSpace: 'nowrap',
-            }}
-          >
-            <span
-              style={{
-                width: '5px',
-                height: '5px',
-                borderRadius: '50%',
-                backgroundColor: '#60A5FA',
-                flexShrink: 0,
-              }}
-            />
-            <span>SIMULATED LIVE CCTV</span>
           </div>
         )}
 

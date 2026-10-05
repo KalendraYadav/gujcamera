@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import OperationalCommandCenterPage from '@/app/page';
 import { PoliceRole } from '@/types/auth';
@@ -175,10 +175,12 @@ describe('Operational Command Center (Phase 9)', () => {
     expect(screen.getByText('Plate match against active amber alert')).toBeInTheDocument();
     expect(screen.getAllByText('GJ01AB1234').length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText('OPEN ALERT').length).toBeGreaterThanOrEqual(1);
+    expect(screen.queryByTestId('inspect-vehicle-btn')).not.toBeInTheDocument();
   });
 
   // 5. Watchlist activity
   it('5. watchlist activity displays monitored targets and hit records', async () => {
+    mockUserRole = 'INVESTIGATOR';
     render(<OperationalCommandCenterPage />);
     await waitFor(() => {
       expect(screen.getByTestId('watchlist-intelligence')).toBeInTheDocument();
@@ -319,5 +321,231 @@ describe('Operational Command Center (Phase 9)', () => {
       expect(screen.getByTestId('camera-overview-online')).toHaveTextContent('0');
       expect(screen.getByText('0%')).toBeInTheDocument();
     });
+  });
+
+  // 15. Compact Header: Default Collapsed and Toggle Expand
+  it('15. compact header renders in collapsed state by default and toggles on click', async () => {
+    render(<OperationalCommandCenterPage />);
+    await waitFor(() => {
+      expect(screen.getByTestId('command-center-header')).toBeInTheDocument();
+    });
+
+    const toggleBtn = screen.getByTestId('header-detail-toggle-btn');
+    expect(toggleBtn).toBeInTheDocument();
+    expect(toggleBtn).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.queryByTestId('command-center-detail-drawer')).not.toBeInTheDocument();
+
+    // Click toggle to EXPAND
+    fireEvent.click(toggleBtn);
+
+    expect(toggleBtn).toHaveAttribute('aria-expanded', 'true');
+    const drawer = screen.getByTestId('command-center-detail-drawer');
+    expect(drawer).toBeInTheDocument();
+    expect(drawer).toHaveTextContent('operator@gujcamera.local');
+    expect(drawer).toHaveTextContent('ORGANIZATION');
+    expect(drawer).toHaveTextContent('Gujarat State Police HQ');
+    expect(drawer).toHaveTextContent('PROTOTYPE BOUNDARY');
+  });
+
+  // 16. Click Outside Collapses Header Detail
+  it('16. clicking outside automatically collapses the expanded detail drawer', async () => {
+    render(<OperationalCommandCenterPage />);
+    await waitFor(() => {
+      expect(screen.getByTestId('command-center-header')).toBeInTheDocument();
+    });
+
+    const toggleBtn = screen.getByTestId('header-detail-toggle-btn');
+    fireEvent.click(toggleBtn);
+    expect(screen.getByTestId('command-center-detail-drawer')).toBeInTheDocument();
+
+    // Click outside on document body
+    fireEvent.mouseDown(document.body);
+
+    expect(toggleBtn).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.queryByTestId('command-center-detail-drawer')).not.toBeInTheDocument();
+  });
+
+  // 17. Pressing ESC Collapses Header Detail
+  it('17. pressing Escape key collapses the expanded detail drawer', async () => {
+    render(<OperationalCommandCenterPage />);
+    await waitFor(() => {
+      expect(screen.getByTestId('command-center-header')).toBeInTheDocument();
+    });
+
+    const toggleBtn = screen.getByTestId('header-detail-toggle-btn');
+    fireEvent.click(toggleBtn);
+    expect(screen.getByTestId('command-center-detail-drawer')).toBeInTheDocument();
+
+    // Press Escape key
+    fireEvent.keyDown(document, { key: 'Escape', code: 'Escape' });
+
+    expect(toggleBtn).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.queryByTestId('command-center-detail-drawer')).not.toBeInTheDocument();
+  });
+
+  // 18. Clicking Inside Detail Drawer Preserves Open State
+  it('18. clicking inside the expanded detail drawer does not collapse it', async () => {
+    render(<OperationalCommandCenterPage />);
+    await waitFor(() => {
+      expect(screen.getByTestId('command-center-header')).toBeInTheDocument();
+    });
+
+    const toggleBtn = screen.getByTestId('header-detail-toggle-btn');
+    fireEvent.click(toggleBtn);
+    const drawer = screen.getByTestId('command-center-detail-drawer');
+    expect(drawer).toBeInTheDocument();
+
+    // Click inside the drawer (e.g., selecting text or clicking container)
+    fireEvent.mouseDown(drawer);
+
+    // Remains open
+    expect(toggleBtn).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByTestId('command-center-detail-drawer')).toBeInTheDocument();
+  });
+
+  // 19. Truthful Camera Network Telemetry
+  it('19. truthfully resolves camera network status based on real fleet telemetry', async () => {
+    // Condition A: 100% online fleet -> ONLINE
+    vi.mocked(dashboardApi.getOperationalSummary).mockResolvedValue({
+      ...mockData,
+      cameras: {
+        total: 10,
+        online: 10,
+        degraded: 0,
+        offline: 0,
+        error: 0,
+        configured_prototype_sources: 10,
+      },
+    });
+
+    const { unmount } = render(<OperationalCommandCenterPage />);
+    await waitFor(() => {
+      const el = screen.getByTestId('subsystem-CAMERA NETWORK');
+      expect(el).toHaveTextContent('ONLINE');
+    });
+
+    unmount();
+
+    // Condition B: Some cameras offline/degraded -> DEGRADED
+    vi.mocked(dashboardApi.getOperationalSummary).mockResolvedValue({
+      ...mockData,
+      cameras: {
+        total: 10,
+        online: 8,
+        degraded: 1,
+        offline: 1,
+        error: 0,
+        configured_prototype_sources: 10,
+      },
+    });
+
+    const { unmount: unmountB } = render(<OperationalCommandCenterPage />);
+    await waitFor(() => {
+      const el = screen.getByTestId('subsystem-CAMERA NETWORK');
+      expect(el).toHaveTextContent('DEGRADED');
+    });
+
+    unmountB();
+
+    // Condition C: Zero cameras online -> OFFLINE
+    vi.mocked(dashboardApi.getOperationalSummary).mockResolvedValue({
+      ...mockData,
+      cameras: {
+        total: 10,
+        online: 0,
+        degraded: 0,
+        offline: 10,
+        error: 0,
+        configured_prototype_sources: 10,
+      },
+    });
+
+    render(<OperationalCommandCenterPage />);
+    await waitFor(() => {
+      const el = screen.getByTestId('subsystem-CAMERA NETWORK');
+      expect(el).toHaveTextContent('OFFLINE');
+    });
+  });
+
+  // 20. Truthful Subsystem Health States
+  it('20. displays truthful statuses for stream gateway, database, and event pipeline', async () => {
+    vi.mocked(dashboardApi.getOperationalSummary).mockResolvedValue({
+      ...mockData,
+      system: {
+        ...mockData.system,
+        database: 'UNAVAILABLE',
+        stream_gateway: 'UNAVAILABLE',
+        event_pipeline: 'DEGRADED',
+      },
+    });
+
+    render(<OperationalCommandCenterPage />);
+    await waitFor(() => {
+      expect(screen.getByTestId('subsystem-DATABASE')).toHaveTextContent('UNAVAILABLE');
+      expect(screen.getByTestId('subsystem-STREAM GATEWAY')).toHaveTextContent('UNAVAILABLE');
+      expect(screen.getByTestId('subsystem-EVENT PIPELINE')).toHaveTextContent('DEGRADED');
+    });
+  });
+
+  // 21. Vehicle Action Authorization - OPERATOR restrictions
+  it('21. prevents OPERATOR from seeing vehicle inspection, investigation, and tracking actions', async () => {
+    mockUserRole = 'OPERATOR';
+    render(<OperationalCommandCenterPage />);
+    await waitFor(() => {
+      expect(screen.getByTestId('active-alert-center')).toBeInTheDocument();
+    });
+
+    // Inspect vehicle button must NOT be rendered
+    expect(screen.queryByTestId('inspect-vehicle-btn')).not.toBeInTheDocument();
+    expect(screen.queryByText('INSPECT VEHICLE')).not.toBeInTheDocument();
+
+    // Open Alert action remains available
+    const openAlertBtn = screen.getByTestId('open-alert-btn');
+    expect(openAlertBtn).toBeInTheDocument();
+    expect(openAlertBtn).toHaveAttribute('href', '/alerts');
+
+    // Plate in active alert is NOT a link to /vehicles/
+    expect(screen.queryByTestId('alert-plate-link')).not.toBeInTheDocument();
+
+    // Watchlist investigate action must NOT be rendered
+    expect(screen.queryByTestId('watchlist-investigate-btn')).not.toBeInTheDocument();
+    expect(screen.queryByText('INVESTIGATE')).not.toBeInTheDocument();
+
+    // Sightings vehicle command link and route button must NOT be rendered
+    expect(screen.queryByTestId('sighting-vehicle-command-link')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('sighting-route-btn')).not.toBeInTheDocument();
+  });
+
+  // 22. Vehicle Action Authorization - INVESTIGATOR and authorized roles
+  it('22. renders vehicle inspection and investigation actions for authorized roles', async () => {
+    mockUserRole = 'INVESTIGATOR';
+    render(<OperationalCommandCenterPage />);
+    await waitFor(() => {
+      expect(screen.getByTestId('active-alert-center')).toBeInTheDocument();
+    });
+
+    // Inspect vehicle button IS rendered and links to /vehicles/[plate]
+    const inspectBtn = screen.getByTestId('inspect-vehicle-btn');
+    expect(inspectBtn).toBeInTheDocument();
+    expect(inspectBtn).toHaveAttribute('href', '/vehicles/GJ01AB1234');
+
+    // Open alert button remains available alongside Inspect Vehicle
+    expect(screen.getByTestId('open-alert-btn')).toBeInTheDocument();
+
+    // Plate in active alert is a link to /vehicles/[plate]
+    const plateLink = screen.getByTestId('alert-plate-link');
+    expect(plateLink).toBeInTheDocument();
+    expect(plateLink).toHaveAttribute('href', '/vehicles/GJ01AB1234');
+
+    // Watchlist investigate action IS rendered
+    const investigateBtn = screen.getByTestId('watchlist-investigate-btn');
+    expect(investigateBtn).toBeInTheDocument();
+    expect(investigateBtn).toHaveAttribute('href', '/vehicles/GJ01AB1234');
+
+    // Sightings vehicle command link and route button ARE rendered
+    expect(screen.getByTestId('sighting-vehicle-command-link')).toBeInTheDocument();
+    const routeBtn = screen.getByTestId('sighting-route-btn');
+    expect(routeBtn).toBeInTheDocument();
+    expect(routeBtn).toHaveAttribute('href', '/vehicles/GJ05CD5678');
   });
 });

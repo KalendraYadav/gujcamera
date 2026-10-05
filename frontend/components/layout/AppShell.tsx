@@ -3,6 +3,7 @@
 import React, { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth/context';
+import { useNavigation } from '@/lib/navigation/context';
 import { Sidebar } from './Sidebar';
 import { Header } from './Header';
 import { LoadingState } from '@/components/ui/LoadingState';
@@ -14,7 +15,13 @@ interface AppShellProps {
 export function AppShell({ children }: AppShellProps) {
   const { isAuthenticated, isLoading } = useAuth();
   const router = useRouter();
-  const [isMobileNavOpen, setIsMobileNavOpen] = React.useState(false);
+  const {
+    isCollapsed,
+    toggleCollapsed,
+    isMobileOpen,
+    setIsMobileOpen,
+    toggleMobileOpen,
+  } = useNavigation();
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -70,22 +77,24 @@ export function AppShell({ children }: AppShellProps) {
         }}
       />
 
-      {/* Main Navigation Sidebar (Desktop Static / Mobile Drawer) */}
+      {/* Main Navigation Sidebar (Desktop Collapsible Rail / Mobile Drawer) */}
       <Sidebar
-        isOpen={isMobileNavOpen}
-        onClose={() => setIsMobileNavOpen(false)}
+        isOpen={isMobileOpen}
+        onClose={() => setIsMobileOpen(false)}
+        isCollapsed={isCollapsed}
+        onToggleCollapse={toggleCollapsed}
       />
 
       {/* Mobile Drawer Backdrop */}
       <div
-        className={`netrava-sidebar-backdrop ${isMobileNavOpen ? 'open' : ''}`}
-        onClick={() => setIsMobileNavOpen(false)}
+        className={`netrava-sidebar-backdrop ${isMobileOpen ? 'open' : ''}`}
+        onClick={() => setIsMobileOpen(false)}
         aria-hidden="true"
       />
 
-      {/* Main App Container */}
-      <div className="netrava-main-layout">
-        <Header onToggleMobileNav={() => setIsMobileNavOpen((prev) => !prev)} />
+      {/* Main App Container (Expands dynamically when sidebar is collapsed) */}
+      <div className={`netrava-main-layout ${isCollapsed ? 'sidebar-collapsed' : ''}`}>
+        <Header onToggleMobileNav={toggleMobileOpen} />
         <main
           style={{
             flex: 1,

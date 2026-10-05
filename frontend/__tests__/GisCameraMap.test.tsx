@@ -284,4 +284,323 @@ describe('GIS Camera Map Component (Phase 4B)', () => {
     // Verify inner visual element reset to scale(1)
     expect(innerVisual.style.transform).toBe('scale(1)');
   });
+
+  describe('Scalable Dynamic Filter Architecture', () => {
+    const MOCK_MULTI_STATE_CAMERAS: Camera[] = [
+      {
+        id: 'cam-ahm-01',
+        name: 'CAM-AHM-01: SG Highway',
+        department_id: 'dept-ahm',
+        department_name: 'Ahmedabad City Police',
+        lat: 23.0338,
+        long: 72.5073,
+        protocol: 'RTSP',
+        connector_type_id: 'conn-1',
+        operational_status: 'ONLINE',
+        source_type: 'RESEARCH_VIDEO',
+        is_active: true,
+        created_at: '2026-09-09T01:58:24.045Z',
+        updated_at: '2026-09-09T01:58:24.045Z',
+        location: {
+          address: 'SG Highway Pakwan Crossroad',
+          zone: 'West Zone',
+          district: 'Ahmedabad',
+          state: 'Gujarat',
+        },
+        streams: [],
+        health: { status: 'ONLINE', last_heartbeat: '2026-09-09T01:58:24.044Z' },
+      },
+      {
+        id: 'cam-gnd-02',
+        name: 'CAM-GND-02: CH-0 Circle',
+        department_id: 'dept-gnd',
+        department_name: 'Gandhinagar District Police',
+        lat: 23.1985,
+        long: 72.6288,
+        protocol: 'RTSP',
+        connector_type_id: 'conn-1',
+        operational_status: 'DEGRADED',
+        source_type: 'SYNTHETIC_STREAM',
+        is_active: true,
+        created_at: '2026-09-09T01:58:24.074Z',
+        updated_at: '2026-09-09T01:58:24.074Z',
+        location: {
+          address: 'CH-0 Circle Entrance',
+          zone: 'Outer Zone',
+          district: 'Gandhinagar',
+          state: 'Gujarat',
+        },
+        streams: [],
+        health: { status: 'DEGRADED', last_heartbeat: '2026-09-09T01:58:24.072Z' },
+      },
+      {
+        id: 'cam-mrt-03',
+        name: 'CAM-MRT-03: Meerut Clock Tower',
+        department_id: 'dept-up-01',
+        department_name: 'Meerut Police Commissionerate',
+        lat: 28.9845,
+        long: 77.7064,
+        protocol: 'RTSP',
+        connector_type_id: 'conn-1',
+        operational_status: 'OFFLINE',
+        source_type: 'DEMO_FILE',
+        is_active: true,
+        created_at: '2026-09-09T01:58:24.074Z',
+        updated_at: '2026-09-09T01:58:24.074Z',
+        location: {
+          address: 'Ghanta Ghar Chowk',
+          zone: 'City Zone',
+          district: 'Meerut',
+          state: 'Uttar Pradesh',
+        },
+        streams: [],
+        health: { status: 'OFFLINE', last_heartbeat: '2026-09-09T01:58:24.072Z' },
+      },
+      {
+        id: 'cam-mum-04',
+        name: 'CAM-MUM-04: Marine Drive',
+        department_id: 'dept-mh-01',
+        department_name: 'Mumbai Police HQ',
+        lat: 18.9438,
+        long: 72.8233,
+        protocol: 'RTSP',
+        connector_type_id: 'conn-1',
+        operational_status: 'ONLINE',
+        source_type: 'REAL_RTSP',
+        is_active: true,
+        created_at: '2026-09-09T01:58:24.074Z',
+        updated_at: '2026-09-09T01:58:24.074Z',
+        location: {
+          address: 'Marine Drive Promenade',
+          zone: 'South Zone',
+          district: 'Mumbai',
+          state: 'Maharashtra',
+        },
+        streams: [],
+        health: { status: 'ONLINE', last_heartbeat: '2026-09-09T01:58:24.072Z' },
+      },
+    ];
+
+    it('populates states and cities dynamically from camera dataset without hardcoding', async () => {
+      (camerasApi.getCameras as any).mockResolvedValue({
+        data: MOCK_MULTI_STATE_CAMERAS,
+        pagination: { limit: 100, total: 4, next_cursor: null },
+      });
+
+      render(<GisCameraMap />);
+
+      await waitFor(() => {
+        expect(screen.getByText('CAM-AHM-01: SG Highway')).toBeInTheDocument();
+      });
+
+      // Verify NO old hardcoded city button bar exists (e.g. Surat or Rajkot should not exist)
+      expect(document.getElementById('gis-filter-city-surat')).not.toBeInTheDocument();
+      expect(document.getElementById('gis-filter-city-rajkot')).not.toBeInTheDocument();
+
+      // Open location dropdown
+      const locationDropdownBtn = document.getElementById('gis-filter-dropdown-location')!;
+      fireEvent.click(locationDropdownBtn);
+
+      // Verify dynamically populated states with IDs
+      expect(document.getElementById('gis-filter-state-gujarat')).toBeInTheDocument();
+      expect(document.getElementById('gis-filter-state-maharashtra')).toBeInTheDocument();
+      expect(document.getElementById('gis-filter-state-uttar-pradesh')).toBeInTheDocument();
+
+      // Verify dynamically populated cities with IDs
+      expect(document.getElementById('gis-filter-city-ahmedabad')).toBeInTheDocument();
+      expect(document.getElementById('gis-filter-city-gandhinagar')).toBeInTheDocument();
+      expect(document.getElementById('gis-filter-city-meerut')).toBeInTheDocument();
+      expect(document.getElementById('gis-filter-city-mumbai')).toBeInTheDocument();
+    });
+
+    it('filters dependent cities based on selected state', async () => {
+      (camerasApi.getCameras as any).mockResolvedValue({
+        data: MOCK_MULTI_STATE_CAMERAS,
+        pagination: { limit: 100, total: 4, next_cursor: null },
+      });
+
+      render(<GisCameraMap />);
+
+      await waitFor(() => {
+        expect(screen.getByText('CAM-AHM-01: SG Highway')).toBeInTheDocument();
+      });
+
+      // Open location dropdown
+      fireEvent.click(document.getElementById('gis-filter-dropdown-location')!);
+
+      // Select Uttar Pradesh
+      const upStateBtn = document.getElementById('gis-filter-state-uttar-pradesh')!;
+      fireEvent.click(upStateBtn);
+
+      // When Uttar Pradesh is selected, only Meerut should be in the cities list
+      expect(document.getElementById('gis-filter-city-meerut')).toBeInTheDocument();
+      expect(document.getElementById('gis-filter-city-ahmedabad')).not.toBeInTheDocument();
+      expect(document.getElementById('gis-filter-city-mumbai')).not.toBeInTheDocument();
+
+      // The camera list should now only contain UP cameras
+      expect(screen.getByText('CAM-MRT-03: Meerut Clock Tower')).toBeInTheDocument();
+      expect(screen.queryByText('CAM-AHM-01: SG Highway')).not.toBeInTheDocument();
+      expect(screen.queryByText('CAM-MUM-04: Marine Drive')).not.toBeInTheDocument();
+    });
+
+    it('supports search filtering within the location dropdown', async () => {
+      (camerasApi.getCameras as any).mockResolvedValue({
+        data: MOCK_MULTI_STATE_CAMERAS,
+        pagination: { limit: 100, total: 4, next_cursor: null },
+      });
+
+      render(<GisCameraMap />);
+
+      await waitFor(() => {
+        expect(screen.getByText('CAM-AHM-01: SG Highway')).toBeInTheDocument();
+      });
+
+      // Open location dropdown
+      fireEvent.click(document.getElementById('gis-filter-dropdown-location')!);
+
+      // Find search input inside location menu
+      const searchInput = screen.getByPlaceholderText('Search state or city...');
+      fireEvent.change(searchInput, { target: { value: 'Mee' } });
+
+      // Meerut and Uttar Pradesh should remain, others filtered out from options
+      expect(document.getElementById('gis-filter-city-meerut')).toBeInTheDocument();
+      expect(document.getElementById('gis-filter-city-ahmedabad')).not.toBeInTheDocument();
+      expect(document.getElementById('gis-filter-city-gandhinagar')).not.toBeInTheDocument();
+    });
+
+    it('filters cameras by operational status and data source provenance', async () => {
+      (camerasApi.getCameras as any).mockResolvedValue({
+        data: MOCK_MULTI_STATE_CAMERAS,
+        pagination: { limit: 100, total: 4, next_cursor: null },
+      });
+
+      render(<GisCameraMap />);
+
+      await waitFor(() => {
+        expect(screen.getByText('CAM-AHM-01: SG Highway')).toBeInTheDocument();
+      });
+
+      // 1. Status Filter
+      const statusBtn = document.getElementById('gis-filter-dropdown-status')!;
+      fireEvent.click(statusBtn);
+
+      // Select ONLINE
+      const onlineOption = document.getElementById('gis-filter-status-online')!;
+      fireEvent.click(onlineOption);
+
+      // Only ONLINE cameras (SG Highway and Marine Drive) should be visible
+      expect(screen.getByText('CAM-AHM-01: SG Highway')).toBeInTheDocument();
+      expect(screen.getByText('CAM-MUM-04: Marine Drive')).toBeInTheDocument();
+      expect(screen.queryByText('CAM-GND-02: CH-0 Circle')).not.toBeInTheDocument();
+      expect(screen.queryByText('CAM-MRT-03: Meerut Clock Tower')).not.toBeInTheDocument();
+
+      // 2. Source Filter
+      const sourceBtn = document.getElementById('gis-filter-dropdown-source')!;
+      fireEvent.click(sourceBtn);
+
+      // Select Research Video
+      const researchOption = document.getElementById('gis-filter-source-research-video')!;
+      fireEvent.click(researchOption);
+
+      // Now only CAM-AHM-01 matches both ONLINE + RESEARCH_VIDEO
+      expect(screen.getByText('CAM-AHM-01: SG Highway')).toBeInTheDocument();
+      expect(screen.queryByText('CAM-MUM-04: Marine Drive')).not.toBeInTheDocument();
+    });
+
+    it('renders active filter chips and allows removing individual filters or clearing all', async () => {
+      (camerasApi.getCameras as any).mockResolvedValue({
+        data: MOCK_MULTI_STATE_CAMERAS,
+        pagination: { limit: 100, total: 4, next_cursor: null },
+      });
+
+      render(<GisCameraMap />);
+
+      await waitFor(() => {
+        expect(screen.getByText('CAM-AHM-01: SG Highway')).toBeInTheDocument();
+      });
+
+      // Select State: Gujarat
+      fireEvent.click(document.getElementById('gis-filter-dropdown-location')!);
+      fireEvent.click(document.getElementById('gis-filter-state-gujarat')!);
+
+      // Select City: Ahmedabad
+      fireEvent.click(document.getElementById('gis-filter-city-ahmedabad')!);
+
+      // Verify active chips appear
+      expect(screen.getByText('State: Gujarat')).toBeInTheDocument();
+      expect(screen.getByText('City: Ahmedabad')).toBeInTheDocument();
+
+      // Remove city filter via chip
+      const removeCityBtn = document.getElementById('gis-chip-remove-city')!;
+      fireEvent.click(removeCityBtn);
+
+      // City filter removed, state remains active
+      expect(screen.queryByText('City: Ahmedabad')).not.toBeInTheDocument();
+      expect(screen.getByText('State: Gujarat')).toBeInTheDocument();
+      // Both Gujarat cameras should be visible
+      expect(screen.getByText('CAM-AHM-01: SG Highway')).toBeInTheDocument();
+      expect(screen.getByText('CAM-GND-02: CH-0 Circle')).toBeInTheDocument();
+
+      // Click Clear all
+      const clearAllBtn = document.getElementById('gis-filter-clear-all')!;
+      fireEvent.click(clearAllBtn);
+
+      // All filters cleared
+      expect(screen.queryByText('State: Gujarat')).not.toBeInTheDocument();
+      expect(screen.getByText('CAM-MRT-03: Meerut Clock Tower')).toBeInTheDocument();
+      expect(screen.getByText('CAM-MUM-04: Marine Drive')).toBeInTheDocument();
+    });
+
+    it('displays empty state with clear action when filters match zero cameras', async () => {
+      (camerasApi.getCameras as any).mockResolvedValue({
+        data: MOCK_MULTI_STATE_CAMERAS,
+        pagination: { limit: 100, total: 4, next_cursor: null },
+      });
+
+      render(<GisCameraMap />);
+
+      await waitFor(() => {
+        expect(screen.getByText('CAM-AHM-01: SG Highway')).toBeInTheDocument();
+      });
+
+      // Select State: Uttar Pradesh
+      fireEvent.click(screen.getByRole('button', { name: /Location/i }));
+      fireEvent.click(screen.getByRole('button', { name: /Uttar Pradesh/i }));
+
+      // Select Status: DEGRADED (UP only has OFFLINE camera)
+      fireEvent.click(screen.getByRole('button', { name: /Status/i }));
+      fireEvent.click(screen.getByRole('button', { name: /DEGRADED/i }));
+
+      // Expect Empty State for zero filter matches
+      expect(screen.getByText('No Cameras Matching Filters')).toBeInTheDocument();
+      expect(screen.getByText('No cameras match the active filter criteria.')).toBeInTheDocument();
+
+      // Clicking 'Clear All Filters' resets
+      fireEvent.click(screen.getByRole('button', { name: /Clear All Filters/i }));
+      expect(screen.getByText('CAM-AHM-01: SG Highway')).toBeInTheDocument();
+    });
+
+    it('synchronizes map markers by removing stale markers when filters change', async () => {
+      (camerasApi.getCameras as any).mockResolvedValue({
+        data: MOCK_MULTI_STATE_CAMERAS,
+        pagination: { limit: 100, total: 4, next_cursor: null },
+      });
+
+      render(<GisCameraMap />);
+
+      await waitFor(() => {
+        expect(screen.getByText('CAM-AHM-01: SG Highway')).toBeInTheDocument();
+      });
+
+      // Filter by status: OFFLINE (only Meerut is offline)
+      fireEvent.click(screen.getByRole('button', { name: /Status/i }));
+      fireEvent.click(screen.getByRole('button', { name: /OFFLINE/i }));
+
+      // Stale markers for the other 3 cameras should have been removed
+      await waitFor(() => {
+        expect(mockMarkerInstance.remove).toHaveBeenCalled();
+      });
+    });
+  });
 });
+

@@ -24,6 +24,8 @@ import {
   FileCheck2,
   Route,
   Hash,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
 import { VehicleAuditRecord } from '@/types/vehicle';
 
@@ -32,6 +34,7 @@ interface InvestigationAuditTrailProps {
   auditRecords: VehicleAuditRecord[];
   loading: boolean;
   onRefresh?: () => void;
+  defaultExpanded?: boolean;
 }
 
 function getActionIcon(action: string) {
@@ -77,7 +80,10 @@ export function InvestigationAuditTrail({
   auditRecords,
   loading,
   onRefresh,
+  defaultExpanded = true,
 }: InvestigationAuditTrailProps) {
+  const [isExpanded, setIsExpanded] = React.useState<boolean>(defaultExpanded);
+
   return (
     <div
       className="netrava-card"
@@ -96,11 +102,21 @@ export function InvestigationAuditTrail({
           justifyContent: 'space-between',
           flexWrap: 'wrap',
           gap: 'var(--space-2)',
-          borderBottom: '1px solid var(--border-subtle)',
-          paddingBottom: 'var(--space-3)',
+          borderBottom: isExpanded ? '1px solid var(--border-subtle)' : 'none',
+          paddingBottom: isExpanded ? 'var(--space-3)' : 0,
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+        <div
+          onClick={() => setIsExpanded(!isExpanded)}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 'var(--space-2)',
+            cursor: 'pointer',
+            userSelect: 'none',
+          }}
+          title={isExpanded ? 'Click to collapse audit trail' : 'Click to expand audit trail'}
+        >
           <FileText size={16} color="var(--accent-blue)" />
           <h2
             style={{
@@ -114,6 +130,21 @@ export function InvestigationAuditTrail({
           >
             Investigation Audit Trail ({auditRecords.length})
           </h2>
+          <button
+            type="button"
+            aria-label={isExpanded ? 'Collapse audit trail' : 'Expand audit trail'}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: 'var(--text-muted)',
+              cursor: 'pointer',
+              padding: '2px',
+              display: 'flex',
+              alignItems: 'center',
+            }}
+          >
+            {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+          </button>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
@@ -146,45 +177,46 @@ export function InvestigationAuditTrail({
         </div>
       </div>
 
-      {loading && auditRecords.length === 0 ? (
-        <div style={{ padding: 'var(--space-6)', textAlign: 'center' }}>
-          <RefreshCw
-            size={18}
-            className="animate-spin"
-            color="var(--accent-primary)"
-            style={{ margin: '0 auto 6px' }}
-          />
-          <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)' }}>
-            Retrieving vehicle investigation audit events…
-          </div>
-        </div>
-      ) : auditRecords.length === 0 ? (
-        <div
-          style={{
-            padding: 'var(--space-6)',
-            textAlign: 'center',
-            backgroundColor: 'var(--bg-primary)',
-            border: '1px solid var(--border-subtle)',
-            borderRadius: 'var(--radius-sm)',
-          }}
-        >
-          <div
-            style={{
-              fontSize: '11px',
-              fontFamily: 'var(--font-mono)',
-              fontWeight: 700,
-              color: 'var(--text-dim)',
-              letterSpacing: '0.08em',
-              marginBottom: '4px',
-            }}
-          >
-            NO AUDIT RECORDS FOUND
-          </div>
-          <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>
-            No audit log entries have been committed for plate registration {plateNormalized} yet.
-          </div>
-        </div>
-      ) : (
+      {isExpanded && (
+        loading && auditRecords.length === 0 ? (
+            <div style={{ padding: 'var(--space-6)', textAlign: 'center' }}>
+              <RefreshCw
+                size={18}
+                className="animate-spin"
+                color="var(--accent-primary)"
+                style={{ margin: '0 auto 6px' }}
+              />
+              <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)' }}>
+                Retrieving vehicle investigation audit events…
+              </div>
+            </div>
+          ) : auditRecords.length === 0 ? (
+            <div
+              style={{
+                padding: 'var(--space-6)',
+                textAlign: 'center',
+                backgroundColor: 'var(--bg-primary)',
+                border: '1px solid var(--border-subtle)',
+                borderRadius: 'var(--radius-sm)',
+              }}
+            >
+              <div
+                style={{
+                  fontSize: '11px',
+                  fontFamily: 'var(--font-mono)',
+                  fontWeight: 700,
+                  color: 'var(--text-dim)',
+                  letterSpacing: '0.08em',
+                  marginBottom: '4px',
+                }}
+              >
+                NO AUDIT RECORDS FOUND
+              </div>
+              <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>
+                No audit log entries have been committed for plate registration {plateNormalized} yet.
+              </div>
+            </div>
+          ) : (
         <div
           style={{
             display: 'flex',
@@ -295,6 +327,7 @@ export function InvestigationAuditTrail({
             );
           })}
         </div>
+        )
       )}
     </div>
   );

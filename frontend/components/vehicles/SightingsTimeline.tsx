@@ -159,10 +159,29 @@ function SightingRow({
           padding: 'var(--space-3) var(--space-4)',
           marginBottom: 'var(--space-1)',
           cursor: onSelectSighting ? 'pointer' : 'default',
-          borderColor: isSelected ? 'var(--accent-primary)' : 'var(--border-default)',
-          backgroundColor: isSelected ? 'rgba(215, 25, 63, 0.04)' : 'var(--bg-surface)',
-          boxShadow: isSelected ? '0 0 0 1px var(--accent-primary-border)' : undefined,
-          transition: 'border-color 0.15s ease, background-color 0.15s ease',
+          borderLeft: isFirst
+            ? '4px solid #10B981'
+            : isLast
+            ? '4px solid #EF4444'
+            : '4px solid rgba(59, 130, 246, 0.4)',
+          borderColor: isSelected
+            ? 'var(--accent-primary)'
+            : isFirst
+            ? 'rgba(16, 185, 129, 0.3)'
+            : isLast
+            ? 'rgba(239, 68, 68, 0.3)'
+            : 'var(--border-default)',
+          backgroundColor: isSelected
+            ? 'rgba(215, 25, 63, 0.05)'
+            : isFirst
+            ? 'rgba(16, 185, 129, 0.02)'
+            : isLast
+            ? 'rgba(239, 68, 68, 0.02)'
+            : 'var(--bg-surface)',
+          boxShadow: isSelected
+            ? '0 0 0 1px var(--accent-primary-border), 0 4px 14px rgba(0, 0, 0, 0.4)'
+            : undefined,
+          transition: 'all 0.15s ease',
         }}
       >
         {/* Header Row */}
@@ -177,7 +196,11 @@ function SightingRow({
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
-            <Camera size={14} color="var(--accent-blue)" style={{ flexShrink: 0 }} />
+            <Camera
+              size={14}
+              color={isFirst ? '#10B981' : isLast ? '#EF4444' : 'var(--accent-blue)'}
+              style={{ flexShrink: 0 }}
+            />
             <span
               style={{
                 fontSize: 'var(--text-sm)',
@@ -259,6 +282,23 @@ function SightingRow({
 
             {isFirst && (
               <StatusBadge label="FIRST OBSERVED" variant="success" size="sm" />
+            )}
+            {!isFirst && !isLast && (
+              <span
+                style={{
+                  fontSize: '10px',
+                  fontWeight: 700,
+                  fontFamily: 'var(--font-mono)',
+                  color: '#93C5FD',
+                  backgroundColor: 'rgba(59, 130, 246, 0.12)',
+                  border: '1px solid rgba(59, 130, 246, 0.3)',
+                  padding: '1px 6px',
+                  borderRadius: '3px',
+                  letterSpacing: '0.04em',
+                }}
+              >
+                INTERMEDIATE OBSERVATION
+              </span>
             )}
             {isLast && !isFirst && (
               <StatusBadge label="LAST OBSERVED" variant="critical" size="sm" />

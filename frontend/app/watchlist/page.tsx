@@ -35,6 +35,7 @@ import {
   AlertSeverity,
 } from '@/types/watchlist';
 import { useAuth } from '@/lib/auth/context';
+import { canInspectVehicles } from '@/lib/auth/rbac';
 
 export default function WatchlistPage() {
   const { user } = useAuth();
@@ -66,6 +67,7 @@ export default function WatchlistPage() {
   const role = user?.role;
   const canManageWatchlist = role === 'SUPER_ADMIN' || role === 'DEPARTMENT_ADMIN';
   const canAddEntry = role === 'SUPER_ADMIN' || role === 'DEPARTMENT_ADMIN' || role === 'INVESTIGATOR';
+  const canInspect = canInspectVehicles(role);
 
   const loadWatchlists = useCallback(async () => {
     setIsLoadingWatchlists(true);
@@ -447,7 +449,7 @@ export default function WatchlistPage() {
                               }}
                             >
                               <td style={{ fontFamily: 'var(--font-mono)', fontWeight: 700 }}>
-                                {hasSightings ? (
+                                {hasSightings && canInspect ? (
                                   <Link
                                     href={`/vehicles/${encodeURIComponent(entry.plate_normalized)}`}
                                     id={`track-plate-link-${entry.id}`}
@@ -506,7 +508,7 @@ export default function WatchlistPage() {
                               </td>
                               <td style={{ textAlign: 'right' }}>
                                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '6px' }}>
-                                  {hasSightings && (
+                                  {hasSightings && canInspect && (
                                     <Link
                                       href={`/vehicles/${encodeURIComponent(entry.plate_normalized)}`}
                                       id={`track-action-btn-${entry.id}`}

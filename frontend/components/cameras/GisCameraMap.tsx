@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useRef, useState, useCallback } from 'react';
+import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import {
   MapPin,
   ZoomIn,
@@ -10,12 +10,14 @@ import {
   SlidersHorizontal,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   Shield,
   Layers,
   Search,
   AlertCircle,
   Activity,
   Radio,
+  X,
 } from 'lucide-react';
 import { Camera, OperationalStatus } from '@/types/camera';
 import { camerasApi } from '@/lib/api/cameras';
@@ -67,6 +69,55 @@ export const GUJARAT_CITY_COORDINATES: Record<string, { center: [number, number]
   Gandhinagar: { center: [72.6369, 23.2156], zoom: 12 },
 };
 
+/**
+ * Extracts normalized city/jurisdiction name from camera metadata.
+ * Uses existing data model: location.district or location.city.
+ */
+export function getCameraCity(camera: Camera): string {
+  return camera.location?.district || camera.location?.city || '';
+}
+
+/**
+ * Extracts or infers state name from camera metadata.
+ * Uses location.state directly if provided, or infers from department/address/district.
+ * Falls back to 'Gujarat' for the default demo fixtures.
+ */
+export function getCameraState(camera: Camera): string {
+  if (camera.location?.state) return camera.location.state;
+  const dept = camera.department_name || '';
+  const addr = camera.location?.address || '';
+  const dist = camera.location?.district || '';
+  const combined = `${dept} ${addr} ${dist}`.toLowerCase();
+  if (combined.includes('uttar pradesh') || combined.includes('up police')) return 'Uttar Pradesh';
+  if (combined.includes('maharashtra') || combined.includes('mumbai police')) return 'Maharashtra';
+  if (combined.includes('rajasthan')) return 'Rajasthan';
+  if (combined.includes('delhi')) return 'Delhi';
+  return 'Gujarat';
+}
+
+/**
+ * Human-readable label for camera feed data source / provenance.
+ */
+export function formatSourceLabel(sourceType: string): string {
+  switch (sourceType) {
+    case 'RESEARCH_VIDEO':
+      return 'Research Video';
+    case 'SYNTHETIC_STREAM':
+      return 'Synthetic Stream';
+    case 'DEMO_FILE':
+      return 'Demo File';
+    case 'REAL_RTSP':
+      return 'Live RTSP';
+    case 'REAL_ONVIF':
+      return 'Live ONVIF';
+    default:
+      return sourceType
+        .split('_')
+        .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+        .join(' ');
+  }
+}
+
 export function GisCameraMap() {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
@@ -79,11 +130,37 @@ export function GisCameraMap() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isSidePanelOpen, setIsSidePanelOpen] = useState<boolean>(true);
   const [searchFilter, setSearchFilter] = useState<string>('');
-  const [statusFilter, setStatusFilter] = useState<string>('ALL');
+  const [stateFilter, setStateFilter] = useState<string>('ALL');
   const [cityFilter, setCityFilter] = useState<string>('ALL');
+  const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [sourceTypeFilter, setSourceTypeFilter] = useState<string>('ALL');
   const [mapBoundsText, setMapBoundsText] = useState<string>('');
   const [totalInViewport, setTotalInViewport] = useState<number>(0);
+
+  // Dynamic filter dropdown states
+  const [activeDropdown, setActiveDropdown] = useState<'LOCATION' | 'STATUS' | 'SOURCE' | null>(null);
+  const [locationSearchTerm, setLocationSearchTerm] = useState<string>('');
+  const filterContainerRef = useRef<HTMLDivElement>(null);
+
+  // Close dropdown on outside click or Escape key
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (filterContainerRef.current && !filterContainerRef.current.contains(event.target as Node)) {
+        setActiveDropdown(null);
+      }
+    }
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') {
+        setActiveDropdown(null);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, []);
 
   // Fetch cameras for a specific bounding box
   const loadCamerasForBounds = useCallback(async (minLong: number, minLat: number, maxLong: number, maxLat: number) => {
@@ -312,11 +389,101 @@ export function GisCameraMap() {
     };
   }, [loadCamerasForBounds]);
 
-  // Synchronize markers whenever cameras state changes
+  // Dynamic states with camera counts derived from current camera dataset
+  const availableStates = useMemo(() => {
+    const counts = new Map<string, number>();
+    cameras.forEach((cam) => {
+      const state = getCameraState(cam);
+      if (state) {
+        counts.set(state, (counts.get(state) || 0) + 1);
+      }
+    });
+    return Array.from(counts.entries())
+      .map(([name, count]) => ({ name, count }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [cameras]);
+
+  // Dynamic cities derived from current camera dataset, filtered by selected state
+  const availableCities = useMemo(() => {
+    const counts = new Map<string, number>();
+    cameras.forEach((cam) => {
+      const camState = getCameraState(cam);
+      if (stateFilter === 'ALL' || camState === stateFilter) {
+        const city = getCameraCity(cam);
+        if (city) {
+          counts.set(city, (counts.get(city) || 0) + 1);
+        }
+      }
+    });
+    return Array.from(counts.entries())
+      .map(([name, count]) => ({ name, count }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [cameras, stateFilter]);
+
+  // Dynamic operational statuses with camera counts
+  const availableStatuses = useMemo(() => {
+    const counts = new Map<string, number>();
+    cameras.forEach((cam) => {
+      const st = cam.operational_status;
+      counts.set(st, (counts.get(st) || 0) + 1);
+    });
+    const standard = ['ONLINE', 'DEGRADED', 'OFFLINE', 'ERROR'];
+    const result: { status: string; count: number }[] = [];
+    standard.forEach((st) => {
+      if (counts.has(st)) {
+        result.push({ status: st, count: counts.get(st)! });
+      }
+    });
+    counts.forEach((count, st) => {
+      if (!standard.includes(st)) {
+        result.push({ status: st, count });
+      }
+    });
+    return result;
+  }, [cameras]);
+
+  // Dynamic source types with camera counts
+  const availableSources = useMemo(() => {
+    const counts = new Map<string, number>();
+    cameras.forEach((cam) => {
+      const src = cam.source_type || 'SYNTHETIC_STREAM';
+      counts.set(src, (counts.get(src) || 0) + 1);
+    });
+    return Array.from(counts.entries())
+      .map(([source, count]) => ({ source, label: formatSourceLabel(source), count }))
+      .sort((a, b) => a.label.localeCompare(b.label));
+  }, [cameras]);
+
+  // Filter cameras for the accessible sidebar and map markers
+  const filteredCameras = useMemo(() => {
+    return cameras.filter((cam) => {
+      const matchesSearch =
+        !searchFilter ||
+        cam.name.toLowerCase().includes(searchFilter.toLowerCase()) ||
+        cam.location?.address?.toLowerCase().includes(searchFilter.toLowerCase()) ||
+        cam.location?.district?.toLowerCase().includes(searchFilter.toLowerCase()) ||
+        cam.location?.zone?.toLowerCase().includes(searchFilter.toLowerCase());
+
+      const camState = getCameraState(cam);
+      const matchesState = stateFilter === 'ALL' || camState === stateFilter;
+
+      const camCity = getCameraCity(cam);
+      const matchesCity = cityFilter === 'ALL' || camCity.toLowerCase() === cityFilter.toLowerCase();
+
+      const matchesStatus = statusFilter === 'ALL' || cam.operational_status === statusFilter;
+
+      const camSource = cam.source_type || 'SYNTHETIC_STREAM';
+      const matchesSource = sourceTypeFilter === 'ALL' || camSource === sourceTypeFilter;
+
+      return matchesSearch && matchesState && matchesCity && matchesStatus && matchesSource;
+    });
+  }, [cameras, searchFilter, stateFilter, cityFilter, statusFilter, sourceTypeFilter]);
+
+  // Synchronize markers whenever filteredCameras state changes (Map + List synchronization)
   useEffect(() => {
     if (!mapInstanceRef.current) return;
-    updateMapMarkers(cameras, mapInstanceRef.current);
-  }, [cameras, updateMapMarkers]);
+    updateMapMarkers(filteredCameras, mapInstanceRef.current);
+  }, [filteredCameras, updateMapMarkers]);
 
   // Center map on a specific camera
   const flyToCamera = useCallback((lat: number, long: number) => {
@@ -329,11 +496,72 @@ export function GisCameraMap() {
     });
   }, []);
 
-  // Quick navigation to a specific Gujarat city
+  // Hierarchical state selection with dynamic camera centroid fly-to
+  const handleStateSelect = useCallback((state: string) => {
+    setStateFilter(state);
+    // If the currently selected city doesn't belong to the new state, reset city filter
+    if (cityFilter !== 'ALL' && state !== 'ALL') {
+      const cityExistsInState = cameras.some(
+        (cam) => getCameraState(cam) === state && getCameraCity(cam).toLowerCase() === cityFilter.toLowerCase()
+      );
+      if (!cityExistsInState) {
+        setCityFilter('ALL');
+      }
+    }
+    if (!mapInstanceRef.current) return;
+    if (state === 'ALL') {
+      mapInstanceRef.current.flyTo({
+        center: DEFAULT_CENTER,
+        zoom: DEFAULT_ZOOM,
+        essential: true,
+        duration: 1400,
+      });
+      return;
+    }
+    // Fly to state centroid calculated from cameras in that state
+    const stateCameras = cameras.filter((cam) => getCameraState(cam) === state);
+    if (stateCameras.length > 0) {
+      const avgLat = stateCameras.reduce((acc, c) => acc + c.lat, 0) / stateCameras.length;
+      const avgLong = stateCameras.reduce((acc, c) => acc + c.long, 0) / stateCameras.length;
+      mapInstanceRef.current.flyTo({
+        center: [avgLong, avgLat],
+        zoom: 9,
+        essential: true,
+        duration: 1400,
+      });
+    }
+  }, [cameras, cityFilter]);
+
+  // Dependent city selection with dynamic coordinate resolution and fly-to
   const handleCitySelect = useCallback((city: string) => {
     setCityFilter(city);
     if (!mapInstanceRef.current) return;
-    if (city !== 'ALL' && GUJARAT_CITY_COORDINATES[city]) {
+
+    if (city === 'ALL') {
+      if (stateFilter !== 'ALL') {
+        const stateCameras = cameras.filter((cam) => getCameraState(cam) === stateFilter);
+        if (stateCameras.length > 0) {
+          const avgLat = stateCameras.reduce((acc, c) => acc + c.lat, 0) / stateCameras.length;
+          const avgLong = stateCameras.reduce((acc, c) => acc + c.long, 0) / stateCameras.length;
+          mapInstanceRef.current.flyTo({
+            center: [avgLong, avgLat],
+            zoom: 9,
+            essential: true,
+            duration: 1400,
+          });
+          return;
+        }
+      }
+      mapInstanceRef.current.flyTo({
+        center: DEFAULT_CENTER,
+        zoom: DEFAULT_ZOOM,
+        essential: true,
+        duration: 1400,
+      });
+      return;
+    }
+
+    if (GUJARAT_CITY_COORDINATES[city]) {
       const { center, zoom } = GUJARAT_CITY_COORDINATES[city];
       mapInstanceRef.current.flyTo({
         center,
@@ -341,7 +569,33 @@ export function GisCameraMap() {
         essential: true,
         duration: 1400,
       });
-    } else if (city === 'ALL') {
+      return;
+    }
+
+    // Centroid calculation from actual cameras in that city
+    const cityCameras = cameras.filter((cam) => getCameraCity(cam).toLowerCase() === city.toLowerCase());
+    if (cityCameras.length > 0) {
+      const avgLat = cityCameras.reduce((acc, c) => acc + c.lat, 0) / cityCameras.length;
+      const avgLong = cityCameras.reduce((acc, c) => acc + c.long, 0) / cityCameras.length;
+      mapInstanceRef.current.flyTo({
+        center: [avgLong, avgLat],
+        zoom: 12,
+        essential: true,
+        duration: 1400,
+      });
+    }
+  }, [cameras, stateFilter]);
+
+  // Clear all filters handler
+  const handleClearAllFilters = useCallback(() => {
+    setStateFilter('ALL');
+    setCityFilter('ALL');
+    setStatusFilter('ALL');
+    setSourceTypeFilter('ALL');
+    setSearchFilter('');
+    setLocationSearchTerm('');
+    setActiveDropdown(null);
+    if (mapInstanceRef.current) {
       mapInstanceRef.current.flyTo({
         center: DEFAULT_CENTER,
         zoom: DEFAULT_ZOOM,
@@ -351,19 +605,12 @@ export function GisCameraMap() {
     }
   }, []);
 
-  // Filter cameras for the accessible sidebar
-  const filteredCameras = cameras.filter((cam) => {
-    const matchesSearch =
-      cam.name.toLowerCase().includes(searchFilter.toLowerCase()) ||
-      cam.location?.address?.toLowerCase().includes(searchFilter.toLowerCase()) ||
-      cam.location?.district?.toLowerCase().includes(searchFilter.toLowerCase());
-    const matchesStatus = statusFilter === 'ALL' || cam.operational_status === statusFilter;
-    const camCity = cam.location?.district || '';
-    const matchesCity = cityFilter === 'ALL' || camCity.toLowerCase().includes(cityFilter.toLowerCase());
-    const camSource = cam.source_type || 'SYNTHETIC_STREAM';
-    const matchesSource = sourceTypeFilter === 'ALL' || camSource === sourceTypeFilter;
-    return matchesSearch && matchesStatus && matchesCity && matchesSource;
-  });
+  const hasActiveFilters =
+    stateFilter !== 'ALL' ||
+    cityFilter !== 'ALL' ||
+    statusFilter !== 'ALL' ||
+    sourceTypeFilter !== 'ALL' ||
+    searchFilter.trim() !== '';
 
   const getStatusBadgeVariant = (status: OperationalStatus): BadgeVariant => {
     switch (status) {
@@ -636,84 +883,428 @@ export function GisCameraMap() {
                 />
               </div>
 
-              {/* City Jurisdiction Tabs */}
-              <div>
-                <div style={{ fontSize: '10px', color: 'var(--text-muted)', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                  City Jurisdiction
+              {/* Dynamic Filter Controls Row */}
+              <div
+                ref={filterContainerRef}
+                style={{
+                  position: 'relative',
+                  display: 'flex',
+                  gap: '6px',
+                  alignItems: 'center',
+                  flexWrap: 'wrap',
+                }}
+              >
+                {/* 1. LOCATION DROPDOWN TRIGGER */}
+                <div style={{ position: 'relative', flex: '1 1 auto', minWidth: '95px' }}>
+                  <button
+                    type="button"
+                    id="gis-filter-dropdown-location"
+                    aria-haspopup="true"
+                    aria-expanded={activeDropdown === 'LOCATION'}
+                    className={`gis-filter-dropdown-btn ${stateFilter !== 'ALL' || cityFilter !== 'ALL' ? 'active' : ''}`}
+                    onClick={() => setActiveDropdown(activeDropdown === 'LOCATION' ? null : 'LOCATION')}
+                    style={{ width: '100%' }}
+                  >
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '5px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      <MapPin size={11} style={{ flexShrink: 0 }} />
+                      <span>
+                        {cityFilter !== 'ALL'
+                          ? cityFilter
+                          : stateFilter !== 'ALL'
+                          ? stateFilter
+                          : 'Location'}
+                      </span>
+                    </span>
+                    <ChevronDown size={11} style={{ flexShrink: 0, opacity: 0.7 }} />
+                  </button>
+
+                  {/* Location Dropdown Menu */}
+                  {activeDropdown === 'LOCATION' && (
+                    <div
+                      className="gis-filter-menu"
+                      style={{ left: 0, width: '260px' }}
+                      role="dialog"
+                      aria-label="Filter cameras by location"
+                    >
+                      <div style={{ padding: '8px 10px', borderBottom: '1px solid rgba(255, 255, 255, 0.08)' }}>
+                        <div style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.05em', color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '6px' }}>
+                          Geographic Filter
+                        </div>
+                        {/* Search box within location */}
+                        <div style={{ position: 'relative' }}>
+                          <Search size={11} color="var(--text-muted)" style={{ position: 'absolute', left: '8px', top: '50%', transform: 'translateY(-50%)' }} />
+                          <input
+                            type="text"
+                            className="netrava-input"
+                            placeholder="Search state or city..."
+                            value={locationSearchTerm}
+                            onChange={(e) => setLocationSearchTerm(e.target.value)}
+                            autoFocus
+                            style={{
+                              width: '100%',
+                              paddingLeft: '26px',
+                              paddingRight: locationSearchTerm ? '24px' : '8px',
+                              paddingTop: '4px',
+                              paddingBottom: '4px',
+                              fontSize: '11px',
+                            }}
+                          />
+                          {locationSearchTerm && (
+                            <button
+                              type="button"
+                              onClick={() => setLocationSearchTerm('')}
+                              aria-label="Clear location search"
+                              style={{
+                                position: 'absolute',
+                                right: '6px',
+                                top: '50%',
+                                transform: 'translateY(-50%)',
+                                background: 'none',
+                                border: 'none',
+                                color: 'var(--text-muted)',
+                                cursor: 'pointer',
+                                padding: 0,
+                                display: 'flex',
+                              }}
+                            >
+                              <X size={11} />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+
+                      <div style={{ maxHeight: '240px', overflowY: 'auto', padding: '4px 0' }}>
+                        {/* Section 1: STATE */}
+                        <div style={{ padding: '4px 10px', fontSize: '9px', fontWeight: 700, color: 'var(--accent-primary)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+                          State
+                        </div>
+                        <button
+                          type="button"
+                          id="gis-filter-state-all"
+                          className={`gis-filter-option ${stateFilter === 'ALL' ? 'active' : ''}`}
+                          onClick={() => {
+                            handleStateSelect('ALL');
+                          }}
+                        >
+                          <span>All States</span>
+                          <span style={{ fontSize: '10px', opacity: 0.65, fontFamily: 'var(--font-mono)' }}>
+                            {cameras.length}
+                          </span>
+                        </button>
+                        {availableStates
+                          .filter((s) => !locationSearchTerm || s.name.toLowerCase().includes(locationSearchTerm.toLowerCase()))
+                          .map((s) => (
+                            <button
+                              key={s.name}
+                              id={`gis-filter-state-${s.name.toLowerCase().replace(/\s+/g, '-')}`}
+                              className={`gis-filter-option ${stateFilter === s.name ? 'active' : ''}`}
+                              onClick={() => {
+                                handleStateSelect(s.name);
+                              }}
+                            >
+                              <span>{s.name}</span>
+                              <span style={{ fontSize: '10px', opacity: 0.65, fontFamily: 'var(--font-mono)' }}>
+                                {s.count}
+                              </span>
+                            </button>
+                          ))}
+
+                        {/* Section 2: CITY / JURISDICTION (Dependent on Selected State) */}
+                        <div style={{ padding: '8px 10px 4px 10px', fontSize: '9px', fontWeight: 700, color: 'var(--accent-primary)', letterSpacing: '0.06em', textTransform: 'uppercase', borderTop: '1px solid rgba(255, 255, 255, 0.05)', marginTop: '4px' }}>
+                          City / Jurisdiction {stateFilter !== 'ALL' ? `(${stateFilter})` : ''}
+                        </div>
+                        <button
+                          type="button"
+                          id="gis-filter-city-all"
+                          className={`gis-filter-option ${cityFilter === 'ALL' ? 'active' : ''}`}
+                          onClick={() => {
+                            handleCitySelect('ALL');
+                            setActiveDropdown(null);
+                          }}
+                        >
+                          <span>All Cities</span>
+                          <span style={{ fontSize: '10px', opacity: 0.65, fontFamily: 'var(--font-mono)' }}>
+                            {availableCities.reduce((acc, c) => acc + c.count, 0)}
+                          </span>
+                        </button>
+                        {availableCities
+                          .filter((c) => !locationSearchTerm || c.name.toLowerCase().includes(locationSearchTerm.toLowerCase()))
+                          .map((c) => (
+                            <button
+                              key={c.name}
+                              id={`gis-filter-city-${c.name.toLowerCase().replace(/\s+/g, '-')}`}
+                              className={`gis-filter-option ${cityFilter.toLowerCase() === c.name.toLowerCase() ? 'active' : ''}`}
+                              onClick={() => {
+                                handleCitySelect(c.name);
+                                setActiveDropdown(null);
+                              }}
+                            >
+                              <span>{c.name}</span>
+                              <span style={{ fontSize: '10px', opacity: 0.65, fontFamily: 'var(--font-mono)' }}>
+                                {c.count}
+                              </span>
+                            </button>
+                          ))}
+                        {availableCities.filter((c) => !locationSearchTerm || c.name.toLowerCase().includes(locationSearchTerm.toLowerCase())).length === 0 && (
+                          <div style={{ padding: '8px 10px', fontSize: '11px', color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                            No matching cities found
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
-                <div style={{ display: 'flex', gap: '3px', flexWrap: 'wrap' }}>
-                  {['ALL', 'Ahmedabad', 'Surat', 'Vadodara', 'Rajkot', 'Gandhinagar'].map((city) => {
-                    const isActive = cityFilter === city;
-                    return (
+
+                {/* 2. STATUS DROPDOWN TRIGGER */}
+                <div style={{ position: 'relative', flex: '1 1 auto', minWidth: '85px' }}>
+                  <button
+                    type="button"
+                    id="gis-filter-dropdown-status"
+                    aria-haspopup="true"
+                    aria-expanded={activeDropdown === 'STATUS'}
+                    className={`gis-filter-dropdown-btn ${statusFilter !== 'ALL' ? 'active' : ''}`}
+                    onClick={() => setActiveDropdown(activeDropdown === 'STATUS' ? null : 'STATUS')}
+                    style={{ width: '100%' }}
+                  >
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '5px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      <SlidersHorizontal size={11} style={{ flexShrink: 0 }} />
+                      <span>{statusFilter === 'ALL' ? 'Status' : statusFilter}</span>
+                    </span>
+                    <ChevronDown size={11} style={{ flexShrink: 0, opacity: 0.7 }} />
+                  </button>
+
+                  {/* Status Dropdown Menu */}
+                  {activeDropdown === 'STATUS' && (
+                    <div
+                      className="gis-filter-menu"
+                      style={{ left: 0, width: '180px' }}
+                      role="dialog"
+                      aria-label="Filter cameras by status"
+                    >
+                      <div style={{ padding: '6px 10px', borderBottom: '1px solid rgba(255, 255, 255, 0.08)' }}>
+                        <div style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.05em', color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+                          Operational Status
+                        </div>
+                      </div>
+                      <div style={{ padding: '4px 0' }}>
+                        <button
+                          type="button"
+                          id="gis-filter-status-all"
+                          className={`gis-filter-option ${statusFilter === 'ALL' ? 'active' : ''}`}
+                          onClick={() => {
+                            setStatusFilter('ALL');
+                            setActiveDropdown(null);
+                          }}
+                        >
+                          <span>All Statuses</span>
+                          <span style={{ fontSize: '10px', opacity: 0.65, fontFamily: 'var(--font-mono)' }}>
+                            {cameras.length}
+                          </span>
+                        </button>
+                        {availableStatuses.map((st) => (
+                          <button
+                            key={st.status}
+                            id={`gis-filter-status-${st.status.toLowerCase()}`}
+                            className={`gis-filter-option ${statusFilter === st.status ? 'active' : ''}`}
+                            onClick={() => {
+                              setStatusFilter(st.status);
+                              setActiveDropdown(null);
+                            }}
+                          >
+                            <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              <span
+                                style={{
+                                  width: '6px',
+                                  height: '6px',
+                                  borderRadius: '50%',
+                                  backgroundColor:
+                                    st.status === 'ONLINE'
+                                      ? 'var(--status-online, #10b981)'
+                                      : st.status === 'DEGRADED'
+                                      ? 'var(--status-warning, #f59e0b)'
+                                      : 'var(--status-critical, #ef4444)',
+                                }}
+                              />
+                              {st.status}
+                            </span>
+                            <span style={{ fontSize: '10px', opacity: 0.65, fontFamily: 'var(--font-mono)' }}>
+                              {st.count}
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* 3. SOURCE DROPDOWN TRIGGER */}
+                <div style={{ position: 'relative', flex: '1 1 auto', minWidth: '85px' }}>
+                  <button
+                    type="button"
+                    id="gis-filter-dropdown-source"
+                    aria-haspopup="true"
+                    aria-expanded={activeDropdown === 'SOURCE'}
+                    className={`gis-filter-dropdown-btn ${sourceTypeFilter !== 'ALL' ? 'active' : ''}`}
+                    onClick={() => setActiveDropdown(activeDropdown === 'SOURCE' ? null : 'SOURCE')}
+                    style={{ width: '100%' }}
+                  >
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '5px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      <Layers size={11} style={{ flexShrink: 0 }} />
+                      <span>{sourceTypeFilter === 'ALL' ? 'Source' : formatSourceLabel(sourceTypeFilter)}</span>
+                    </span>
+                    <ChevronDown size={11} style={{ flexShrink: 0, opacity: 0.7 }} />
+                  </button>
+
+                  {/* Source Dropdown Menu */}
+                  {activeDropdown === 'SOURCE' && (
+                    <div
+                      className="gis-filter-menu"
+                      style={{ right: 0, width: '190px' }}
+                      role="dialog"
+                      aria-label="Filter cameras by data source"
+                    >
+                      <div style={{ padding: '6px 10px', borderBottom: '1px solid rgba(255, 255, 255, 0.08)' }}>
+                        <div style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.05em', color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+                          Data Source
+                        </div>
+                      </div>
+                      <div style={{ padding: '4px 0' }}>
+                        <button
+                          type="button"
+                          id="gis-filter-source-all"
+                          className={`gis-filter-option ${sourceTypeFilter === 'ALL' ? 'active' : ''}`}
+                          onClick={() => {
+                            setSourceTypeFilter('ALL');
+                            setActiveDropdown(null);
+                          }}
+                        >
+                          <span>All Sources</span>
+                          <span style={{ fontSize: '10px', opacity: 0.65, fontFamily: 'var(--font-mono)' }}>
+                            {cameras.length}
+                          </span>
+                        </button>
+                        {availableSources.map((src) => (
+                          <button
+                            key={src.source}
+                            id={`gis-filter-source-${src.source.toLowerCase().replace(/_/g, '-')}`}
+                            className={`gis-filter-option ${sourceTypeFilter === src.source ? 'active' : ''}`}
+                            onClick={() => {
+                              setSourceTypeFilter(src.source);
+                              setActiveDropdown(null);
+                            }}
+                          >
+                            <span>{src.label}</span>
+                            <span style={{ fontSize: '10px', opacity: 0.65, fontFamily: 'var(--font-mono)' }}>
+                              {src.count}
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Active Filter Chips */}
+              {hasActiveFilters && (
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '5px',
+                    flexWrap: 'wrap',
+                    paddingTop: '2px',
+                  }}
+                >
+                  {stateFilter !== 'ALL' && (
+                    <span className="gis-filter-chip">
+                      <span>State: {stateFilter}</span>
                       <button
-                        key={city}
-                        id={`gis-filter-city-${city.toLowerCase()}`}
                         type="button"
-                        onClick={() => handleCitySelect(city)}
-                        className={`netrava-tab-button ${isActive ? 'active' : ''}`}
-                        style={{
-                          padding: '3px 6px',
-                          fontSize: '9px',
-                          fontWeight: isActive ? 700 : 500,
-                        }}
+                        id="gis-chip-remove-state"
+                        aria-label={`Remove state filter ${stateFilter}`}
+                        className="gis-filter-chip-remove"
+                        onClick={() => handleStateSelect('ALL')}
                       >
-                        {city === 'ALL' ? 'All Gujarat' : city}
+                        <X size={11} />
                       </button>
-                    );
-                  })}
+                    </span>
+                  )}
+                  {cityFilter !== 'ALL' && (
+                    <span className="gis-filter-chip">
+                      <span>City: {cityFilter}</span>
+                      <button
+                        type="button"
+                        id="gis-chip-remove-city"
+                        aria-label={`Remove city filter ${cityFilter}`}
+                        className="gis-filter-chip-remove"
+                        onClick={() => handleCitySelect('ALL')}
+                      >
+                        <X size={11} />
+                      </button>
+                    </span>
+                  )}
+                  {statusFilter !== 'ALL' && (
+                    <span className="gis-filter-chip">
+                      <span>Status: {statusFilter}</span>
+                      <button
+                        type="button"
+                        id="gis-chip-remove-status"
+                        aria-label={`Remove status filter ${statusFilter}`}
+                        className="gis-filter-chip-remove"
+                        onClick={() => setStatusFilter('ALL')}
+                      >
+                        <X size={11} />
+                      </button>
+                    </span>
+                  )}
+                  {sourceTypeFilter !== 'ALL' && (
+                    <span className="gis-filter-chip">
+                      <span>Source: {formatSourceLabel(sourceTypeFilter)}</span>
+                      <button
+                        type="button"
+                        id="gis-chip-remove-source"
+                        aria-label={`Remove source filter ${formatSourceLabel(sourceTypeFilter)}`}
+                        className="gis-filter-chip-remove"
+                        onClick={() => setSourceTypeFilter('ALL')}
+                      >
+                        <X size={11} />
+                      </button>
+                    </span>
+                  )}
+                  {searchFilter.trim() !== '' && (
+                    <span className="gis-filter-chip">
+                      <span>Search: "{searchFilter}"</span>
+                      <button
+                        type="button"
+                        id="gis-chip-remove-search"
+                        aria-label="Clear search filter"
+                        className="gis-filter-chip-remove"
+                        onClick={() => setSearchFilter('')}
+                      >
+                        <X size={11} />
+                      </button>
+                    </span>
+                  )}
+                  <button
+                    type="button"
+                    id="gis-filter-clear-all"
+                    onClick={handleClearAllFilters}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: 'var(--accent-primary)',
+                      fontSize: '10px',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      padding: '2px 4px',
+                      textDecoration: 'underline',
+                    }}
+                  >
+                    Clear all
+                  </button>
                 </div>
-              </div>
-
-              {/* Status and Source Type Filters */}
-              <div style={{ display: 'flex', gap: '4px' }}>
-                {['ALL', 'ONLINE', 'DEGRADED', 'OFFLINE'].map((status) => {
-                  const isActive = statusFilter === status;
-                  return (
-                    <button
-                      key={status}
-                      id={`gis-filter-${status.toLowerCase()}`}
-                      type="button"
-                      onClick={() => setStatusFilter(status)}
-                      className={`netrava-tab-button ${isActive ? 'active' : ''}`}
-                      style={{
-                        flex: 1,
-                        padding: '3px 4px',
-                        fontSize: '9px',
-                        fontWeight: isActive ? 700 : 600,
-                      }}
-                    >
-                      {status}
-                    </button>
-                  );
-                })}
-              </div>
-
-              {/* Source Type Filter */}
-              <div style={{ display: 'flex', gap: '4px' }}>
-                {['ALL', 'RESEARCH_VIDEO', 'SYNTHETIC_STREAM'].map((st) => {
-                  const isActive = sourceTypeFilter === st;
-                  const label = st === 'ALL' ? 'All Sources' : st === 'RESEARCH_VIDEO' ? 'Research Video' : 'Synthetic';
-                  return (
-                    <button
-                      key={st}
-                      id={`gis-filter-source-${st.toLowerCase()}`}
-                      type="button"
-                      onClick={() => setSourceTypeFilter(st)}
-                      className={`netrava-tab-button ${isActive ? 'active' : ''}`}
-                      style={{
-                        flex: 1,
-                        padding: '2px 4px',
-                        fontSize: '9px',
-                        fontWeight: isActive ? 700 : 500,
-                        backgroundColor: isActive ? 'rgba(59, 130, 246, 0.15)' : undefined,
-                        borderColor: isActive ? 'rgba(59, 130, 246, 0.4)' : undefined,
-                      }}
-                    >
-                      {label}
-                    </button>
-                  );
-                })}
-              </div>
+              )}
             </div>
           </div>
 
@@ -757,16 +1348,16 @@ export function GisCameraMap() {
             {!isLoading && !errorMessage && filteredCameras.length === 0 && (
               <div style={{ padding: '16px' }}>
                 <EmptyState
-                  title="No Cameras in View"
-                  message="Pan or zoom out the map to inspect adjacent police zones."
-                  subtext="Cameras outside the current viewport are excluded."
+                  title={cameras.length === 0 ? "No Cameras in View" : "No Cameras Matching Filters"}
+                  message={cameras.length === 0 ? "Pan or zoom out the map to inspect adjacent police zones." : "No cameras match the active filter criteria."}
+                  subtext={cameras.length === 0 ? "Cameras outside the current viewport are excluded." : "Try adjusting or clearing your active filters."}
                   action={{
-                    label: 'Reset View',
-                    onClick: () => {
+                    label: cameras.length === 0 ? 'Reset View' : 'Clear All Filters',
+                    onClick: cameras.length === 0 ? () => {
                       if (mapInstanceRef.current) {
                         mapInstanceRef.current.flyTo({ center: DEFAULT_CENTER, zoom: DEFAULT_ZOOM });
                       }
-                    },
+                    } : handleClearAllFilters,
                   }}
                 />
               </div>

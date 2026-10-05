@@ -20,16 +20,17 @@ vi.mock('next/navigation', () => ({
 }));
 
 describe('Simulated CCTV Disclosure & Truthfulness (Phase 13)', () => {
-  describe('Global Header Demonstration Indicator', () => {
-    it('renders the restrained institutional SIMULATED LIVE CCTV badge', () => {
+  describe('Global Header Presentation & Cleaned State', () => {
+    it('does not display development telemetry badges (SIMULATED LIVE CCTV or API 200 OK) in the global header', () => {
       render(<Header />);
-      const indicator = screen.getByTestId('environment-simulated-indicator');
-      expect(indicator).toBeInTheDocument();
-      expect(indicator).toHaveTextContent(/SIMULATED LIVE CCTV/i);
-      expect(indicator).toHaveAttribute(
-        'title',
-        expect.stringContaining('Demonstration Mode'),
-      );
+      expect(screen.queryByTestId('environment-simulated-indicator')).toBeNull();
+      expect(screen.queryByText(/SIMULATED LIVE CCTV/i)).toBeNull();
+      expect(screen.queryByText(/API 200 OK/i)).toBeNull();
+    });
+
+    it('keeps the operational tactical clock in the global header', () => {
+      const { container } = render(<Header />);
+      expect(container.querySelector('.tactical-clock-indicator')).toBeInTheDocument();
     });
 
     it('does not claim unauthorized live government CCTV connection', () => {

@@ -20,6 +20,8 @@ export interface CameraLocation {
   address: string;
   zone: string;
   district: string;
+  city?: string;
+  state?: string;
 }
 
 export interface CameraStream {
