@@ -255,15 +255,15 @@ export default function VehiclesPage() {
                 width: '56px',
                 height: '56px',
                 borderRadius: '50%',
-                backgroundColor: 'var(--accent-primary-subtle)',
-                border: '1px solid var(--accent-primary-border)',
+                backgroundColor: 'rgba(59, 130, 246, 0.12)',
+                border: '1px solid rgba(59, 130, 246, 0.3)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                boxShadow: 'var(--accent-primary-glow)',
+                boxShadow: '0 0 16px rgba(59, 130, 246, 0.2)',
               }}
             >
-              <Search size={24} color="var(--accent-primary)" />
+              <Search size={24} color="#60A5FA" />
             </div>
             <div>
               <div style={{ fontWeight: 700, fontSize: 'var(--text-md)', color: 'var(--text-primary)', marginBottom: '4px' }}>

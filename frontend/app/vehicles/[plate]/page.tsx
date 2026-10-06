@@ -373,16 +373,6 @@ export default function VehicleInvestigationPage() {
           {/* Right: Prioritized Operational Actions */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
             <button
-              id="action-search-again"
-              onClick={() => router.push('/vehicles')}
-              className="btn-secondary"
-              style={{ fontSize: '11px', padding: '5px 10px', gap: '5px' }}
-            >
-              <Search size={12} />
-              <span>Search Directory</span>
-            </button>
-
-            <button
               id="action-view-on-gis"
               onClick={() => router.push('/map')}
               className="btn-secondary"

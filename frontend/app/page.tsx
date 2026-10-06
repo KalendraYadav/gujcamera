@@ -208,9 +208,17 @@ export default function OperationalCommandCenterPage() {
       <div
         data-testid={`subsystem-${label}`}
         title={tooltip}
-        style={{ display: 'flex', alignItems: 'center', gap: '5px' }}
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '6px',
+          padding: '2px 8px',
+          borderRadius: 'var(--radius-xs)',
+          backgroundColor: 'rgba(255, 255, 255, 0.025)',
+          border: '1px solid rgba(255, 255, 255, 0.06)',
+        }}
       >
-        <span style={{ fontSize: '10px', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)', fontWeight: 600 }}>
+        <span style={{ fontSize: '10px', color: '#94A3B8', fontFamily: 'var(--font-mono)', fontWeight: 600, letterSpacing: '0.02em' }}>
           {label}:
         </span>
         <StatusBadge label={resolvedLabel} variant={variant} size="sm" />
@@ -506,54 +514,30 @@ export default function OperationalCommandCenterPage() {
               </div>
             </div>
           )}
-        </header>
 
-        {/* Global Loading / Error Notifications */}
-        {isLoading && !data && (
-          <div style={{ padding: '60px 0' }}>
-            <LoadingState
-              message="Synchronizing Operational Command Summary..."
-              subtext="Aggregating camera state machines, alert queue, ANPR consensus, and GIS fleet telemetry"
-            />
-          </div>
-        )}
-
-        {error && !data && (
-          <ErrorState
-            title="Operational Intelligence Synchronization Failed"
-            message={error}
-            errorCode="COMMAND_SYNC_ERROR"
-            onRetry={() => fetchSummary(true)}
-          />
-        )}
-
-        {data && (
-          <>
-            {/* ================================================================
-                ZONE 1B — SUB-HEADER: UNIFIED SYSTEM HEALTH STRIP
-                Truthful & Measurable Telemetry
-                ================================================================ */}
+          {/* Integrated Unified Subsystem Health Telemetry Strip */}
+          {data && (
             <div
-              className="netrava-card"
               style={{
-                padding: '6px 12px',
+                marginTop: '6px',
+                paddingTop: '6px',
+                borderTop: '1px solid rgba(255, 255, 255, 0.06)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
                 flexWrap: 'wrap',
                 gap: '8px',
-                backgroundColor: 'rgba(15, 23, 42, 0.7)',
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                  <Layers size={12} color="#60A5FA" />
+                  <Layers size={11} color="#60A5FA" />
                   <span style={{ fontSize: '10px', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)', fontWeight: 700, letterSpacing: '0.04em' }}>
                     SYSTEM HEALTH:
                   </span>
                 </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                   {renderSubsystemStatus('CAMERA NETWORK', data.system.camera_network, {
                     overrideStatus: resolveCameraNetworkHealth(data.cameras, data.system.camera_network),
                     detailTooltip: `Camera Fleet: ${data.cameras.online}/${data.cameras.total} online (${data.cameras.degraded} degraded, ${data.cameras.offline} offline)`
@@ -588,6 +572,30 @@ export default function OperationalCommandCenterPage() {
                 <span>TELEMETRY: {lastRefreshed ? formatISTTime(lastRefreshed.toISOString()) : 'SYNCED'}</span>
               </div>
             </div>
+          )}
+        </header>
+
+        {/* Global Loading / Error Notifications */}
+        {isLoading && !data && (
+          <div style={{ padding: '60px 0' }}>
+            <LoadingState
+              message="Synchronizing Operational Command Summary..."
+              subtext="Aggregating camera state machines, alert queue, ANPR consensus, and GIS fleet telemetry"
+            />
+          </div>
+        )}
+
+        {error && !data && (
+          <ErrorState
+            title="Operational Intelligence Synchronization Failed"
+            message={error}
+            errorCode="COMMAND_SYNC_ERROR"
+            onRetry={() => fetchSummary(true)}
+          />
+        )}
+
+        {data && (
+          <>
 
             {/* ================================================================
                 ZONE 2 — CRITICAL SITUATION: HERO OPERATIONAL INCIDENT
@@ -669,6 +677,7 @@ export default function OperationalCommandCenterPage() {
                   title="No Active Operational Alerts"
                   message="No critical, high, or medium priority alerts are currently awaiting operator triage."
                   icon={BellRing}
+                  compact={true}
                 />
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
@@ -864,6 +873,7 @@ export default function OperationalCommandCenterPage() {
                     title="No Recent Watchlist Matches"
                     message="No plate matches against active stolen, flagged, or amber alerts occurred in the recent window."
                     icon={ListFilter}
+                    compact={true}
                   />
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
@@ -976,25 +986,26 @@ export default function OperationalCommandCenterPage() {
                   </Link>
                 </div>
 
-                {/* Single Compact Health Strip */}
+                {/* Single Integrated Telemetry Ribbon */}
                 <div
                   style={{
                     display: 'grid',
                     gridTemplateColumns: 'repeat(5, 1fr)',
-                    gap: '6px',
+                    backgroundColor: 'rgba(11, 16, 32, 0.65)',
+                    border: '1px solid var(--border-subtle)',
+                    borderRadius: 'var(--radius-xs)',
+                    overflow: 'hidden',
                   }}
                 >
                   {/* Total */}
                   <div
                     style={{
-                      padding: '6px 8px',
-                      backgroundColor: 'rgba(11, 16, 32, 0.7)',
-                      border: '1px solid var(--border-default)',
-                      borderRadius: 'var(--radius-xs)',
+                      padding: '8px 10px',
+                      borderRight: '1px solid var(--border-subtle)',
                       textAlign: 'center',
                     }}
                   >
-                    <div style={{ fontSize: '9px', color: 'var(--text-dim)', textTransform: 'uppercase', fontFamily: 'var(--font-mono)' }}>
+                    <div style={{ fontSize: '9px', color: 'var(--text-dim)', textTransform: 'uppercase', fontFamily: 'var(--font-mono)', fontWeight: 600 }}>
                       TOTAL
                     </div>
                     <div data-testid="camera-overview-total" style={{ fontSize: '16px', fontWeight: 700, color: '#FFFFFF', fontFamily: 'var(--font-mono)' }}>
@@ -1005,10 +1016,9 @@ export default function OperationalCommandCenterPage() {
                   {/* Online */}
                   <div
                     style={{
-                      padding: '6px 8px',
-                      backgroundColor: 'rgba(16, 185, 129, 0.08)',
-                      border: '1px solid rgba(16, 185, 129, 0.25)',
-                      borderRadius: 'var(--radius-xs)',
+                      padding: '8px 10px',
+                      borderRight: '1px solid var(--border-subtle)',
+                      backgroundColor: 'rgba(16, 185, 129, 0.05)',
                       textAlign: 'center',
                     }}
                   >
@@ -1028,10 +1038,9 @@ export default function OperationalCommandCenterPage() {
                   {/* Degraded */}
                   <div
                     style={{
-                      padding: '6px 8px',
-                      backgroundColor: data.cameras.degraded > 0 ? 'rgba(245, 158, 11, 0.12)' : 'rgba(11, 16, 32, 0.7)',
-                      border: data.cameras.degraded > 0 ? '1px solid rgba(245, 158, 11, 0.4)' : '1px solid var(--border-default)',
-                      borderRadius: 'var(--radius-xs)',
+                      padding: '8px 10px',
+                      borderRight: '1px solid var(--border-subtle)',
+                      backgroundColor: data.cameras.degraded > 0 ? 'rgba(245, 158, 11, 0.08)' : undefined,
                       textAlign: 'center',
                     }}
                   >
@@ -1046,14 +1055,12 @@ export default function OperationalCommandCenterPage() {
                   {/* Offline */}
                   <div
                     style={{
-                      padding: '6px 8px',
-                      backgroundColor: 'rgba(11, 16, 32, 0.7)',
-                      border: '1px solid var(--border-default)',
-                      borderRadius: 'var(--radius-xs)',
+                      padding: '8px 10px',
+                      borderRight: '1px solid var(--border-subtle)',
                       textAlign: 'center',
                     }}
                   >
-                    <div style={{ fontSize: '9px', color: '#94A3B8', textTransform: 'uppercase', fontFamily: 'var(--font-mono)' }}>
+                    <div style={{ fontSize: '9px', color: '#94A3B8', textTransform: 'uppercase', fontFamily: 'var(--font-mono)', fontWeight: 600 }}>
                       OFFLINE
                     </div>
                     <div data-testid="camera-overview-offline" style={{ fontSize: '16px', fontWeight: 700, color: '#94A3B8', fontFamily: 'var(--font-mono)' }}>
@@ -1064,10 +1071,8 @@ export default function OperationalCommandCenterPage() {
                   {/* Fault */}
                   <div
                     style={{
-                      padding: '6px 8px',
-                      backgroundColor: data.cameras.error > 0 ? 'rgba(239, 68, 68, 0.15)' : 'rgba(11, 16, 32, 0.7)',
-                      border: data.cameras.error > 0 ? '1px solid rgba(239, 68, 68, 0.4)' : '1px solid var(--border-default)',
-                      borderRadius: 'var(--radius-xs)',
+                      padding: '8px 10px',
+                      backgroundColor: data.cameras.error > 0 ? 'rgba(239, 68, 68, 0.1)' : undefined,
                       textAlign: 'center',
                     }}
                   >

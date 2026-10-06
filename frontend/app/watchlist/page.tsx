@@ -451,26 +451,19 @@ export default function WatchlistPage() {
                                 opacity: entry.active ? 1 : 0.6,
                               }}
                             >
-                              <td style={{ fontFamily: 'var(--font-mono)', fontWeight: 700 }}>
+                              <td>
                                 {hasSightings && canInspect ? (
                                   <Link
                                     href={`/vehicles/${encodeURIComponent(entry.plate_normalized)}`}
                                     id={`track-plate-link-${entry.id}`}
-                                    style={{
-                                      display: 'inline-flex',
-                                      alignItems: 'center',
-                                      gap: '4px',
-                                      color: 'var(--accent-blue)',
-                                      textDecoration: 'none',
-                                      fontWeight: 700,
-                                    }}
+                                    className="plate-badge interactive"
                                     title={`Investigate ${entry.plate_normalized} in Vehicle Tracking`}
                                   >
                                     <span>{entry.plate_normalized}</span>
-                                    <ExternalLink size={12} />
+                                    <ExternalLink size={11} />
                                   </Link>
                                 ) : (
-                                  <span style={{ color: 'var(--text-primary)' }}>{entry.plate_normalized}</span>
+                                  <span className="plate-badge">{entry.plate_normalized}</span>
                                 )}
                               </td>
                               <td>

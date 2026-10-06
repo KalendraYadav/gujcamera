@@ -318,7 +318,8 @@ function LiveMonitoringContent() {
               data-testid="camera-telemetry-card"
               className="netrava-card"
               style={{
-                padding: '16px 20px',
+                padding: '14px 18px',
+                borderTop: '2px solid var(--accent-primary)',
               }}
             >
               {/* Header Info */}
@@ -326,8 +327,10 @@ function LiveMonitoringContent() {
                 style={{
                   display: 'flex',
                   justifyContent: 'space-between',
-                  alignItems: 'flex-start',
-                  marginBottom: '14px',
+                  alignItems: 'center',
+                  marginBottom: '12px',
+                  paddingBottom: '10px',
+                  borderBottom: '1px solid rgba(255, 255, 255, 0.06)',
                   flexWrap: 'wrap',
                   gap: '12px',
                 }}
@@ -335,26 +338,36 @@ function LiveMonitoringContent() {
                 <div>
                   <div
                     style={{
-                      fontSize: 'var(--text-xs)',
-                      fontFamily: 'var(--font-mono)',
-                      color: 'var(--text-dim)',
-                      letterSpacing: '0.04em',
-                      marginBottom: '2px',
-                    }}
-                  >
-                    {selectedCamera.id}
-                  </div>
-                  <div
-                    style={{
-                      fontSize: 'var(--text-base)',
-                      fontWeight: 600,
-                      color: 'var(--text-primary)',
                       display: 'flex',
                       alignItems: 'center',
                       gap: '8px',
+                      flexWrap: 'wrap',
                     }}
                   >
-                    <span>{selectedCamera.name}</span>
+                    <span
+                      style={{
+                        fontSize: '10.5px',
+                        fontFamily: 'var(--font-mono)',
+                        color: 'var(--accent-primary)',
+                        backgroundColor: 'rgba(215, 25, 63, 0.12)',
+                        border: '1px solid rgba(215, 25, 63, 0.3)',
+                        padding: '1px 6px',
+                        borderRadius: 'var(--radius-xs)',
+                        fontWeight: 700,
+                        letterSpacing: '0.04em',
+                      }}
+                    >
+                      {selectedCamera.id}
+                    </span>
+                    <span
+                      style={{
+                        fontSize: 'var(--text-sm)',
+                        fontWeight: 600,
+                        color: 'var(--text-primary)',
+                      }}
+                    >
+                      {selectedCamera.name}
+                    </span>
                     <span
                       style={{
                         fontSize: 'var(--text-xs)',
@@ -368,16 +381,15 @@ function LiveMonitoringContent() {
                 </div>
 
                 {/* Status Badges: Distinct Camera Health vs Playback Health */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
                   <div
                     style={{
                       display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'flex-end',
-                      gap: '2px',
+                      alignItems: 'center',
+                      gap: '5px',
                     }}
                   >
-                    <span style={{ fontSize: '11px', color: 'var(--text-dim)', fontFamily: 'var(--font-mono)', fontWeight: 600 }}>
+                    <span style={{ fontSize: '10px', color: 'var(--text-dim)', fontFamily: 'var(--font-mono)', fontWeight: 700, letterSpacing: '0.04em' }}>
                       CAMERA HEALTH:
                     </span>
                     <StatusBadge
@@ -390,12 +402,11 @@ function LiveMonitoringContent() {
                   <div
                     style={{
                       display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'flex-end',
-                      gap: '2px',
+                      alignItems: 'center',
+                      gap: '5px',
                     }}
                   >
-                    <span style={{ fontSize: '11px', color: 'var(--text-dim)', fontFamily: 'var(--font-mono)', fontWeight: 600 }}>
+                    <span style={{ fontSize: '10px', color: 'var(--text-dim)', fontFamily: 'var(--font-mono)', fontWeight: 700, letterSpacing: '0.04em' }}>
                       PLAYBACK HEALTH:
                     </span>
                     <span data-testid="live-playback-status-pill" style={{ display: 'inline-flex' }}>

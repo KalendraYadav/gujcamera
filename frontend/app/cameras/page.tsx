@@ -210,14 +210,14 @@ export default function CameraRegistryPage() {
                   width: '28px',
                   height: '28px',
                   borderRadius: 'var(--radius-xs)',
-                  backgroundColor: 'rgba(215, 25, 63, 0.12)',
-                  border: '1px solid rgba(215, 25, 63, 0.3)',
+                  backgroundColor: 'rgba(59, 130, 246, 0.12)',
+                  border: '1px solid rgba(59, 130, 246, 0.3)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                 }}
               >
-                <CameraIcon size={15} color="#F87171" />
+                <CameraIcon size={15} color="#60A5FA" />
               </div>
               <h1 style={{ fontSize: 'var(--text-lg)', fontWeight: 600, color: 'var(--text-primary)', letterSpacing: '0.01em', margin: 0 }}>
                 CCTV Camera Registry
@@ -305,7 +305,7 @@ export default function CameraRegistryPage() {
                 size={14}
                 className={isRefreshing ? 'animate-spin' : ''}
                 style={{
-                  color: isRefreshing ? '#F87171' : 'currentColor',
+                  color: isRefreshing ? '#60A5FA' : 'currentColor',
                 }}
               />
               <span>{isRefreshing ? 'Refreshing...' : 'Refresh'}</span>
@@ -692,7 +692,8 @@ export default function CameraRegistryPage() {
                         }
                       }}
                       style={{
-                        backgroundColor: isSelected ? 'rgba(215, 25, 63, 0.08)' : undefined,
+                        backgroundColor: isSelected ? 'rgba(59, 130, 246, 0.12)' : undefined,
+                        boxShadow: isSelected ? 'inset 3px 0 0 #3B82F6' : undefined,
                         cursor: 'pointer',
                         outline: 'none',
                       }}

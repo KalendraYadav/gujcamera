@@ -10,6 +10,7 @@ interface EmptyStateProps {
     label: string;
     onClick: () => void;
   };
+  compact?: boolean;
 }
 
 export function EmptyState({
@@ -18,6 +19,7 @@ export function EmptyState({
   subtext,
   icon: Icon = CameraOff,
   action,
+  compact = false,
 }: EmptyStateProps) {
   return (
     <div
@@ -28,19 +30,19 @@ export function EmptyState({
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        padding: '32px 24px',
-        backgroundColor: 'var(--bg-surface)',
-        border: '1px solid var(--border-default)',
+        padding: compact ? '18px 16px' : '32px 24px',
+        backgroundColor: compact ? 'rgba(255, 255, 255, 0.015)' : 'var(--bg-surface)',
+        border: compact ? '1px dashed rgba(255, 255, 255, 0.08)' : '1px solid var(--border-default)',
         borderRadius: 'var(--radius-md)',
         boxShadow: 'var(--shadow-none)',
         textAlign: 'center',
-        minHeight: '200px',
+        minHeight: compact ? '110px' : '200px',
       }}
     >
       <div
         style={{
-          width: '40px',
-          height: '40px',
+          width: compact ? '30px' : '40px',
+          height: compact ? '30px' : '40px',
           borderRadius: 'var(--radius-sm)',
           backgroundColor: 'rgba(255, 255, 255, 0.04)',
           border: '1px solid var(--border-medium)',
@@ -48,15 +50,15 @@ export function EmptyState({
           alignItems: 'center',
           justifyContent: 'center',
           color: 'var(--text-muted)',
-          marginBottom: 'var(--space-3)',
+          marginBottom: compact ? 'var(--space-2)' : 'var(--space-3)',
         }}
       >
-        <Icon size={20} />
+        <Icon size={compact ? 15 : 20} />
       </div>
 
       <h4
         style={{
-          fontSize: 'var(--text-base)',
+          fontSize: compact ? '12px' : 'var(--text-base)',
           fontWeight: 600,
           color: 'var(--text-primary)',
           marginBottom: 'var(--space-1)',
@@ -68,11 +70,11 @@ export function EmptyState({
 
       <p
         style={{
-          fontSize: 'var(--text-sm)',
+          fontSize: compact ? '11px' : 'var(--text-sm)',
           color: 'var(--text-secondary)',
-          maxWidth: '400px',
+          maxWidth: compact ? '320px' : '400px',
           marginBottom: subtext || action ? 'var(--space-2)' : '0',
-          lineHeight: 1.43,
+          lineHeight: 1.4,
         }}
       >
         {message}

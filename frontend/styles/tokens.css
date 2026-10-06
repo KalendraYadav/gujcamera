@@ -177,40 +177,40 @@
 
   /* ============================================================================
      9. GLOBAL NAVIGATION & SECTION SELECTOR INTERACTIVE STATE TOKENS
-     Rule: Inactive = Dark Navy | Hover = Solid Muted Yellow-Gray | Active = Solid Red
+     Refined Mission-Critical Aesthetic: Tactical Blue Active & Translucent Hover
      ============================================================================ */
-  /* Active State (Solid NETRAVA Sign-In Red) */
-  --nav-active-bg: #D7193F;
-  --nav-active-bg-gradient: linear-gradient(180deg, #E11D48 0%, #D7193F 45%, #BE123C 100%);
+  /* Active State (Authoritative Tactical Blue Inset with Crisp Accent) */
+  --nav-active-bg: rgba(59, 130, 246, 0.14);
+  --nav-active-bg-gradient: linear-gradient(180deg, rgba(59, 130, 246, 0.18) 0%, rgba(37, 99, 235, 0.10) 100%);
   --nav-active-text: #FFFFFF;
-  --nav-active-icon: #FFFFFF;
-  --nav-active-subtext: rgba(255, 255, 255, 0.85);
-  --nav-active-badge-bg: rgba(255, 255, 255, 0.22);
-  --nav-active-badge-text: #FFFFFF;
-  --nav-active-badge-border: rgba(255, 255, 255, 0.35);
-  --nav-active-border: rgba(255, 255, 255, 0.22);
-  --nav-active-shadow: 0 4px 14px rgba(215, 25, 63, 0.38), inset 0 1px 0 rgba(255, 255, 255, 0.30), inset 0 -1px 0 rgba(0, 0, 0, 0.35);
+  --nav-active-icon: #60A5FA;
+  --nav-active-subtext: #94A3B8;
+  --nav-active-badge-bg: rgba(59, 130, 246, 0.22);
+  --nav-active-badge-text: #93C5FD;
+  --nav-active-badge-border: rgba(59, 130, 246, 0.38);
+  --nav-active-border: rgba(59, 130, 246, 0.35);
+  --nav-active-shadow: 0 2px 10px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.10);
 
-  /* Hover State (Solid Muted Yellow-Gray / Warm Graphite / Institutional Muted Gold) */
-  --nav-hover-bg: #D6CEBC;
-  --nav-hover-bg-gradient: linear-gradient(180deg, #DFD7C6 0%, #D6CEBC 100%);
-  --nav-hover-text: #070B14;
-  --nav-hover-icon: #070B14;
-  --nav-hover-subtext: #334155;
-  --nav-hover-badge-bg: rgba(7, 11, 20, 0.14);
-  --nav-hover-badge-text: #070B14;
-  --nav-hover-badge-border: rgba(7, 11, 20, 0.24);
-  --nav-hover-border: rgba(255, 255, 255, 0.20);
-  --nav-hover-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+  /* Hover State (Refined Translucent Slate Glass) */
+  --nav-hover-bg: rgba(255, 255, 255, 0.06);
+  --nav-hover-bg-gradient: linear-gradient(180deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.04) 100%);
+  --nav-hover-text: #FFFFFF;
+  --nav-hover-icon: #F1F5F9;
+  --nav-hover-subtext: #94A3B8;
+  --nav-hover-badge-bg: rgba(255, 255, 255, 0.08);
+  --nav-hover-badge-text: #E2E8F0;
+  --nav-hover-badge-border: rgba(255, 255, 255, 0.15);
+  --nav-hover-border: rgba(255, 255, 255, 0.12);
+  --nav-hover-shadow: 0 2px 8px rgba(0, 0, 0, 0.20);
 
-  /* Inactive Resting State (Dark Navy) */
+  /* Inactive Resting State (Deep Navy Resting) */
   --nav-inactive-bg: transparent;
-  --nav-inactive-text: #CBD5E1;
-  --nav-inactive-icon: #94A3B8;
-  --nav-inactive-subtext: #64748B;
-  --nav-inactive-badge-bg: rgba(59, 130, 246, 0.12);
-  --nav-inactive-badge-text: #60A5FA;
-  --nav-inactive-badge-border: rgba(59, 130, 246, 0.25);
+  --nav-inactive-text: #94A3B8;
+  --nav-inactive-icon: #64748B;
+  --nav-inactive-subtext: #475569;
+  --nav-inactive-badge-bg: rgba(255, 255, 255, 0.05);
+  --nav-inactive-badge-text: #94A3B8;
+  --nav-inactive-badge-border: rgba(255, 255, 255, 0.08);
   --nav-inactive-border: transparent;
 
   /* ============================================================================
