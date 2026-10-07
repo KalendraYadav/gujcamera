@@ -37,11 +37,7 @@ import { useRouter } from 'next/navigation';
 
 type SearchState = 'idle' | 'loading' | 'error' | 'results';
 
-import {
-  CANONICAL_DEMO_VEHICLES,
-  findMatchingDemoVehicles,
-} from '@/lib/demo-vehicle-data';
-export { CANONICAL_DEMO_VEHICLES };
+import { findMatchingDemoVehicles } from '@/lib/demo-vehicle-data';
 
 export default function VehiclesPage() {
   const { user, isLoading: authLoading } = useAuth();

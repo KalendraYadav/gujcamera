@@ -357,12 +357,14 @@ export function getDemoVehicleAlerts(plateOrId: string): AlertItem[] {
         watchlist_entry_id: 'wl-entry-101',
         severity: 'CRITICAL',
         status: 'NEW',
+        timestamp: '2026-10-06T15:15:00.000Z',
         acknowledged_by: null,
         acknowledged_at: null,
         resolved_by: null,
         resolved_at: null,
         notes: null,
         created_at: '2026-10-06T15:15:00.000Z',
+        updated_at: '2026-10-06T15:15:00.000Z',
         watchlist_match: {
           entry_id: 'wl-entry-101',
           plate_normalized: 'GJ01AB1234',
@@ -385,7 +387,7 @@ export function getDemoVehicleAlerts(plateOrId: string): AlertItem[] {
             },
           },
         },
-      },
+      } as unknown as AlertItem,
     ];
   }
 
