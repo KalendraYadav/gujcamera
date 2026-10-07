@@ -79,6 +79,7 @@ test_videos/
 frames_cache/
 *.mp4
 !video-gateway/fixtures/*.mp4
+!frontend/public/videos/*.mp4
 *.avi
 *.mkv
 *.mov

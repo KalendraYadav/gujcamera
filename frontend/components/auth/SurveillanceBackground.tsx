@@ -39,6 +39,7 @@ export function SurveillanceBackground() {
     // 1. Ensure muted state is applied directly to DOM property for autoplay compliance
     video.muted = true;
     video.defaultMuted = true;
+    video.playsInline = true;
 
     // 2. Immediate check: if video already has data (e.g. from cache or fast load), reveal it
     if (video.readyState >= 2 || video.currentTime > 0) {
