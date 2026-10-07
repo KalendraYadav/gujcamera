@@ -480,7 +480,7 @@ export class VehicleCorrelationService {
       searchWindowDays: effectiveWindow,
       candidates: top,
       disclaimer:
-        'NETRAVAHA correlation candidates are presented for investigator review only. ' +
+        'NETRAVA correlation candidates are presented for investigator review only. ' +
         'A high correlation score indicates observational similarity — it does NOT establish ' +
         'that the observations belong to the same physical vehicle. ' +
         'All conclusions require independent verification by a qualified officer.',

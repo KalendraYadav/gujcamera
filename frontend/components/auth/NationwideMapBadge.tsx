@@ -118,7 +118,7 @@ export function NationwideMapBadge() {
             textTransform: 'uppercase',
           }}
         >
-          Representative Corridor
+          Pan-India Police Network
         </div>
         <div
           style={{
@@ -140,7 +140,7 @@ export function NationwideMapBadge() {
               fontWeight: 600,
             }}
           >
-            <div>Gujarat Jurisdictions</div>
+            <div>Pan-India Police Jurisdictions</div>
             <div>Simulated RTSP Gateway</div>
             <div>ANPR Intelligence Pipeline</div>
           </div>

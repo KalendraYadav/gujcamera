@@ -1,6 +1,6 @@
 #!/bin/bash
 # ==============================================================================
-# NETRAVAHA — High-Reliability Stream Publisher for Primary Demonstration Nodes
+# NETRAVA — High-Reliability Stream Publisher for Primary Demonstration Nodes
 # Gujarat Police Innovation Challenge 2026
 # ==============================================================================
 

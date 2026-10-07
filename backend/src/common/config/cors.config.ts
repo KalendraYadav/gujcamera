@@ -31,7 +31,7 @@ export function isOriginAllowed(origin: string, configuredOrigins: string[]): bo
     return true;
   }
 
-  // 3. Vercel deployments for NETRAVAHA (preview deployments, team aliases, and production domains)
+  // 3. Vercel deployments for NETRAVA (preview deployments, team aliases, and production domains)
   // Matches exact Vercel project URLs such as:
   // - https://gujcamera-bj85w3tfw-kalendrayadavs-projects.vercel.app
   // - https://gujcamera-kalendrayadavs-projects.vercel.app

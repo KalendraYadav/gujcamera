@@ -665,7 +665,7 @@ export function CameraDetailDrawer({ camera, onClose, onCenterOnMap }: CameraDet
         }}
       >
         <span style={{ fontSize: '10px', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
-          GUJ-CCTV-NETRAVAHA
+          IND-CCTV-NETRAVA
         </span>
 
         <div style={{ display: 'flex', gap: '8px' }}>

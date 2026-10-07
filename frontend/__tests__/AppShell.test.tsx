@@ -58,7 +58,7 @@ describe('AppShell Component', () => {
       </AppShell>,
     );
 
-    expect(screen.getByText('NETRAVAHA')).toBeInTheDocument();
+    expect(screen.getByText('NETRAVA')).toBeInTheDocument();
     expect(screen.getByText('Command Center Content')).toBeInTheDocument();
     expect(screen.getByText('operator.demo@gujcamera.local')).toBeInTheDocument();
     expect(screen.getByText('OPERATOR')).toBeInTheDocument();
@@ -405,7 +405,7 @@ describe('AppShell Component', () => {
     expect(profilePanel).not.toHaveClass('open');
   });
 
-  it('renders clean page title in global header without redundant NETRAVAHA / prefix', () => {
+  it('renders clean page title in global header without redundant NETRAVA / prefix', () => {
     render(
       <NavigationProvider>
         <AppShell>
@@ -418,8 +418,8 @@ describe('AppShell Component', () => {
     const headerTitle = screen.getByRole('heading', { level: 2 });
     expect(headerTitle).toHaveTextContent('Command Center');
 
-    // Redundant "NETRAVAHA /" prefix is NOT present in the header
-    expect(screen.queryByText(/NETRAVAHA \//i)).not.toBeInTheDocument();
+    // Redundant "NETRAVA /" prefix is NOT present in the header
+    expect(screen.queryByText(/NETRAVA \//i)).not.toBeInTheDocument();
   });
 
   it('renders clean top-right global header with tactical clock and without dev/telemetry badges', () => {

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // ==============================================================================
-// NETRAVAHA — Simulated CCTV Operator Control CLI
+// NETRAVA — Simulated CCTV Operator Control CLI
 // Gujarat Police Innovation Challenge 2026
 // Operator CLI for Demonstrations, Validation & Stream Lifecycle Control
 // ==============================================================================
@@ -48,7 +48,7 @@ function httpGetJson(url) {
 
 async function validateManifest() {
   console.log('==============================================================================');
-  console.log('🔍 NETRAVAHA — Demonstration Manifest & Media Integrity Audit');
+  console.log('🔍 NETRAVA — Demonstration Manifest & Media Integrity Audit');
   console.log(`Manifest: ${MANIFEST_PATH}`);
   console.log('==============================================================================\n');
 
@@ -104,7 +104,7 @@ async function validateManifest() {
 
 async function checkStatus() {
   console.log('==============================================================================');
-  console.log('📡 NETRAVAHA — Simulated CCTV Streaming & MediaMTX Path Health');
+  console.log('📡 NETRAVA — Simulated CCTV Streaming & MediaMTX Path Health');
   console.log('==============================================================================\n');
 
   const manifest = loadManifest();

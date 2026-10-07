@@ -1,6 +1,6 @@
 /**
  * Centralized URL Sanitization & Inline Credential Extraction Utility
- * NETRAVAHA — Fleet Administration & Camera Onboarding
+ * NETRAVA — Fleet Administration & Camera Onboarding
  */
 
 export interface ExtractedUrlCredentials {

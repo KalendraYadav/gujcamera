@@ -1,6 +1,6 @@
 /**
  * Centralized URL Sanitization and Credential Extraction Utility
- * NETRAVAHA — Unified CCTV Intelligence Platform
+ * NETRAVA — Unified CCTV Intelligence Platform
  *
  * Guarantees that camera credentials are never logged, exposed in error messages,
  * published to Redis, or returned across API boundaries.

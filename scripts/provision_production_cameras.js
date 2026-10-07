@@ -1,5 +1,5 @@
 // ==============================================================================
-// NETRAVAHA — Production Camera Topology Provisioning Script
+// NETRAVA — Production Camera Topology Provisioning Script
 // Gujarat Police Innovation Challenge 2026
 // Source of Truth: master_architecture.md & backend/prisma/seed.ts
 //
@@ -42,7 +42,7 @@ const prisma = new PrismaClient({
 
 async function main() {
   console.log('================================================================');
-  console.log(' NETRAVAHA — Production Camera Topology Provisioning');
+  console.log(' NETRAVA — Production Camera Topology Provisioning');
   console.log('================================================================');
 
   // STEP 1: Verify existing production departments & users

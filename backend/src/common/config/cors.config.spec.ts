@@ -38,7 +38,7 @@ describe('CORS Configuration', () => {
       expect(isOriginAllowed('https://demo-tunnel-abc123.trycloudflare.com', configuredOrigins)).toBe(true);
     });
 
-    it('allows EXACT deployed Vercel origin for NETRAVAHA', () => {
+    it('allows EXACT deployed Vercel origin for NETRAVA', () => {
       expect(
         isOriginAllowed(
           'https://gujcamera-bj85w3tfw-kalendrayadavs-projects.vercel.app',

@@ -1,5 +1,5 @@
 // ==============================================================================
-// NETRAVAHA — Simulated CCTV FFmpeg Replay Engine & Stream Orchestrator
+// NETRAVA — Simulated CCTV FFmpeg Replay Engine & Stream Orchestrator
 // Gujarat Police Innovation Challenge 2026
 // Manages simulated live RTSP streaming lifecycle into MediaMTX
 // ==============================================================================

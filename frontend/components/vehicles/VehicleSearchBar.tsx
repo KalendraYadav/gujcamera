@@ -232,7 +232,7 @@ export function VehicleSearchBar({ onSearch, isLoading = false, initialValue = '
           </div>
         )}
 
-        {/* Format Hints */}
+        {/* Format Hints & Demo Targets */}
         <div
           style={{
             marginTop: 'var(--space-3)',
@@ -246,31 +246,40 @@ export function VehicleSearchBar({ onSearch, isLoading = false, initialValue = '
             gap: 'var(--space-3)',
           }}
         >
-          <span>
-            Examples:{' '}
-            {['GJ01AB1234', 'GJ05', 'MH12DE4567'].map((ex) => (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+            <span style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>Demo Scenarios:</span>
+            {[
+              { label: '🎯 GJ01AB1234 (Stolen Creta Demo)', plate: 'GJ01AB1234', isPrimary: true },
+              { label: 'GJ05CD5678 (Hit & Run)', plate: 'GJ05CD5678', isPrimary: false },
+              { label: 'GJ27EF9012 (Contraband)', plate: 'GJ27EF9012', isPrimary: false },
+            ].map(({ label, plate, isPrimary }) => (
               <button
-                key={ex}
+                key={plate}
                 type="button"
-                onClick={() => setInputValue(ex)}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  padding: '0 4px',
-                  fontFamily: 'var(--font-mono)',
-                  fontSize: '11px',
-                  color: 'var(--accent-blue)',
-                  cursor: 'pointer',
-                  textDecoration: 'underline',
-                  textDecorationStyle: 'dotted',
+                onClick={() => {
+                  setInputValue(plate);
+                  onSearch(plate);
                 }}
+                style={{
+                  background: isPrimary ? 'rgba(215, 25, 63, 0.16)' : 'rgba(59, 130, 246, 0.08)',
+                  border: isPrimary ? '1px solid rgba(215, 25, 63, 0.45)' : '1px solid rgba(59, 130, 246, 0.25)',
+                  borderRadius: 'var(--radius-xs)',
+                  padding: '2px 8px',
+                  fontFamily: 'var(--font-mono)',
+                  fontSize: '10.5px',
+                  color: isPrimary ? '#FCA5A5' : 'var(--accent-blue)',
+                  fontWeight: isPrimary ? 700 : 500,
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease',
+                }}
+                title={`Click to immediately run search for ${plate}`}
               >
-                {ex}
+                {label}
               </button>
-            ))}{' '}
-          </span>
+            ))}
+          </div>
           <span style={{ marginLeft: 'auto', fontFamily: 'var(--font-mono)', fontSize: '10px' }}>
-            &bull; Prefix matching enabled
+            &bull; 1-Click Demo Execution
           </span>
         </div>
       </div>

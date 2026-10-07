@@ -1,5 +1,5 @@
 // ==============================================================================
-// NETRAVAHA — Dataset Manifest & Demonstration Stream Contracts
+// NETRAVA — Dataset Manifest & Demonstration Stream Contracts
 // Gujarat Police Innovation Challenge 2026
 // Source of Truth: docs/PHASE_12_DATASET_READINESS_AUDIT.md & master_architecture.md
 // ==============================================================================

@@ -13,7 +13,7 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: 'NETRAVAHA Unified CCTV Intelligence Platform',
+  title: 'NETRAVA Unified CCTV Intelligence Platform',
   description: 'Mission-critical CCTV Federation, ANPR, Vehicle Intelligence, and Real-Time Alert Command Center',
 };
 

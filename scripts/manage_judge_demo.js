@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // ==============================================================================
-// NETRAVAHA — One-Command Judge Demonstration Orchestrator & Operator CLI
+// NETRAVA — One-Command Judge Demonstration Orchestrator & Operator CLI
 // Gujarat Police Innovation Challenge 2026
 // Commands: start | status | stop | reset
 // ==============================================================================
@@ -233,7 +233,7 @@ async function runHealthGate(options = { exitOnFail: false }) {
 
   // Print Health Gate Report
   console.log('==============================================================================');
-  console.log('🛡️  NETRAVAHA JUDGE DEMO READINESS GATE');
+  console.log('🛡️  NETRAVA JUDGE DEMO READINESS GATE');
   console.log('==============================================================================');
   console.log(`DATABASE (PG:5432)   ${checks.database ? '✅ READY' : '❌ OFFLINE'}`);
   console.log(`REDIS STREAMS (:6379) ${checks.redis ? '✅ READY' : '❌ OFFLINE'}`);
@@ -269,7 +269,7 @@ async function runHealthGate(options = { exitOnFail: false }) {
 // START ACTION
 // -----------------------------------------------------------------------------
 async function startDemo() {
-  console.log('🚀 Initiating NETRAVAHA Judge Demonstration Pipeline...\n');
+  console.log('🚀 Initiating NETRAVA Judge Demonstration Pipeline...\n');
   const gate = await runHealthGate({ exitOnFail: false, autoStartVault: true });
 
   if (!gate.criticalPass) {
@@ -367,7 +367,7 @@ async function startDemo() {
 // STOP ACTION
 // -----------------------------------------------------------------------------
 async function stopDemo() {
-  console.log('🛑 Stopping NETRAVAHA Judge Demonstration Streams...\n');
+  console.log('🛑 Stopping NETRAVA Judge Demonstration Streams...\n');
   const state = loadState();
   let stoppedCount = 0;
 
@@ -399,7 +399,7 @@ async function stopDemo() {
 // -----------------------------------------------------------------------------
 async function resetDemo() {
   console.log('==============================================================================');
-  console.log('🧹 NETRAVAHA — Resettable Demonstration State Purge');
+  console.log('🧹 NETRAVA — Resettable Demonstration State Purge');
   console.log('==============================================================================');
   console.log('Safety Guarantee:');
   console.log('- User accounts and roles: PRESERVED');

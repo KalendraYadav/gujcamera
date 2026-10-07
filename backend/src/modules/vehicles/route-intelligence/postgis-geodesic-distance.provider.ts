@@ -1,6 +1,6 @@
 // ==============================================================================
 // PostGIS Geodesic Distance Provider & Bounded Cache (Phase 7)
-// NETRAVAHA Unified CCTV Intelligence Platform
+// NETRAVA Unified CCTV Intelligence Platform
 // ==============================================================================
 
 import { Injectable, Logger, Optional, Inject } from '@nestjs/common';

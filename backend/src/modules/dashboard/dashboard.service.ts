@@ -456,7 +456,7 @@ export class DashboardService {
         recent_events: recentAuditEvents,
       },
       disclaimer:
-        'NETRAVAHA correlates discrete CCTV sightings using timestamps, camera locations and observed vehicle identifiers. Metrics reflect configured prototype and research sources, not nationwide deployment.',
+        'NETRAVA correlates discrete CCTV sightings using timestamps, camera locations and observed vehicle identifiers. Metrics reflect configured prototype and research sources, not nationwide deployment.',
     };
   }
 }

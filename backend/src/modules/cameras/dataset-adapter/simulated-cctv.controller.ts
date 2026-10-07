@@ -1,5 +1,5 @@
 // ==============================================================================
-// NETRAVAHA — Simulated CCTV & Demonstration Stream Operator Controller
+// NETRAVA — Simulated CCTV & Demonstration Stream Operator Controller
 // Gujarat Police Innovation Challenge 2026
 // REST Endpoints for Manifest Inspection & Replay Stream Orchestration
 // ==============================================================================

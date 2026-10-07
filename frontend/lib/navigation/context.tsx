@@ -2,7 +2,7 @@
 
 // ==============================================================================
 // Global Navigation State & Collapsible Drawer Context
-// Gujarat Police Innovation Challenge 2026 - NETRAVAHA
+// Gujarat Police Innovation Challenge 2026 - NETRAVA
 // ==============================================================================
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
@@ -16,7 +16,8 @@ export interface NavigationContextType {
   toggleMobileOpen: () => void;
 }
 
-const STORAGE_KEY = 'netravaha_sidebar_collapsed';
+const STORAGE_KEY = 'netrava_sidebar_collapsed';
+const LEGACY_STORAGE_KEY = 'netravaha_sidebar_collapsed';
 
 const NavigationContext = createContext<NavigationContextType | undefined>(undefined);
 
@@ -26,7 +27,7 @@ let inMemoryCollapsedState: boolean = true; // DEFAULT: COLLAPSED RAIL
 function getInitialCollapsedState(): boolean {
   if (typeof window !== 'undefined') {
     try {
-      const stored = localStorage.getItem(STORAGE_KEY);
+      const stored = localStorage.getItem(STORAGE_KEY) ?? localStorage.getItem(LEGACY_STORAGE_KEY);
       if (stored !== null) {
         inMemoryCollapsedState = stored === 'true';
         return inMemoryCollapsedState;
@@ -49,6 +50,7 @@ export function NavigationProvider({ children }: { children: React.ReactNode }) 
     setIsCollapsedState(collapsed);
     try {
       localStorage.setItem(STORAGE_KEY, String(collapsed));
+      localStorage.setItem(LEGACY_STORAGE_KEY, String(collapsed));
     } catch {
       // storage unavailable / quota exceeded
     }

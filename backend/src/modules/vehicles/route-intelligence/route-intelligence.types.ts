@@ -1,6 +1,6 @@
 // ==============================================================================
 // Route Intelligence Domain Types (Phase 7)
-// NETRAVAHA Unified CCTV Intelligence Platform
+// NETRAVA Unified CCTV Intelligence Platform
 // ==============================================================================
 
 export type RouteStatus = 'PLAUSIBLE' | 'SUSPICIOUS' | 'IMPOSSIBLE' | 'INSUFFICIENT_DATA';

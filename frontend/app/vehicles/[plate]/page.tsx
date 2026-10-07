@@ -1,7 +1,7 @@
 'use client';
 
 // ==============================================================================
-// NETRAVAHA — Investigation Command Center
+// NETRAVA — Investigation Command Center
 // Gujarat Police Innovation Challenge 2026
 // Source of Truth: master_architecture.md (Section 10, 14.2)
 //                  Phase 8 Investigation Command Center Specification
@@ -67,6 +67,12 @@ import { AlertItem } from '@/types/alert';
 import { useAuth } from '@/lib/auth/context';
 import { tokenStorage } from '@/lib/auth/session';
 import { hasRoleAccess, canExportEvidence } from '@/lib/auth/rbac';
+import {
+  getDemoVehicleDetail,
+  getDemoVehicleTimeline,
+  getDemoVehicleAlerts,
+  getDemoVehicleAudit,
+} from '@/lib/demo-vehicle-data';
 
 type PageState = 'loading' | 'error' | 'loaded' | 'empty' | 'no_observations';
 type ActiveTab = 'command_center' | 'timeline' | 'map' | 'evidence' | 'audit' | 'correlation';
@@ -172,6 +178,18 @@ export default function VehicleInvestigationPage() {
       console.error('Vehicle command center load error:', err);
       const code = err.statusCode;
       if (code === 404) {
+        // High-fidelity fallback for demo target when unseeded
+        const demoDetail = getDemoVehicleDetail(plate);
+        const demoTl = getDemoVehicleTimeline(plate);
+        if (demoDetail && demoTl) {
+          setVehicleDetail(demoDetail);
+          setTimeline(demoTl);
+          setAlerts(getDemoVehicleAlerts(plate));
+          setAuditRecords(getDemoVehicleAudit(plate));
+          setSelectedSighting(demoTl.sightings[0] || null);
+          setPageState('loaded');
+          return;
+        }
         setPageState('no_observations');
         setErrorMessage(`Vehicle "${plate}" has no observations recorded in the CCTV intelligence network.`);
       } else if (code === 403) {
@@ -515,13 +533,29 @@ export default function VehicleInvestigationPage() {
               No matching CCTV sightings exist in the current surveillance dataset for plate{' '}
               <strong style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)' }}>{plate}</strong>.
             </div>
-            <button
-              onClick={() => router.push('/vehicles')}
-              className="btn-secondary"
-              style={{ marginTop: 'var(--space-2)', fontSize: 'var(--text-xs)' }}
-            >
-              Return to Vehicle Search
-            </button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', marginTop: 'var(--space-2)', flexWrap: 'wrap', justifyContent: 'center' }}>
+              <button
+                onClick={() => router.push('/vehicles')}
+                className="btn-secondary"
+                style={{ fontSize: 'var(--text-xs)' }}
+              >
+                Return to Vehicle Search
+              </button>
+              <button
+                id="view-demo-target-btn"
+                onClick={() => router.push('/vehicles/GJ01AB1234')}
+                className="btn-primary"
+                style={{
+                  fontSize: 'var(--text-xs)',
+                  fontWeight: 700,
+                  backgroundColor: 'var(--accent-primary)',
+                  borderColor: 'var(--accent-primary)',
+                  color: '#fff',
+                }}
+              >
+                Track Demo Target (GJ01AB1234) &rarr;
+              </button>
+            </div>
           </div>
         )}
 

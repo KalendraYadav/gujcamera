@@ -55,7 +55,7 @@ export function Header({ onToggleMobileNav }: HeaderProps = {}) {
         gap: '10px',
       }}
     >
-      {/* Left: Mobile Menu Button + Active Screen Title (without redundant NETRAVAHA / prefix) */}
+      {/* Left: Mobile Menu Button + Active Screen Title (without redundant NETRAVA / prefix) */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
         {/* Mobile Hamburger Toggle Button */}
         <button

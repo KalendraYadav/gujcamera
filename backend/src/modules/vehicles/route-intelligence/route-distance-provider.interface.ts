@@ -1,6 +1,6 @@
 // ==============================================================================
 // IRouteDistanceProvider Abstraction (Phase 7)
-// NETRAVAHA Unified CCTV Intelligence Platform
+// NETRAVA Unified CCTV Intelligence Platform
 // ==============================================================================
 
 import { RouteCoordinates } from './route-intelligence.types';

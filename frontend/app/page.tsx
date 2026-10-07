@@ -318,7 +318,7 @@ export default function OperationalCommandCenterPage() {
 
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <span style={{ fontSize: '11px', color: '#60A5FA', fontFamily: 'var(--font-mono)', fontWeight: 800, letterSpacing: '0.08em' }}>
-                  NETRAVAHA
+                  NETRAVA
                 </span>
                 <span style={{ color: 'var(--border-medium)', fontSize: '12px' }}>/</span>
 
@@ -1525,7 +1525,7 @@ export default function OperationalCommandCenterPage() {
               <Shield size={13} color="#60A5FA" style={{ flexShrink: 0 }} />
               <div style={{ fontSize: '9px', color: 'var(--text-muted)', lineHeight: 1.4 }}>
                 <strong style={{ color: 'var(--text-secondary)' }}>PROTOTYPE DEMONSTRATION ENVIRONMENT: </strong>
-                All camera streams, vehicle sightings, and alert telemetry displayed in this command center represent configured prototype and research demonstration datasets. NETRAVAHA enforces cryptographic SHA-256 evidence integrity and multi-frame consensus within an authorized production ingestion boundary. Admissibility of digital evidence in court remains subject to independent procedural verification by competent judicial authorities.
+                All camera streams, vehicle sightings, and alert telemetry displayed in this command center represent configured prototype and research demonstration datasets. NETRAVA enforces cryptographic SHA-256 evidence integrity and multi-frame consensus within an authorized production ingestion boundary. Admissibility of digital evidence in court remains subject to independent procedural verification by competent judicial authorities.
               </div>
             </div>
           </>

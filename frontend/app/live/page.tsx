@@ -375,7 +375,7 @@ function LiveMonitoringContent() {
                         color: 'var(--text-muted)',
                       }}
                     >
-                      ({selectedCamera.location?.address || 'Gujarat Jurisdiction'})
+                      ({selectedCamera.location?.address || 'Pan-India Jurisdiction'})
                     </span>
                   </div>
                 </div>

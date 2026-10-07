@@ -134,7 +134,7 @@ describe('Operational Command Center (Phase 9)', () => {
   it('1. dashboard loads successfully with header and institutional title', async () => {
     render(<OperationalCommandCenterPage />);
     expect(screen.getByTestId('command-center-header')).toBeInTheDocument();
-    expect(screen.getAllByText(/NETRAVAHA/i).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText(/NETRAVA/i).length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText(/Operational Intelligence Command Center/i)).toBeInTheDocument();
 
     await waitFor(() => {

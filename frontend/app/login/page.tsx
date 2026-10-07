@@ -42,7 +42,7 @@ export default function LoginPage() {
                 lineHeight: 1,
               }}
             >
-              NETRAVAHA
+              NETRAVA
             </div>
             <div
               style={{

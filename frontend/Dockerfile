@@ -1,5 +1,5 @@
 # ==============================================================================
-# NETRAVAHA Frontend Production Dockerfile
+# NETRAVA Frontend Production Dockerfile
 # Gujarat Police Innovation Challenge 2026
 # Next.js 14 Standalone multi-stage build targeting Node.js 20 on Alpine Linux
 # ==============================================================================

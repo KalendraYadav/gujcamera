@@ -1,7 +1,7 @@
 {
   "$schema": "https://netravaha.police.gujarat.gov.in/schemas/v1/demonstration-manifest.json",
   "manifestVersion": "1.0.0",
-  "title": "NETRAVAHA Gujarat Demonstration CCTV Corridor",
+  "title": "NETRAVA Demonstration CCTV Corridor",
   "challenge": "Gujarat Police Innovation Challenge 2026",
   "classification": "SIMULATED_REPRESENTATIVE_CORRIDOR",
   "updatedAt": "2026-10-03T18:00:00Z",

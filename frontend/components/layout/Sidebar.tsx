@@ -2,7 +2,7 @@
 
 // ==============================================================================
 // Global Collapsible Sidebar & Navigation Drawer Component
-// Gujarat Police Innovation Challenge 2026 - NETRAVAHA
+// Gujarat Police Innovation Challenge 2026 - NETRAVA
 // Collapsed Rail + Compact Profile + Left-Side Auto-Closing Detail Panel
 // ==============================================================================
 
@@ -196,7 +196,7 @@ export function Sidebar({
 
               {/* Accessible text for test assertions & screen readers */}
               <div className="visually-hidden-rail">
-                <span>NETRAVAHA</span>
+                <span>NETRAVA</span>
                 <span>CCTV INTELLIGENCE</span>
               </div>
             </div>
@@ -220,7 +220,7 @@ export function Sidebar({
                         lineHeight: 1.1,
                       }}
                     >
-                      NETRAVAHA
+                      NETRAVA
                     </div>
                     <div
                       style={{

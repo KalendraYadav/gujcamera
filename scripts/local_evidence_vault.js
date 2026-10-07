@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // ==============================================================================
-// NETRAVAHA — Local Forensic Evidence Vault (S3-Compatible Gateway)
+// NETRAVA — Local Forensic Evidence Vault (S3-Compatible Gateway)
 // Gujarat Police Innovation Challenge 2026
 // Provides high-reliability S3 storage for MinIO SDK & @aws-sdk/client-s3
 // ==============================================================================
@@ -194,7 +194,7 @@ const server = http.createServer((req, res) => {
 
 if (require.main === module) {
   server.listen(PORT, '0.0.0.0', () => {
-    console.log(`🏛️ NETRAVAHA Forensic Evidence Vault (S3 compatible) listening on port ${PORT}`);
+    console.log(`🏛️ NETRAVA Forensic Evidence Vault (S3 compatible) listening on port ${PORT}`);
     console.log(`📁 Local storage root: ${STORAGE_ROOT}`);
   });
 }

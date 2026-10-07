@@ -198,7 +198,7 @@ describe('DashboardService (Phase 9 Operational Command Center)', () => {
     expect(summary.investigations.recent_events.length).toBe(1);
     expect(summary.investigations.recent_events[0].action).toBe('VEHICLE_SEARCH');
 
-    expect(summary.disclaimer).toContain('NETRAVAHA correlates discrete CCTV sightings');
+    expect(summary.disclaimer).toContain('NETRAVA correlates discrete CCTV sightings');
   });
 
   it('handles offline or degraded subsystems gracefully without 500 error', async () => {

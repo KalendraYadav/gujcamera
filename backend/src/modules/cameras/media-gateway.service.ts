@@ -479,7 +479,7 @@ export class MediaGatewayService {
         const headers: Record<string, string | number> = {
           'Content-Type': 'application/json',
           ...(body ? { 'Content-Length': Buffer.byteLength(body, 'utf8') } : {}),
-          'User-Agent': 'NETRAVAHA-MediaGatewayClient/1.0',
+          'User-Agent': 'NETRAVA-MediaGatewayClient/1.0',
         };
 
         if (this.apiUser && this.apiPassword) {

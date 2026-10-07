@@ -45,7 +45,7 @@ function parseCameraIdentity(camera: Camera): { idPrefix: string; shortTitle: st
   }
   return {
     idPrefix: camera.name,
-    shortTitle: camera.location?.address || camera.department_name || 'Gujarat Jurisdiction',
+    shortTitle: camera.location?.address || camera.department_name || 'Pan-India Jurisdiction',
   };
 }
 
