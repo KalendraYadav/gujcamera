@@ -251,5 +251,163 @@ describe('RedisStreamClient & Production TLS Compatibility', () => {
 
       expect(mockQuit).toHaveBeenCalled();
     });
+
+    describe('autoClaim and pending recovery', () => {
+      it('claims pending messages via native xautoclaim when supported', async () => {
+        const mockXautoclaim = jest.fn().mockResolvedValue([
+          '1700000000002-0',
+          [
+            ['1700000000001-0', ['data', '{"test":"value"}']],
+            ['1700000000002-0', ['data', '{"test":"value2"}']],
+          ],
+          [],
+        ]);
+        (MockedRedis.prototype as any).xautoclaim = mockXautoclaim;
+
+        const mockConfigService = {
+          get: jest.fn((key: string, defaultValue?: any) => defaultValue),
+        };
+
+        const module: TestingModule = await Test.createTestingModule({
+          providers: [
+            RedisStreamClient,
+            { provide: ConfigService, useValue: mockConfigService },
+          ],
+        }).compile();
+
+        const service = module.get<RedisStreamClient>(RedisStreamClient);
+        const result = await service.autoClaim(
+          'stream:test',
+          'group:test',
+          'consumer-1',
+          30000,
+          '0-0',
+          10,
+        );
+
+        expect(mockXautoclaim).toHaveBeenCalledWith(
+          'stream:test',
+          'group:test',
+          'consumer-1',
+          30000,
+          '0-0',
+          'COUNT',
+          10,
+        );
+        expect(result.nextStartId).toBe('1700000000002-0');
+        expect(result.messages).toHaveLength(2);
+        expect(result.messages[0].id).toBe('1700000000001-0');
+        expect(result.messages[0].fields.data).toBe('{"test":"value"}');
+      });
+
+      it('falls back to XPENDING + XCLAIM if xautoclaim throws unknown command', async () => {
+        const mockXautoclaim = jest
+          .fn()
+          .mockRejectedValue(new Error('ERR unknown command `xautoclaim`'));
+        const mockXpending = jest.fn().mockResolvedValue([
+          ['1700000000005-0', 'consumer-old', 35000, 2],
+          ['1700000000006-0', 'consumer-active', 5000, 1], // idle time < 30000, should be filtered
+        ]);
+        const mockXclaim = jest.fn().mockResolvedValue([
+          ['1700000000005-0', ['data', '{"recovered":"yes"}']],
+        ]);
+
+        (MockedRedis.prototype as any).xautoclaim = mockXautoclaim;
+        (MockedRedis.prototype as any).xpending = mockXpending;
+        (MockedRedis.prototype as any).xclaim = mockXclaim;
+
+        const mockConfigService = {
+          get: jest.fn((key: string, defaultValue?: any) => defaultValue),
+        };
+
+        const module: TestingModule = await Test.createTestingModule({
+          providers: [
+            RedisStreamClient,
+            { provide: ConfigService, useValue: mockConfigService },
+          ],
+        }).compile();
+
+        const service = module.get<RedisStreamClient>(RedisStreamClient);
+        const result = await service.autoClaim(
+          'stream:test',
+          'group:test',
+          'consumer-new',
+          30000,
+          '0-0',
+          10,
+        );
+
+        expect(mockXautoclaim).toHaveBeenCalled();
+        expect(mockXpending).toHaveBeenCalledWith('stream:test', 'group:test', '-', '+', 10);
+        // Only 1700000000005-0 had idleTime (35000) >= minIdleTimeMs (30000)
+        expect(mockXclaim).toHaveBeenCalledWith(
+          'stream:test',
+          'group:test',
+          'consumer-new',
+          30000,
+          '1700000000005-0',
+        );
+        expect(result.messages).toHaveLength(1);
+        expect(result.messages[0].id).toBe('1700000000005-0');
+      });
+
+      it('handles empty pending results gracefully without errors', async () => {
+        const mockXautoclaim = jest.fn().mockResolvedValue(['0-0', [], []]);
+        (MockedRedis.prototype as any).xautoclaim = mockXautoclaim;
+
+        const mockConfigService = {
+          get: jest.fn((key: string, defaultValue?: any) => defaultValue),
+        };
+
+        const module: TestingModule = await Test.createTestingModule({
+          providers: [
+            RedisStreamClient,
+            { provide: ConfigService, useValue: mockConfigService },
+          ],
+        }).compile();
+
+        const service = module.get<RedisStreamClient>(RedisStreamClient);
+        const result = await service.autoClaim(
+          'stream:test',
+          'group:test',
+          'consumer-1',
+          30000,
+          '0-0',
+          10,
+        );
+
+        expect(result.messages).toHaveLength(0);
+        expect(result.nextStartId).toBe('0-0');
+      });
+
+      it('catches unexpected connection errors and returns empty results safely', async () => {
+        const mockXautoclaim = jest.fn().mockRejectedValue(new Error('Connection refused'));
+        (MockedRedis.prototype as any).xautoclaim = mockXautoclaim;
+
+        const mockConfigService = {
+          get: jest.fn((key: string, defaultValue?: any) => defaultValue),
+        };
+
+        const module: TestingModule = await Test.createTestingModule({
+          providers: [
+            RedisStreamClient,
+            { provide: ConfigService, useValue: mockConfigService },
+          ],
+        }).compile();
+
+        const service = module.get<RedisStreamClient>(RedisStreamClient);
+        const result = await service.autoClaim(
+          'stream:test',
+          'group:test',
+          'consumer-1',
+          30000,
+          '0-0',
+          10,
+        );
+
+        expect(result.messages).toEqual([]);
+        expect(result.nextStartId).toBe('0-0');
+      });
+    });
   });
 });

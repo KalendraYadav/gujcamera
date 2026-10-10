@@ -18,12 +18,22 @@ import { RedisStreamClient, StreamMessage } from '../redis/redis-stream.client';
 @Injectable()
 export class SightingEventConsumer implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(SightingEventConsumer.name);
-  private isRunning = false;
+  public isRunning = false;
   private consumerLoopPromise: Promise<void> | null = null;
+  private recoveryLoopPromise: Promise<void> | null = null;
+  private isRecoveringPending = false;
+  private readonly deliveryAttemptCounts: Map<string, number> = new Map();
 
   public readonly streamName: string;
   public readonly consumerGroup: string;
   public readonly consumerName: string;
+
+  // Configuration for pending message recovery (Phase 4.2)
+  public readonly pendingRecoveryEnabled: boolean;
+  public readonly pendingRecoveryIntervalMs: number;
+  public readonly pendingMinIdleMs: number;
+  public readonly pendingBatchSize: number;
+  public readonly pendingMaxDeliveryAttempts: number;
 
   // Telemetry metrics
   public totalEventsReceived = 0;
@@ -33,6 +43,9 @@ export class SightingEventConsumer implements OnModuleInit, OnModuleDestroy {
   public totalAlertsTriggered = 0;
   public totalProcessingErrors = 0;
   public totalAcks = 0;
+  public totalPendingRecovered = 0;
+  public totalPendingReclaimAttempts = 0;
+  public totalDeadLettersDropped = 0;
 
   constructor(
     private readonly redisClient: RedisStreamClient,
@@ -49,6 +62,21 @@ export class SightingEventConsumer implements OnModuleInit, OnModuleDestroy {
       'gujcamera:backend:sightings-group',
     );
     this.consumerName = `backend-${process.pid}-${Math.random().toString(36).substring(2, 7)}`;
+
+    this.pendingRecoveryEnabled =
+      this.configService.get<string>('REDIS_PENDING_RECOVERY_ENABLED', 'true') !== 'false';
+    this.pendingRecoveryIntervalMs = Number(
+      this.configService.get<number>('REDIS_PENDING_RECOVERY_INTERVAL_MS', 15000),
+    );
+    this.pendingMinIdleMs = Number(
+      this.configService.get<number>('REDIS_PENDING_MIN_IDLE_MS', 30000),
+    );
+    this.pendingBatchSize = Number(
+      this.configService.get<number>('REDIS_PENDING_BATCH_SIZE', 10),
+    );
+    this.pendingMaxDeliveryAttempts = Number(
+      this.configService.get<number>('REDIS_PENDING_MAX_DELIVERY_ATTEMPTS', 5),
+    );
   }
 
   async onModuleInit(): Promise<void> {
@@ -63,8 +91,13 @@ export class SightingEventConsumer implements OnModuleInit, OnModuleDestroy {
       await this.redisClient.ensureConsumerGroup(this.streamName, this.consumerGroup);
       this.isRunning = true;
       this.consumerLoopPromise = this.runConsumerLoop();
+
+      if (this.pendingRecoveryEnabled) {
+        this.recoveryLoopPromise = this.runPendingRecoveryLoop();
+      }
+
       this.logger.log(
-        `Sighting event consumer started [Stream: ${this.streamName}, Group: ${this.consumerGroup}, Consumer: ${this.consumerName}]`,
+        `Sighting event consumer started [Stream: ${this.streamName}, Group: ${this.consumerGroup}, Consumer: ${this.consumerName}, PendingRecovery: ${this.pendingRecoveryEnabled}]`,
       );
     } catch (err: any) {
       this.logger.error(`Failed to initialize sighting event consumer: ${err.message}`);
@@ -278,10 +311,112 @@ export class SightingEventConsumer implements OnModuleInit, OnModuleDestroy {
   }
 
   private async safeAck(stream: string, group: string, messageId: string): Promise<void> {
-    if (/^\d+-\d+$/.test(messageId)) {
+    if (messageId && typeof messageId === 'string' && messageId.trim().length > 0) {
       await this.redisClient.ack(stream, group, messageId);
+      this.deliveryAttemptCounts.delete(messageId);
     }
     this.totalAcks++;
+  }
+
+  public getDeliveryAttempts(messageId: string): number {
+    return this.deliveryAttemptCounts.get(messageId) || 0;
+  }
+
+  /**
+   * Reclaim and process pending messages from the consumer group's PEL.
+   * Can be called periodically by the background loop or triggered manually.
+   */
+  public async recoverPendingBatch(startId = '0-0'): Promise<string> {
+    if (this.isRecoveringPending || !this.isRunning) {
+      return startId;
+    }
+
+    this.isRecoveringPending = true;
+    this.totalPendingReclaimAttempts++;
+
+    try {
+      const claimResult = await this.redisClient.autoClaim(
+        this.streamName,
+        this.consumerGroup,
+        this.consumerName,
+        this.pendingMinIdleMs,
+        startId,
+        this.pendingBatchSize,
+      );
+
+      const messages = claimResult.messages || [];
+      const nextStartId = claimResult.nextStartId || '0-0';
+
+      if (messages.length > 0) {
+        this.logger.log(
+          `[Pending Recovery] Reclaimed ${messages.length} pending message(s) from PEL (startId: ${startId}, nextId: ${nextStartId})`,
+        );
+
+        for (const message of messages) {
+          if (!this.isRunning) break;
+
+          // Check delivery attempt threshold to handle poison pills / persistent unresolvable messages
+          const currentAttempts = (this.deliveryAttemptCounts.get(message.id) || 0) + 1;
+          this.deliveryAttemptCounts.set(message.id, currentAttempts);
+
+          // Bounded map size maintenance
+          if (this.deliveryAttemptCounts.size > 10000) {
+            const keysToDelete = Array.from(this.deliveryAttemptCounts.keys()).slice(0, 2000);
+            for (const k of keysToDelete) {
+              this.deliveryAttemptCounts.delete(k);
+            }
+          }
+
+          if (currentAttempts > this.pendingMaxDeliveryAttempts) {
+            this.totalDeadLettersDropped++;
+            this.totalProcessingErrors++;
+            this.logger.error(
+              `[Dead Letter] Message ${message.id} exceeded maximum delivery attempts (${this.pendingMaxDeliveryAttempts}). Acknowledging to avoid consumer starvation.`,
+            );
+            await this.safeAck(this.streamName, this.consumerGroup, message.id);
+            continue;
+          }
+
+          const success = await this.processStreamMessage(message);
+          if (success) {
+            this.totalPendingRecovered++;
+            this.deliveryAttemptCounts.delete(message.id);
+          }
+        }
+      }
+
+      return nextStartId === '0-0' ? '0-0' : nextStartId;
+    } catch (err: any) {
+      this.logger.error(`Failed to reclaim pending messages on ${this.streamName}: ${err.message}`);
+      return '0-0';
+    } finally {
+      this.isRecoveringPending = false;
+    }
+  }
+
+  private async runPendingRecoveryLoop(): Promise<void> {
+    this.logger.log(
+      `Pending message recovery loop active [Interval: ${this.pendingRecoveryIntervalMs}ms, MinIdle: ${this.pendingMinIdleMs}ms, BatchSize: ${this.pendingBatchSize}]`,
+    );
+
+    // Initial startup delay to give new message stream consumers priority
+    await new Promise((res) => setTimeout(res, Math.min(2000, this.pendingRecoveryIntervalMs)));
+
+    let currentStartId = '0-0';
+
+    while (this.isRunning) {
+      try {
+        currentStartId = await this.recoverPendingBatch(currentStartId);
+      } catch (err: any) {
+        if (this.isRunning) {
+          this.logger.error(`Error in pending recovery loop: ${err.message}`);
+        }
+      }
+
+      // Interruptible delay between recovery batches
+      const intervalMs = Math.max(100, this.pendingRecoveryIntervalMs);
+      await new Promise((res) => setTimeout(res, intervalMs));
+    }
   }
 
   /**
@@ -349,14 +484,19 @@ export class SightingEventConsumer implements OnModuleInit, OnModuleDestroy {
 
   async onModuleDestroy(): Promise<void> {
     this.isRunning = false;
-    if (this.consumerLoopPromise) {
+    const promises: Promise<void>[] = [];
+    if (this.consumerLoopPromise) promises.push(this.consumerLoopPromise);
+    if (this.recoveryLoopPromise) promises.push(this.recoveryLoopPromise);
+
+    if (promises.length > 0) {
       try {
         await Promise.race([
-          this.consumerLoopPromise,
+          Promise.all(promises),
           new Promise((res) => setTimeout(res, 2500)),
         ]);
       } catch {}
       this.consumerLoopPromise = null;
+      this.recoveryLoopPromise = null;
     }
     this.logger.log('Sighting event consumer stopped cleanly');
   }

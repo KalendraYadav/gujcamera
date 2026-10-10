@@ -46,6 +46,7 @@ class StreamConsumer:
         self.frame_callback = frame_callback
 
         self._stop_event = threading.Event()
+        self._reconnect_trigger = threading.Event()
         self._thread: Optional[threading.Thread] = None
         self._frame_seq: int = 0
         self._last_sample_ts: float = 0.0
@@ -57,6 +58,7 @@ class StreamConsumer:
             return
 
         self._stop_event.clear()
+        self._reconnect_trigger.clear()
         self._thread = threading.Thread(
             target=self._run_reconnect_loop,
             name=f"Consumer-{self.config.id}",
@@ -73,10 +75,15 @@ class StreamConsumer:
     def stop(self, timeout: float = 5.0) -> None:
         """Stop consumer thread gracefully"""
         self._stop_event.set()
+        self._reconnect_trigger.set()
         if self._thread is not None and self._thread.is_alive():
             self._thread.join(timeout=timeout)
             logger.info("[%s] Stream consumer thread joined", self.config.id)
         self.health_tracker.set_status(StreamStatus.STOPPED)
+
+    def wake_reconnect(self) -> None:
+        """Wake up consumer immediately from backoff sleep when stream recovers"""
+        self._reconnect_trigger.set()
 
     def is_running(self) -> bool:
         """Check if consumer thread is active"""
@@ -109,13 +116,25 @@ class StreamConsumer:
                 self.health_tracker.reconnect_count,
             )
 
-            # Interruptible wait for reconnect delay
-            interrupted = self._stop_event.wait(timeout=reconnect_delay)
-            if interrupted:
+            # Interruptible wait for reconnect delay, or immediate wake on ACTIVATE trigger
+            self._reconnect_trigger.clear()
+            wait_start = time.time()
+            woken_early = False
+            while not self._stop_event.is_set() and (time.time() - wait_start) < reconnect_delay:
+                if self._reconnect_trigger.is_set():
+                    self._reconnect_trigger.clear()
+                    woken_early = True
+                    logger.info("[%s] Reconnect loop awakened early by activation trigger", self.config.id)
+                    reconnect_delay = self.base_reconnect_delay
+                    break
+                self._stop_event.wait(timeout=min(0.2, reconnect_delay))
+
+            if self._stop_event.is_set():
                 break
 
-            # Exponential backoff calculation bounded by max_reconnect_delay
-            reconnect_delay = min(reconnect_delay * 2.0, self.max_reconnect_delay)
+            if not woken_early:
+                # Exponential backoff calculation bounded by max_reconnect_delay
+                reconnect_delay = min(reconnect_delay * 2.0, self.max_reconnect_delay)
 
         self.health_tracker.set_status(StreamStatus.STOPPED)
         logger.info("[%s] Reconnect loop terminated", self.config.id)
@@ -127,8 +146,13 @@ class StreamConsumer:
 
         try:
             url = self.config.url
-            url = url.replace("rtsp://simulator:8554", "rtsp://127.0.0.1:8554")
-            url = url.replace("rtsp://video-gateway:8554", "rtsp://127.0.0.1:8554")
+            if "video-gateway" in url or "simulator" in url:
+                try:
+                    import socket
+                    socket.gethostbyname("video-gateway")
+                except Exception:
+                    url = url.replace("rtsp://simulator:8554", "rtsp://127.0.0.1:8554")
+                    url = url.replace("rtsp://video-gateway:8554", "rtsp://127.0.0.1:8554")
             if url.startswith("rtsp://"):
                 cap = cv2.VideoCapture(url, cv2.CAP_FFMPEG)
             else:

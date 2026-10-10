@@ -328,6 +328,20 @@ class RedisEventPublisher:
         with self._lock:
             return len(self._buffer)
 
+    def get_metrics(self) -> Dict[str, Any]:
+        """Return structured publisher telemetry for observability and heartbeats"""
+        with self._lock:
+            return {
+                "published": self.total_published,
+                "publish_errors": self.total_publish_errors,
+                "buffered": self.total_buffered,
+                "buffer_size": len(self._buffer),
+                "buffer_drops": self.total_buffer_drops,
+                "retried_success": self.total_retried_success,
+                "is_connected": self._connected,
+                "last_published_at": self.last_published_at,
+            }
+
     def close(self) -> None:
         """Close connection to Redis and log buffer state"""
         with self._lock:

@@ -38,3 +38,10 @@ If additional real-world traffic context footage is required for offline model b
 - **Official Portal**: http://detrac-db.rit.albany.edu/
 - **License**: Academic Non-Commercial
 - **Intended Use**: Traffic density and multi-vehicle bounding box tracking benchmark.
+
+### C. Zenodo — Number Plate Number Identification Dataset
+- **Official Portal**: https://doi.org/10.5281/zenodo.13954136
+- **License**: Creative Commons Attribution 4.0 International (CC-BY 4.0)
+- **Provenance**: Bapatla Engineering College, Andhra Pradesh (Dr. Chandra Mohan Bhuma et al.)
+- **Intended Use**: Offline evaluation of Indian license plate text OCR extraction and format validation.
+- **Reference Spec**: `docs/PHASE_5_2_DATASET_ACQUISITION_PLAN.md`

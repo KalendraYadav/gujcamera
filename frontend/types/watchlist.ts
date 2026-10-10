@@ -15,6 +15,8 @@ export interface WatchlistEntry {
   priority: AlertSeverity;
   added_by: string;
   expires_at: string | null;
+  incident_start?: string | null;
+  incident_end?: string | null;
   active: boolean;
   sightings_count?: number;
   created_at: string;
@@ -48,6 +50,8 @@ export interface CreateWatchlistEntryPayload {
   reason: string;
   priority?: AlertSeverity;
   expires_at?: string;
+  incident_start?: string;
+  incident_end?: string;
 }
 
 export interface UpdateWatchlistEntryPayload {
@@ -56,4 +60,6 @@ export interface UpdateWatchlistEntryPayload {
   priority?: AlertSeverity;
   active?: boolean;
   expires_at?: string;
+  incident_start?: string;
+  incident_end?: string;
 }

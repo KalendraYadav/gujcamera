@@ -18,6 +18,7 @@ export const alertsApi = {
     if (filter?.watchlist_id) query.set('watchlist_id', filter.watchlist_id);
     if (filter?.plate) query.set('plate', filter.plate);
     if (filter?.camera_id) query.set('camera_id', filter.camera_id);
+    if (filter?.match_type) query.set('match_type', filter.match_type);
     if (filter?.limit) query.set('limit', String(filter.limit));
     if (filter?.page) query.set('page', String(filter.page));
 

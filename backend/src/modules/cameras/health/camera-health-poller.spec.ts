@@ -708,4 +708,159 @@ describe('CameraHealthPollerService (Phase 4: Health Monitoring & Reconnection)'
     expect(runtime?.status).toBe(OperationalStatus.OFFLINE);
     expect(runtime?.reconnectAttempts).toBe(0);
   });
+
+  // ============================================================================
+  // TEST 20: Camera marked ONLINE with 0 readers receives ACTIVATE redispatch
+  // ============================================================================
+  it('20. ONLINE camera with 0 readers: dispatches ACTIVATE to wake up AI worker', async () => {
+    mockPrisma.camera.findMany.mockResolvedValue([mockCameraOnline]);
+
+    const pathStates = new Map();
+    // Gateway reports stream ready, but 0 active readers
+    pathStates.set('cam-ahm-01', {
+      name: 'cam-ahm-01',
+      ready: true,
+      readyTime: '2026-10-09T06:00:00Z',
+      readersCount: 0,
+    });
+    mockMediaGateway.listPathStates.mockResolvedValue({ success: true, paths: pathStates });
+
+    await service.pollActiveCameras();
+
+    // Must publish Redis ACTIVATE event to restart ingestion
+    expect(mockRedisClient.pubsubPublish).toHaveBeenCalledWith(
+      'gujcamera:control:camera-events',
+      expect.stringContaining('"action":"ACTIVATE"'),
+    );
+    // Write-storm prevention: DB remains untouched since status was already ONLINE
+    expect(mockPrisma.$transaction).not.toHaveBeenCalled();
+  });
+
+  // ============================================================================
+  // TEST 21: Redispatch cooldown prevents activation storms on consecutive polls
+  // ============================================================================
+  it('21. Activation storm prevention: rate-limits redispatch on consecutive polls with 0 readers', async () => {
+    mockPrisma.camera.findMany.mockResolvedValue([mockCameraOnline]);
+
+    const pathStates = new Map();
+    pathStates.set('cam-ahm-01', {
+      name: 'cam-ahm-01',
+      ready: true,
+      readyTime: '2026-10-09T06:00:00Z',
+      readersCount: 0,
+    });
+    mockMediaGateway.listPathStates.mockResolvedValue({ success: true, paths: pathStates });
+
+    // Poll 1: Dispatches ACTIVATE
+    await service.pollActiveCameras();
+    expect(mockRedisClient.pubsubPublish).toHaveBeenCalledTimes(1);
+
+    // Poll 2 (immediately after, within cooldown): should NOT dispatch again
+    await service.pollActiveCameras();
+    expect(mockRedisClient.pubsubPublish).toHaveBeenCalledTimes(1);
+  });
+
+  // ============================================================================
+  // TEST 22: Steady-state with active reader (readersCount > 0) does not dispatch
+  // ============================================================================
+  it('22. Active reader steady-state: does not publish ACTIVATE when stream is actively read', async () => {
+    mockPrisma.camera.findMany.mockResolvedValue([mockCameraOnline]);
+
+    const pathStates = new Map();
+    pathStates.set('cam-ahm-01', {
+      name: 'cam-ahm-01',
+      ready: true,
+      readyTime: '2026-10-09T06:00:00Z',
+      readersCount: 1, // AI worker actively reading
+    });
+    mockMediaGateway.listPathStates.mockResolvedValue({ success: true, paths: pathStates });
+
+    await service.pollActiveCameras();
+    expect(mockRedisClient.pubsubPublish).not.toHaveBeenCalled();
+  });
+
+  // ============================================================================
+  // TEST 23: Gateway source reconnection (new readyTime) triggers redispatch
+  // ============================================================================
+  it('23. Gateway source reconnection: publishes ACTIVATE when gateway readyTime updates', async () => {
+    mockPrisma.camera.findMany.mockResolvedValue([mockCameraOnline]);
+
+    // Initial poll: baseline readyTime with active reader
+    const pathStatesInitial = new Map();
+    pathStatesInitial.set('cam-ahm-01', {
+      name: 'cam-ahm-01',
+      ready: true,
+      readyTime: '2026-10-09T06:00:00Z',
+      readersCount: 1,
+    });
+    mockMediaGateway.listPathStates.mockResolvedValue({ success: true, paths: pathStatesInitial });
+    await service.pollActiveCameras();
+    expect(mockRedisClient.pubsubPublish).not.toHaveBeenCalled();
+
+    // Stream reconnected in gateway: readyTime advances
+    const pathStatesReconnected = new Map();
+    pathStatesReconnected.set('cam-ahm-01', {
+      name: 'cam-ahm-01',
+      ready: true,
+      readyTime: '2026-10-09T06:05:00Z', // new connection session
+      readersCount: 1,
+    });
+    mockMediaGateway.listPathStates.mockResolvedValue({ success: true, paths: pathStatesReconnected });
+    await service.pollActiveCameras();
+
+    // Must dispatch ACTIVATE for the new session
+    expect(mockRedisClient.pubsubPublish).toHaveBeenCalledWith(
+      'gujcamera:control:camera-events',
+      expect.stringContaining('"action":"ACTIVATE"'),
+    );
+  });
+
+  // ============================================================================
+  // TEST 24: Credential rotation dispatches ACTIVATE once stream is ready
+  // ============================================================================
+  it('24. Credential rotation recovery: dispatches ACTIVATE on next confirmed healthy poll', async () => {
+    mockPrisma.camera.findMany.mockResolvedValue([mockCameraOnline]);
+
+    const pathStates = new Map();
+    pathStates.set('cam-ahm-01', {
+      name: 'cam-ahm-01',
+      ready: true,
+      readyTime: '2026-10-09T06:00:00Z',
+      readersCount: 1,
+    });
+    mockMediaGateway.listPathStates.mockResolvedValue({ success: true, paths: pathStates });
+
+    // Establish baseline
+    await service.pollActiveCameras();
+    mockRedisClient.pubsubPublish.mockClear();
+
+    // Notify credential rotated
+    service.notifyCredentialRotated(mockCameraOnline.id);
+
+    // Next poll confirms healthy stream
+    await service.pollActiveCameras();
+    expect(mockRedisClient.pubsubPublish).toHaveBeenCalledWith(
+      'gujcamera:control:camera-events',
+      expect.stringContaining('"action":"ACTIVATE"'),
+    );
+  });
+
+  // ============================================================================
+  // TEST 25: Never reports camera ONLINE before real stream is verified
+  // ============================================================================
+  it('25. Strict stream verification: does NOT report camera ONLINE when stream is unready', async () => {
+    mockPrisma.camera.findMany.mockResolvedValue([mockCameraOnline]);
+
+    const pathStates = new Map();
+    pathStates.set('cam-ahm-01', {
+      name: 'cam-ahm-01',
+      ready: false, // stream unready
+    });
+    mockMediaGateway.listPathStates.mockResolvedValue({ success: true, paths: pathStates });
+
+    const status = await service.evaluateCameraHealth(mockCameraOnline, pathStates, true);
+    expect(status).not.toBe(OperationalStatus.ONLINE);
+    expect(status).toBe(OperationalStatus.DEGRADED);
+    expect(mockRedisClient.pubsubPublish).not.toHaveBeenCalled();
+  });
 });

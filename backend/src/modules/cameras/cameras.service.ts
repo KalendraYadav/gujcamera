@@ -57,9 +57,12 @@ export class CamerasService implements OnModuleInit {
           include: { streams: true },
         });
 
+        const activeCameraIds = new Set<string>();
+
         for (const cam of activeCameras) {
           const stream = cam.streams?.[0];
           if (stream?.urlOrHandle) {
+            activeCameraIds.add(cam.id);
             const pathName = this.mediaGatewayService
               ? this.mediaGatewayService.normalizePathName(cam.name, cam.id)
               : 'cam';
@@ -76,7 +79,29 @@ export class CamerasService implements OnModuleInit {
             );
           }
         }
-        this.logger.log(`[MediaGatewaySync] Synced ${activeCameras.length} active camera streams to Redis`);
+
+        // Clean up any stale registry entries for cameras that are no longer active/present
+        const existingRegistry = await this.redisClient.hgetall('gujcamera:registry:active-streams');
+        for (const existingId of Object.keys(existingRegistry)) {
+          if (!activeCameraIds.has(existingId)) {
+            await this.redisClient.hdel('gujcamera:registry:active-streams', existingId);
+          }
+        }
+
+        this.logger.log(`[MediaGatewaySync] Synced ${activeCameraIds.size} active camera streams to Redis`);
+
+        // Notify downstream AI vision workers via Pub/Sub to trigger state synchronization
+        await this.redisClient.pubsubPublish(
+          'gujcamera:control:camera-events',
+          JSON.stringify({
+            action: 'SYNC',
+            timestamp: new Date().toISOString(),
+            synced_count: activeCameraIds.size,
+          }),
+        );
+        this.logger.log(
+          `[MediaGatewaySync] Published SYNC event for ${activeCameraIds.size} cameras to gujcamera:control:camera-events`,
+        );
       }
     } catch (err: any) {
       this.logger.warn(`Startup camera stream sync deferred: ${err.message}`);
@@ -997,6 +1022,18 @@ export class CamerasService implements OnModuleInit {
             last_transition: runtimeState?.lastTransitionAt || null,
             recovery_at: runtimeState?.recoveryAt || null,
             gateway_status: gatewayStatus,
+            processing_status:
+              gatewayStatus?.ready && (gatewayStatus?.readers_count || 0) > 0
+                ? 'PROCESSING'
+                : gatewayStatus?.ready
+                ? 'READY_NO_READER'
+                : camera.operationalStatus === OperationalStatus.ONLINE
+                ? 'STALLED'
+                : 'OFFLINE',
+            is_worker_subscribed: (gatewayStatus?.readers_count || 0) > 0,
+            is_fresh: camera.health.lastHeartbeat
+              ? Date.now() - new Date(camera.health.lastHeartbeat).getTime() < 60000
+              : false,
           }
         : null,
     };

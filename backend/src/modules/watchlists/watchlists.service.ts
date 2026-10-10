@@ -4,7 +4,10 @@ import {
   BadRequestException,
   ForbiddenException,
   ConflictException,
+  ServiceUnavailableException,
   Logger,
+  Optional,
+  Inject,
 } from '@nestjs/common';
 import { Prisma, AlertSeverity } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -12,12 +15,16 @@ import { AuthenticatedUser } from '../../common/decorators/current-user.decorato
 import { CreateWatchlistDto, UpdateWatchlistDto, WatchlistQueryDto } from './dto/watchlist.dto';
 import { CreateWatchlistEntryDto, UpdateWatchlistEntryDto, WatchlistEntryQueryDto } from './dto/watchlist-entry.dto';
 import { normalizeLicensePlate, isValidPlateFormat } from '../vehicles/utils/plate-normalizer';
+import { WatchlistBackfillService } from './watchlist-backfill.service';
 
 @Injectable()
 export class WatchlistsService {
   private readonly logger = new Logger(WatchlistsService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @Optional() @Inject(WatchlistBackfillService) private readonly backfillService?: WatchlistBackfillService,
+  ) {}
 
   /**
    * Create a new Watchlist (Super Admin across depts, Dept Admin for own dept)
@@ -269,6 +276,14 @@ export class WatchlistsService {
       requestId,
     );
 
+    // Asynchronously trigger historical sighting backfill for newly activated entries
+    if (this.backfillService && result.count > 0) {
+      this.backfillService.triggerWatchlistBackfill(id, {
+        actorId: user.id,
+        requestId,
+      });
+    }
+
     return {
       message: 'Watchlist successfully activated',
       id,
@@ -370,6 +385,38 @@ export class WatchlistsService {
       });
     }
 
+    let incidentStart: Date | null = null;
+    let incidentEnd: Date | null = null;
+
+    if (dto.incident_start) {
+      const parsedStart = new Date(dto.incident_start);
+      if (isNaN(parsedStart.getTime())) {
+        throw new BadRequestException({
+          error_code: 'BAD_REQUEST',
+          message: 'Invalid incident_start ISO-8601 timestamp format',
+        });
+      }
+      incidentStart = parsedStart;
+    }
+
+    if (dto.incident_end) {
+      const parsedEnd = new Date(dto.incident_end);
+      if (isNaN(parsedEnd.getTime())) {
+        throw new BadRequestException({
+          error_code: 'BAD_REQUEST',
+          message: 'Invalid incident_end ISO-8601 timestamp format',
+        });
+      }
+      incidentEnd = parsedEnd;
+    }
+
+    if (incidentStart && incidentEnd && incidentEnd.getTime() < incidentStart.getTime()) {
+      throw new BadRequestException({
+        error_code: 'INVALID_INCIDENT_TIME_RANGE',
+        message: 'Reported incident end time cannot be earlier than incident start time',
+      });
+    }
+
     const entry = await this.prisma.watchlistEntry.create({
       data: {
         watchlistId,
@@ -379,6 +426,8 @@ export class WatchlistsService {
         priority: dto.priority || AlertSeverity.HIGH,
         addedBy: user.email || user.id,
         expiresAt,
+        incidentStart,
+        incidentEnd,
         active: true,
       },
     });
@@ -396,9 +445,21 @@ export class WatchlistsService {
         category: entry.category,
         priority: entry.priority,
         expires_at: entry.expiresAt,
+        incident_start: entry.incidentStart ? entry.incidentStart.toISOString() : null,
+        incident_end: entry.incidentEnd ? entry.incidentEnd.toISOString() : null,
       },
       requestId,
     );
+
+    // Asynchronously trigger historical sighting backfill (non-blocking)
+    if (this.backfillService && entry.active) {
+      this.backfillService.triggerBackfill(entry.id, {
+        actorId: user.id,
+        requestId,
+        lookbackHours: dto.lookback_hours,
+        referenceTime: entry.createdAt,
+      });
+    }
 
     return {
       id: entry.id,
@@ -409,6 +470,8 @@ export class WatchlistsService {
       priority: entry.priority,
       added_by: entry.addedBy,
       expires_at: entry.expiresAt,
+      incident_start: entry.incidentStart ? entry.incidentStart.toISOString() : null,
+      incident_end: entry.incidentEnd ? entry.incidentEnd.toISOString() : null,
       active: entry.active,
       created_at: entry.createdAt,
     };
@@ -495,6 +558,8 @@ export class WatchlistsService {
         priority: e.priority,
         added_by: e.addedBy,
         expires_at: e.expiresAt,
+        incident_start: e.incidentStart ? e.incidentStart.toISOString() : null,
+        incident_end: e.incidentEnd ? e.incidentEnd.toISOString() : null,
         active: e.active,
         sightings_count: sightingMap.get(e.plateNormalized) ?? 0,
         created_at: e.createdAt,
@@ -545,6 +610,8 @@ export class WatchlistsService {
       priority: entry.priority,
       added_by: entry.addedBy,
       expires_at: entry.expiresAt,
+      incident_start: entry.incidentStart ? entry.incidentStart.toISOString() : null,
+      incident_end: entry.incidentEnd ? entry.incidentEnd.toISOString() : null,
       active: entry.active,
       sightings_count: sightingsCount,
       created_at: entry.createdAt,
@@ -552,7 +619,7 @@ export class WatchlistsService {
   }
 
   /**
-   * Update entry details (category, reason, priority, expires_at, active)
+   * Update entry details (category, reason, priority, expires_at, incident_start, incident_end, active)
    */
   async updateEntry(entryId: string, dto: UpdateWatchlistEntryDto, user: AuthenticatedUser, requestId?: string) {
     const entry = await this.prisma.watchlistEntry.findUnique({
@@ -582,6 +649,49 @@ export class WatchlistsService {
       });
     }
 
+    let newIncidentStart: Date | null | undefined = undefined;
+    let newIncidentEnd: Date | null | undefined = undefined;
+
+    if (dto.incident_start !== undefined) {
+      if (!dto.incident_start) {
+        newIncidentStart = null;
+      } else {
+        const parsedStart = new Date(dto.incident_start);
+        if (isNaN(parsedStart.getTime())) {
+          throw new BadRequestException({
+            error_code: 'BAD_REQUEST',
+            message: 'Invalid incident_start ISO-8601 timestamp format',
+          });
+        }
+        newIncidentStart = parsedStart;
+      }
+    }
+
+    if (dto.incident_end !== undefined) {
+      if (!dto.incident_end) {
+        newIncidentEnd = null;
+      } else {
+        const parsedEnd = new Date(dto.incident_end);
+        if (isNaN(parsedEnd.getTime())) {
+          throw new BadRequestException({
+            error_code: 'BAD_REQUEST',
+            message: 'Invalid incident_end ISO-8601 timestamp format',
+          });
+        }
+        newIncidentEnd = parsedEnd;
+      }
+    }
+
+    const effectiveStart = newIncidentStart !== undefined ? newIncidentStart : entry.incidentStart;
+    const effectiveEnd = newIncidentEnd !== undefined ? newIncidentEnd : entry.incidentEnd;
+
+    if (effectiveStart && effectiveEnd && effectiveEnd.getTime() < effectiveStart.getTime()) {
+      throw new BadRequestException({
+        error_code: 'INVALID_INCIDENT_TIME_RANGE',
+        message: 'Reported incident end time cannot be earlier than incident start time',
+      });
+    }
+
     const updated = await this.prisma.watchlistEntry.update({
       where: { id: entryId },
       data: {
@@ -589,6 +699,8 @@ export class WatchlistsService {
         ...(dto.reason && { reason: dto.reason }),
         ...(dto.priority && { priority: dto.priority }),
         ...(expiresAt !== undefined && { expiresAt }),
+        ...(newIncidentStart !== undefined && { incidentStart: newIncidentStart }),
+        ...(newIncidentEnd !== undefined && { incidentEnd: newIncidentEnd }),
         ...(dto.active !== undefined && { active: dto.active }),
       },
     });
@@ -602,16 +714,29 @@ export class WatchlistsService {
         category: entry.category,
         reason: entry.reason,
         priority: entry.priority,
+        incident_start: entry.incidentStart ? entry.incidentStart.toISOString() : null,
+        incident_end: entry.incidentEnd ? entry.incidentEnd.toISOString() : null,
         active: entry.active,
       },
       {
         category: updated.category,
         reason: updated.reason,
         priority: updated.priority,
+        incident_start: updated.incidentStart ? updated.incidentStart.toISOString() : null,
+        incident_end: updated.incidentEnd ? updated.incidentEnd.toISOString() : null,
         active: updated.active,
       },
       requestId,
     );
+
+    // If entry transitioned from inactive to active, asynchronously trigger historical backfill
+    if (this.backfillService && entry.active === false && updated.active === true) {
+      this.backfillService.triggerBackfill(updated.id, {
+        actorId: user.id,
+        requestId,
+        referenceTime: new Date(),
+      });
+    }
 
     return {
       id: updated.id,
@@ -622,9 +747,57 @@ export class WatchlistsService {
       priority: updated.priority,
       added_by: updated.addedBy,
       expires_at: updated.expiresAt,
+      incident_start: updated.incidentStart ? updated.incidentStart.toISOString() : null,
+      incident_end: updated.incidentEnd ? updated.incidentEnd.toISOString() : null,
       active: updated.active,
       created_at: updated.createdAt,
     };
+  }
+
+  /**
+   * Explicitly execute historical sighting backfill for a watchlist entry
+   */
+  async runBackfillForEntry(
+    entryId: string,
+    lookbackHours?: number,
+    user?: AuthenticatedUser,
+    requestId?: string,
+  ) {
+    const entry = await this.prisma.watchlistEntry.findUnique({
+      where: { id: entryId },
+      include: { watchlist: true },
+    });
+
+    if (!entry) {
+      throw new NotFoundException({
+        error_code: 'WATCHLIST_ENTRY_NOT_FOUND',
+        message: `Watchlist entry with ID '${entryId}' does not exist`,
+      });
+    }
+
+    if (
+      user &&
+      user.role === 'DEPARTMENT_ADMIN' &&
+      user.departmentId !== entry.watchlist.departmentId
+    ) {
+      throw new ForbiddenException({
+        error_code: 'DEPARTMENT_ACCESS_DENIED',
+        message: 'Department Admins can only backfill entries belonging to their assigned department',
+      });
+    }
+
+    if (!this.backfillService) {
+      throw new ServiceUnavailableException({
+        error_code: 'SERVICE_UNAVAILABLE',
+        message: 'WatchlistBackfillService is not available',
+      });
+    }
+
+    return this.backfillService.processBackfill(entryId, {
+      actorId: user?.id,
+      requestId,
+      lookbackHours,
+    });
   }
 
   /**

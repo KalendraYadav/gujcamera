@@ -7,7 +7,7 @@ import logging
 import signal
 import sys
 import time
-from typing import List
+from typing import List, Optional
 
 from app.config import settings
 from app.consensus import MultiFrameConsensusAggregator
@@ -120,6 +120,7 @@ class WorkerApp:
             redis_host=self.settings.REDIS_HOST,
             redis_port=self.settings.REDIS_PORT,
             redis_password=self.settings.REDIS_PASSWORD,
+            reconcile_interval=self.settings.STREAM_RECONCILE_INTERVAL,
             enabled=True,
         )
 
@@ -184,6 +185,7 @@ class WorkerApp:
                 if now - last_metrics_time >= self.settings.METRICS_INTERVAL:
                     last_metrics_time = now
                     self._log_health_summary()
+                    self._publish_health_telemetry()
             except KeyboardInterrupt:
                 logger.info("KeyboardInterrupt caught in main metrics loop")
                 self.stop()
@@ -249,6 +251,36 @@ class WorkerApp:
             self.event_publisher.is_connected(),
         )
 
+    def _publish_health_telemetry(self, override_status: Optional[str] = None) -> None:
+        """Publish structured telemetry heartbeat to Redis key gujcamera:telemetry:ai-worker with bounded TTL"""
+        try:
+            import json
+            import redis
+            pipeline_metrics = self.pipeline.get_metrics()
+            publisher_metrics = self.event_publisher.get_metrics() if self.event_publisher else {}
+            payload = worker_health.get_heartbeat_payload(
+                worker_name=self.settings.WORKER_NAME,
+                pipeline_metrics=pipeline_metrics,
+                publisher_metrics=publisher_metrics,
+            )
+            if override_status:
+                payload["status"] = override_status
+                payload["worker_lifecycle"] = override_status
+
+            r = redis.Redis(
+                host=self.settings.REDIS_HOST,
+                port=self.settings.REDIS_PORT,
+                password=self.settings.REDIS_PASSWORD if self.settings.REDIS_PASSWORD else None,
+                socket_connect_timeout=2.0,
+                socket_timeout=2.0,
+            )
+            ttl_seconds = 10 if override_status == "STOPPED" else max(30, int(self.settings.METRICS_INTERVAL * 3))
+            r.set("gujcamera:telemetry:ai-worker", json.dumps(payload), ex=ttl_seconds)
+            r.close()
+            logger.debug("[HEARTBEAT] Telemetry heartbeat published to Redis (TTL: %ds, Status: %s)", ttl_seconds, payload["status"])
+        except Exception as ex:
+            logger.debug("Failed to publish AI worker telemetry to Redis: %s", str(ex))
+
     def stop(self) -> None:
         """Stop all stream consumers and terminate cleanly"""
         if not self._is_running:
@@ -264,6 +296,7 @@ class WorkerApp:
             self.event_publisher.close()
 
         worker_health.worker_status = "STOPPED"
+        self._publish_health_telemetry(override_status="STOPPED")
         logger.info("Final Health Summary before shutdown:")
         self._log_health_summary()
         logger.info("AI Vision Worker shutdown complete.")

@@ -226,6 +226,134 @@ export class RedisStreamClient implements OnModuleDestroy {
     }
   }
 
+  /**
+   * Reclaim pending messages idle for at least minIdleTimeMs from other consumers (or self)
+   * using XAUTOCLAIM (Redis 6.2+).
+   * Falls back to XPENDING + XCLAIM if XAUTOCLAIM is unsupported.
+   */
+  async autoClaim(
+    stream: string,
+    group: string,
+    consumer: string,
+    minIdleTimeMs: number,
+    startId = '0-0',
+    count = 10,
+  ): Promise<{ nextStartId: string; messages: StreamMessage[]; deletedMessageIds: string[] }> {
+    if (!this.client) {
+      return { nextStartId: '0-0', messages: [], deletedMessageIds: [] };
+    }
+
+    if (typeof (this.client as any).xautoclaim !== 'function') {
+      return await this.fallbackClaim(stream, group, consumer, minIdleTimeMs, count);
+    }
+
+    try {
+      const result = (await this.client.xautoclaim(
+        stream,
+        group,
+        consumer,
+        minIdleTimeMs,
+        startId,
+        'COUNT',
+        count,
+      )) as [string, [string, string[]][], string[]?] | null;
+
+      if (!result || !Array.isArray(result)) {
+        return { nextStartId: '0-0', messages: [], deletedMessageIds: [] };
+      }
+
+      const nextStartId = result[0] || '0-0';
+      const rawEntries = result[1] || [];
+      const deletedMessageIds = result[2] || [];
+      const messages: StreamMessage[] = [];
+
+      for (const entry of rawEntries) {
+        if (!entry || !Array.isArray(entry)) continue;
+        const [id, rawFields] = entry;
+        if (!id || !Array.isArray(rawFields)) continue;
+
+        const fields: Record<string, string> = {};
+        for (let i = 0; i < rawFields.length; i += 2) {
+          fields[rawFields[i]] = rawFields[i + 1];
+        }
+        messages.push({ id, fields });
+      }
+
+      return { nextStartId, messages, deletedMessageIds };
+    } catch (err: any) {
+      if (
+        err.message &&
+        (err.message.includes('unknown command') || err.message.includes('not a function'))
+      ) {
+        return await this.fallbackClaim(stream, group, consumer, minIdleTimeMs, count);
+      }
+      this.logger.error(`Error during XAUTOCLAIM on ${stream}/${group}: ${err.message}`);
+      return { nextStartId: '0-0', messages: [], deletedMessageIds: [] };
+    }
+  }
+
+  private async fallbackClaim(
+    stream: string,
+    group: string,
+    consumer: string,
+    minIdleTimeMs: number,
+    count: number,
+  ): Promise<{ nextStartId: string; messages: StreamMessage[]; deletedMessageIds: string[] }> {
+    if (!this.client) {
+      return { nextStartId: '0-0', messages: [], deletedMessageIds: [] };
+    }
+    try {
+      const pending = (await this.client.xpending(
+        stream,
+        group,
+        '-',
+        '+',
+        count,
+      )) as [string, string, number, number][] | null;
+
+      if (!pending || !Array.isArray(pending) || pending.length === 0) {
+        return { nextStartId: '0-0', messages: [], deletedMessageIds: [] };
+      }
+
+      const eligibleIds = pending
+        .filter((entry) => entry[2] >= minIdleTimeMs)
+        .map((entry) => entry[0]);
+
+      if (eligibleIds.length === 0) {
+        return { nextStartId: '0-0', messages: [], deletedMessageIds: [] };
+      }
+
+      const claimed = (await this.client.xclaim(
+        stream,
+        group,
+        consumer,
+        minIdleTimeMs,
+        ...eligibleIds,
+      )) as [string, string[]][] | null;
+
+      if (!claimed || !Array.isArray(claimed)) {
+        return { nextStartId: '0-0', messages: [], deletedMessageIds: [] };
+      }
+
+      const messages: StreamMessage[] = [];
+      for (const [id, rawFields] of claimed) {
+        if (!id || !Array.isArray(rawFields)) continue;
+        const fields: Record<string, string> = {};
+        for (let i = 0; i < rawFields.length; i += 2) {
+          fields[rawFields[i]] = rawFields[i + 1];
+        }
+        messages.push({ id, fields });
+      }
+
+      return { nextStartId: '0-0', messages, deletedMessageIds: [] };
+    } catch (fallbackErr: any) {
+      this.logger.error(
+        `Error during fallback XPENDING/XCLAIM on ${stream}/${group}: ${fallbackErr.message}`,
+      );
+      return { nextStartId: '0-0', messages: [], deletedMessageIds: [] };
+    }
+  }
+
   async publish(stream: string, fields: Record<string, string>): Promise<string> {
     if (!this.client) {
       throw new Error('Redis client is not initialized');
@@ -301,6 +429,35 @@ export class RedisStreamClient implements OnModuleDestroy {
       return await this.client.hget(key, field);
     } catch (err: any) {
       this.logger.error(`Error getting hash field ${key}.${field}: ${err.message}`);
+      return null;
+    }
+  }
+
+  /**
+   * Get value of a standard Redis key (e.g. telemetry heartbeat)
+   */
+  async get(key: string): Promise<string | null> {
+    if (!this.client) return null;
+    try {
+      return await this.client.get(key);
+    } catch (err: any) {
+      this.logger.error(`Error getting key ${key}: ${err.message}`);
+      return null;
+    }
+  }
+
+  /**
+   * Set value of a standard Redis key with optional TTL
+   */
+  async set(key: string, value: string, ttlSeconds?: number): Promise<string | null> {
+    if (!this.client) return null;
+    try {
+      if (ttlSeconds && ttlSeconds > 0) {
+        return await this.client.set(key, value, 'EX', ttlSeconds);
+      }
+      return await this.client.set(key, value);
+    } catch (err: any) {
+      this.logger.error(`Error setting key ${key}: ${err.message}`);
       return null;
     }
   }

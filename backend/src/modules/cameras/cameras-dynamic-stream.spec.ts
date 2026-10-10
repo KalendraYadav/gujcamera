@@ -75,6 +75,7 @@ describe('CamerasService Dynamic Stream Lifecycle', () => {
     redisClient = {
       hset: jest.fn().mockResolvedValue(1),
       hdel: jest.fn().mockResolvedValue(1),
+      hgetall: jest.fn().mockResolvedValue({}),
       pubsubPublish: jest.fn().mockResolvedValue(1),
     };
 
@@ -421,4 +422,118 @@ describe('CamerasService Dynamic Stream Lifecycle', () => {
       );
     });
   });
+
+  describe('onModuleInit startup camera fleet synchronization', () => {
+    it('populates Redis registry for active cameras and publishes SYNC only after population', async () => {
+      const callOrder: string[] = [];
+      const activeCameras = [
+        {
+          id: 'cam-01',
+          name: 'CAM-AHM-01: Pakwan Crossroad',
+          operationalStatus: OperationalStatus.ONLINE,
+          isActive: true,
+          streams: [{ urlOrHandle: 'rtsp://simulator:8554/live/cam-ahm-01' }],
+        },
+        {
+          id: 'cam-02',
+          name: 'CAM-SUR-01: Ring Road',
+          operationalStatus: OperationalStatus.ONLINE,
+          isActive: true,
+          streams: [{ urlOrHandle: 'rtsp://simulator:8554/live/cam-sur-01' }],
+        },
+      ];
+
+      prisma.camera.findMany.mockResolvedValue(activeCameras);
+      redisClient.hgetall.mockResolvedValue({
+        'cam-01': 'existing',
+        'stale-cam-03': 'stale',
+      });
+
+      redisClient.hset.mockImplementation(async () => {
+        callOrder.push('hset');
+        return 1;
+      });
+      redisClient.hdel.mockImplementation(async () => {
+        callOrder.push('hdel');
+        return 1;
+      });
+      redisClient.pubsubPublish.mockImplementation(async () => {
+        callOrder.push('pubsubPublish');
+        return 1;
+      });
+
+      await service.onModuleInit();
+
+      // Verify active cameras synced to hash
+      expect(redisClient.hset).toHaveBeenCalledTimes(2);
+      expect(redisClient.hset).toHaveBeenCalledWith(
+        'gujcamera:registry:active-streams',
+        'cam-01',
+        expect.stringContaining('rtsp://simulator:8554/live/cam-ahm-01'),
+      );
+      expect(redisClient.hset).toHaveBeenCalledWith(
+        'gujcamera:registry:active-streams',
+        'cam-02',
+        expect.stringContaining('rtsp://simulator:8554/live/cam-sur-01'),
+      );
+
+      // Verify stale camera pruned
+      expect(redisClient.hdel).toHaveBeenCalledWith(
+        'gujcamera:registry:active-streams',
+        'stale-cam-03',
+      );
+
+      // Verify SYNC published to existing control channel
+      expect(redisClient.pubsubPublish).toHaveBeenCalledWith(
+        'gujcamera:control:camera-events',
+        expect.stringContaining('"action":"SYNC"'),
+      );
+
+      // Verify SYNC was published AFTER registry population
+      const lastHsetIdx = callOrder.lastIndexOf('hset');
+      const lastHdelIdx = callOrder.lastIndexOf('hdel');
+      const pubsubIdx = callOrder.indexOf('pubsubPublish');
+      expect(pubsubIdx).toBeGreaterThan(lastHsetIdx);
+      expect(pubsubIdx).toBeGreaterThan(lastHdelIdx);
+    });
+
+    it('sanitizes stream credentials before writing to Redis active-streams hash', async () => {
+      const cameraWithCreds = [
+        {
+          id: 'cam-cred-01',
+          name: 'CAM-SECURE-01',
+          operationalStatus: OperationalStatus.ONLINE,
+          isActive: true,
+          streams: [{ urlOrHandle: 'rtsp://admin:SecretPass123!@10.20.4.15:554/live' }],
+        },
+      ];
+
+      prisma.camera.findMany.mockResolvedValue(cameraWithCreds);
+      redisClient.hgetall.mockResolvedValue({});
+
+      await service.onModuleInit();
+
+      expect(redisClient.hset).toHaveBeenCalledWith(
+        'gujcamera:registry:active-streams',
+        'cam-cred-01',
+        expect.not.stringContaining('SecretPass123!'),
+      );
+    });
+
+    it('handles Redis failure gracefully during startup without throwing', async () => {
+      prisma.camera.findMany.mockResolvedValue([
+        {
+          id: 'cam-01',
+          name: 'CAM-01',
+          operationalStatus: OperationalStatus.ONLINE,
+          isActive: true,
+          streams: [{ urlOrHandle: 'rtsp://video-gateway:8554/cam-01' }],
+        },
+      ]);
+      redisClient.hset.mockRejectedValue(new Error('Redis connection refused'));
+
+      await expect(service.onModuleInit()).resolves.not.toThrow();
+    });
+  });
 });
+

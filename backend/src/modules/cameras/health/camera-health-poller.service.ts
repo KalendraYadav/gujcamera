@@ -32,6 +32,9 @@ export interface CameraRuntimeHealth {
   recoveryAt: Date | null;
   isReconnecting: boolean;
   lastDatabasePersistAt: number;
+  lastReadyTime?: string | null;
+  lastActivationDispatchedAt?: number;
+  needsActivationDispatch?: boolean;
 }
 
 export interface HealthPollerMetrics {
@@ -58,6 +61,7 @@ export class CameraHealthPollerService implements OnModuleInit, OnModuleDestroy 
   public readonly reconnectMaxDelayMs: number;
   public readonly reconnectMaxAttempts: number;
   public readonly batchSize: number;
+  public readonly redispatchCooldownMs: number;
   private readonly autoStart: boolean;
 
   // In-memory runtime state dictionary (per-camera)
@@ -108,6 +112,10 @@ export class CameraHealthPollerService implements OnModuleInit, OnModuleDestroy 
     );
     this.batchSize = parseInt(
       this.configService.get<string>('CAMERA_HEALTH_POLL_BATCH_SIZE', '50'),
+      10,
+    );
+    this.redispatchCooldownMs = parseInt(
+      this.configService.get<string>('CAMERA_HEALTH_REDISPATCH_COOLDOWN_MS', '30000'),
       10,
     );
     this.autoStart =
@@ -324,6 +332,7 @@ export class CameraHealthPollerService implements OnModuleInit, OnModuleDestroy 
   ): Promise<OperationalStatus> {
     const previousStatus = runtime.status;
     const now = new Date();
+    const nowMs = Date.now();
 
     runtime.lastSeenAt = now;
     runtime.lastSuccessAt = now;
@@ -332,29 +341,70 @@ export class CameraHealthPollerService implements OnModuleInit, OnModuleDestroy 
     runtime.failureReason = null;
 
     // Check if recovery transition occurred (e.g. DEGRADED -> ONLINE or OFFLINE -> ONLINE)
-    const isRecovery =
+    const isStatusRecovery =
       previousStatus === OperationalStatus.DEGRADED ||
       previousStatus === OperationalStatus.OFFLINE ||
       previousStatus === OperationalStatus.ERROR ||
       camera.operationalStatus !== OperationalStatus.ONLINE;
 
-    if (isRecovery) {
+    // Evaluate re-connection signals for cameras that may already be marked ONLINE:
+    // A. Gateway source reconnected to a new session (readyTime changed)
+    const currentReadyTime = pathState?.readyTime || null;
+    const streamReconnectedInGateway = Boolean(
+      currentReadyTime &&
+      runtime.lastReadyTime &&
+      currentReadyTime !== runtime.lastReadyTime,
+    );
+    if (currentReadyTime) {
+      runtime.lastReadyTime = currentReadyTime;
+    }
+
+    // B. MediaMTX path is ready but has 0 active readers (AI worker disconnected), subject to cooldown
+    const readersCount = typeof pathState?.readersCount === 'number' ? pathState.readersCount : undefined;
+    const hasZeroReaders = readersCount === 0;
+    const isCooldownElapsed = nowMs - (runtime.lastActivationDispatchedAt || 0) >= this.redispatchCooldownMs;
+
+    // C. Explicit activation request (e.g. after credential rotation or gateway re-registration)
+    const explicitActivationRequested = Boolean(runtime.needsActivationDispatch);
+
+    const needsRedispatch = Boolean(
+      explicitActivationRequested ||
+      streamReconnectedInGateway ||
+      (hasZeroReaders && isCooldownElapsed),
+    );
+
+    if (isStatusRecovery || needsRedispatch) {
       runtime.status = OperationalStatus.ONLINE;
       runtime.recoveryAt = now;
       runtime.lastTransitionAt = now;
-      runtime.lastDatabasePersistAt = Date.now();
+      runtime.lastDatabasePersistAt = nowMs;
+      runtime.lastActivationDispatchedAt = nowMs;
+      runtime.needsActivationDispatch = false;
 
-      this.logger.log(
-        `[HealthPoller] Camera [${camera.id}] recovered to ONLINE (path: ${pathName})`,
-      );
+      // 1. Only persist to DB and write audit log if a material status change occurred (PREVENTS WRITE STORMS)
+      if (isStatusRecovery) {
+        this.logger.log(
+          `[HealthPoller] Camera [${camera.id}] recovered to ONLINE (path: ${pathName})`,
+        );
 
-      // 1. Persist recovery to database
-      await this.persistCameraState(
-        camera.id,
-        OperationalStatus.ONLINE,
-        0.0,
-        now,
-      );
+        await this.persistCameraState(
+          camera.id,
+          OperationalStatus.ONLINE,
+          0.0,
+          now,
+        );
+
+        await this.recordAuditLog(
+          camera.id,
+          'CAMERA_RECOVERED',
+          { status: previousStatus },
+          { status: OperationalStatus.ONLINE, pathName, recoveredAt: now.toISOString() },
+        );
+      } else {
+        this.logger.log(
+          `[HealthPoller] Camera [${camera.id}] stream recovery redispatch (path: ${pathName}, reconnected: ${streamReconnectedInGateway}, zeroReaders: ${hasZeroReaders}, explicit: ${explicitActivationRequested})`,
+        );
+      }
 
       // 2. Sync to Redis active streams & publish ACTIVATE event
       await this.syncRedisStreamState(
@@ -363,16 +413,8 @@ export class CameraHealthPollerService implements OnModuleInit, OnModuleDestroy 
         OperationalStatus.ONLINE,
         'ACTIVATE',
       );
-
-      // 3. Emit Audit Log for recovery
-      await this.recordAuditLog(
-        camera.id,
-        'CAMERA_RECOVERED',
-        { status: previousStatus },
-        { status: OperationalStatus.ONLINE, pathName, recoveredAt: now.toISOString() },
-      );
     } else {
-      // WRITE STORM PREVENTION: ONLINE -> ONLINE produces ZERO database writes and ZERO audit logs
+      // WRITE STORM PREVENTION: ONLINE -> ONLINE produces ZERO database writes, ZERO audit logs, and ZERO Redis events
       runtime.status = OperationalStatus.ONLINE;
     }
 
@@ -565,6 +607,7 @@ export class CameraHealthPollerService implements OnModuleInit, OnModuleDestroy 
           }
 
           this.metrics.reconnectSuccesses += 1;
+          runtime.needsActivationDispatch = true;
           this.logger.log(`[HealthPoller] Reconnected and updated MediaMTX path config for [${pathName}]`);
         }
       }
@@ -749,6 +792,9 @@ export class CameraHealthPollerService implements OnModuleInit, OnModuleDestroy 
         recoveryAt: null,
         isReconnecting: false,
         lastDatabasePersistAt: 0,
+        lastReadyTime: null,
+        lastActivationDispatchedAt: 0,
+        needsActivationDispatch: false,
       };
       this.runtimeStates.set(camera.id, state);
     }
@@ -777,9 +823,20 @@ export class CameraHealthPollerService implements OnModuleInit, OnModuleDestroy 
       state.reconnectAttempts = 0;
       state.nextReconnectAt = 0;
       state.failureReason = null;
+      state.needsActivationDispatch = true;
       this.logger.log(
         `[HealthPoller] Reconnect state reset for camera [${cameraId}] following credential rotation`,
       );
+    }
+  }
+
+  /**
+   * Request an activation dispatch for an active camera once confirmed ready by media gateway
+   */
+  requestActivationDispatch(cameraId: string): void {
+    const state = this.runtimeStates.get(cameraId);
+    if (state) {
+      state.needsActivationDispatch = true;
     }
   }
 

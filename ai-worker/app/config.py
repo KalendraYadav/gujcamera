@@ -54,6 +54,9 @@ class Settings(BaseSettings):
     # Periodic Health & Metric Reporting Interval (seconds)
     METRICS_INTERVAL: float = Field(default=10.0, ge=2.0, le=60.0)
 
+    # Dynamic Stream Dispatcher & Stream Reconciliation Interval (seconds)
+    STREAM_RECONCILE_INTERVAL: float = Field(default=60.0, ge=0.5, le=3600.0)
+
     # Camera Streams (Parsed from CAMERA_STREAMS or CAMERAS_JSON)
     # Format for CAMERA_STREAMS: "ID1=url1,ID2=url2"
     CAMERA_STREAMS: str = ""

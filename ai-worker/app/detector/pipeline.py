@@ -4,6 +4,7 @@ Combines Vehicle Detection, License Plate Localization, and Latency Telemetry.
 Isolates frame failures to ensure uninterrupted per-camera processing.
 """
 
+from collections import deque
 import logging
 import threading
 import time
@@ -96,6 +97,11 @@ class InferencePipeline:
         self.min_ocr_latency_ms: float = float("inf")
         self.max_ocr_latency_ms: float = 0.0
         self.last_inference_ts: Optional[float] = None
+
+        # Bounded rolling latency windows for p50/p95/p99 and e2e calculations (max 100 samples)
+        self._recent_latencies: deque = deque(maxlen=100)
+        self._recent_ocr_latencies: deque = deque(maxlen=100)
+        self._recent_e2e_latencies: deque = deque(maxlen=100)
 
     def process_frame(self, payload: FramePayload) -> DetectionResult:
         """
@@ -350,6 +356,7 @@ class InferencePipeline:
 
             # Update rolling telemetry
             successful_ocrs = sum(1 for r in ocr_results if r.success)
+            e2e_ms = (now_ts - payload.captured_at) * 1000.0 if payload.captured_at else elapsed_ms
             with self._lock:
                 self.total_inferences += 1
                 self.total_vehicles_detected += len(vehicles)
@@ -362,12 +369,16 @@ class InferencePipeline:
                 if elapsed_ms > self.max_latency_ms:
                     self.max_latency_ms = elapsed_ms
 
+                self._recent_latencies.append(elapsed_ms)
+                self._recent_e2e_latencies.append(e2e_ms)
+
                 if frame_ocr_ms > 0:
                     self.total_ocr_latency_ms += frame_ocr_ms
                     if frame_ocr_ms < self.min_ocr_latency_ms:
                         self.min_ocr_latency_ms = frame_ocr_ms
                     if frame_ocr_ms > self.max_ocr_latency_ms:
                         self.max_ocr_latency_ms = frame_ocr_ms
+                    self._recent_ocr_latencies.append(frame_ocr_ms)
 
                 self.last_inference_ts = now_ts
 
@@ -422,6 +433,21 @@ class InferencePipeline:
             )
             min_ocr_lat = self.min_ocr_latency_ms if self.min_ocr_latency_ms != float("inf") else 0.0
 
+            # Calculate bounded percentiles (p50, p95, p99)
+            lat_arr = np.array(self._recent_latencies) if self._recent_latencies else np.array([])
+            p50_lat = round(float(np.percentile(lat_arr, 50)), 2) if len(lat_arr) > 0 else round(avg_latency, 2)
+            p95_lat = round(float(np.percentile(lat_arr, 95)), 2) if len(lat_arr) > 0 else round(avg_latency, 2)
+            p99_lat = round(float(np.percentile(lat_arr, 99)), 2) if len(lat_arr) > 0 else round(avg_latency, 2)
+
+            ocr_arr = np.array(self._recent_ocr_latencies) if self._recent_ocr_latencies else np.array([])
+            p50_ocr = round(float(np.percentile(ocr_arr, 50)), 2) if len(ocr_arr) > 0 else round(avg_ocr_lat, 2)
+            p95_ocr = round(float(np.percentile(ocr_arr, 95)), 2) if len(ocr_arr) > 0 else round(avg_ocr_lat, 2)
+
+            e2e_arr = np.array(self._recent_e2e_latencies) if self._recent_e2e_latencies else np.array([])
+            avg_e2e = round(float(np.mean(e2e_arr)), 2) if len(e2e_arr) > 0 else round(avg_latency, 2)
+            p50_e2e = round(float(np.percentile(e2e_arr, 50)), 2) if len(e2e_arr) > 0 else round(avg_latency, 2)
+            p95_e2e = round(float(np.percentile(e2e_arr, 95)), 2) if len(e2e_arr) > 0 else round(avg_latency, 2)
+
             return {
                 "total_inferences": self.total_inferences,
                 "total_vehicles_detected": self.total_vehicles_detected,
@@ -438,8 +464,16 @@ class InferencePipeline:
                 "avg_latency_ms": round(avg_latency, 2),
                 "min_latency_ms": round(min_lat, 2),
                 "max_latency_ms": round(self.max_latency_ms, 2),
+                "p50_latency_ms": p50_lat,
+                "p95_latency_ms": p95_lat,
+                "p99_latency_ms": p99_lat,
                 "avg_ocr_latency_ms": round(avg_ocr_lat, 2),
                 "min_ocr_latency_ms": round(min_ocr_lat, 2),
                 "max_ocr_latency_ms": round(self.max_ocr_latency_ms, 2),
+                "p50_ocr_latency_ms": p50_ocr,
+                "p95_ocr_latency_ms": p95_ocr,
+                "e2e_avg_latency_ms": avg_e2e,
+                "e2e_p50_latency_ms": p50_e2e,
+                "e2e_p95_latency_ms": p95_e2e,
                 "last_inference_ts": self.last_inference_ts,
             }

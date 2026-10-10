@@ -48,6 +48,8 @@ export interface AlertWatchlistMatch {
   reason: string;
   priority: AlertSeverity;
   added_by: string;
+  incident_start?: string | null;
+  incident_end?: string | null;
   watchlist?: {
     id: string;
     name: string;
@@ -72,6 +74,14 @@ export interface AlertItem {
   created_at: string;
   updated_at: string;
   disclaimer?: string;
+  match_type?: 'HISTORICAL_BACKFILL' | 'LIVE';
+  is_historical?: boolean;
+  incident_classification?: string;
+  incident_time_relevance?: string;
+  incident_start?: string | null;
+  incident_end?: string | null;
+  processed_at?: string;
+  entry_created_at?: string | null;
 }
 
 export interface AlertQueryFilter {
@@ -80,6 +90,7 @@ export interface AlertQueryFilter {
   watchlist_id?: string;
   plate?: string;
   camera_id?: string;
+  match_type?: 'HISTORICAL_BACKFILL' | 'LIVE';
   limit?: number;
   page?: number;
 }

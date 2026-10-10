@@ -23,6 +23,11 @@ export class AlertQueryDto {
   @IsOptional()
   severity?: AlertSeverity;
 
+  @ApiPropertyOptional({ description: 'Filter by match type: LIVE or HISTORICAL_BACKFILL' })
+  @IsString()
+  @IsOptional()
+  match_type?: string;
+
   @ApiPropertyOptional({ description: 'Filter by watchlist UUID' })
   @IsUUID('4')
   @IsOptional()

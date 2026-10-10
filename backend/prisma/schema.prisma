@@ -239,6 +239,8 @@ model WatchlistEntry {
   priority        AlertSeverity @default(HIGH)
   addedBy         String        @map("added_by")
   expiresAt       DateTime?     @map("expires_at")
+  incidentStart   DateTime?     @map("incident_start") @db.Timestamptz(3)
+  incidentEnd     DateTime?     @map("incident_end")   @db.Timestamptz(3)
   active          Boolean       @default(true)
   createdAt       DateTime      @default(now()) @map("created_at")
   alerts          Alert[]

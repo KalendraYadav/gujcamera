@@ -70,8 +70,12 @@ export default function AlertsPage() {
       return [newAlert, ...prev];
     });
 
-    // Audio chime for CRITICAL alerts
-    if (newAlert.severity === 'CRITICAL') {
+    // Audio chime for CRITICAL alerts (suppressed for historical backfill matches)
+    if (
+      newAlert.severity === 'CRITICAL' &&
+      !newAlert.is_historical &&
+      newAlert.match_type !== 'HISTORICAL_BACKFILL'
+    ) {
       alertAudioNotifier.playCriticalAlert();
     }
   }, []);

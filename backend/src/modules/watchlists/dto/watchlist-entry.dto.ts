@@ -47,6 +47,33 @@ export class CreateWatchlistEntryDto {
   @IsISO8601()
   @IsOptional()
   expires_at?: string;
+
+  @ApiPropertyOptional({
+    description: 'Custom lookback period in hours for historical matching (default: 72, max: 720)',
+    example: 72,
+  })
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(720)
+  @IsOptional()
+  lookback_hours?: number;
+
+  @ApiPropertyOptional({
+    description: 'Reported incident occurrence start time (ISO-8601)',
+    example: '2026-10-08T14:30:00.000Z',
+  })
+  @IsISO8601()
+  @IsOptional()
+  incident_start?: string;
+
+  @ApiPropertyOptional({
+    description: 'Reported incident occurrence end time (ISO-8601)',
+    example: '2026-10-08T16:00:00.000Z',
+  })
+  @IsISO8601()
+  @IsOptional()
+  incident_end?: string;
 }
 
 export class UpdateWatchlistEntryDto {
@@ -73,6 +100,22 @@ export class UpdateWatchlistEntryDto {
   @IsISO8601()
   @IsOptional()
   expires_at?: string;
+
+  @ApiPropertyOptional({
+    description: 'Updated reported incident start time (ISO-8601)',
+    example: '2026-10-08T14:30:00.000Z',
+  })
+  @IsISO8601()
+  @IsOptional()
+  incident_start?: string;
+
+  @ApiPropertyOptional({
+    description: 'Updated reported incident end time (ISO-8601)',
+    example: '2026-10-08T16:00:00.000Z',
+  })
+  @IsISO8601()
+  @IsOptional()
+  incident_end?: string;
 
   @ApiPropertyOptional({ description: 'Active status flag (false = deactivated)', example: false })
   @IsBoolean()

@@ -139,3 +139,38 @@ def test_consumer_start_and_stop_lifecycle(mock_cam_config, health_tracker):
         consumer.stop(timeout=1.0)
         assert not consumer.is_running()
         assert health_tracker.status == StreamStatus.STOPPED
+
+
+def test_consumer_wake_reconnect_awakens_loop(mock_cam_config, health_tracker):
+    """Verify that wake_reconnect awakens the reconnect backoff wait immediately"""
+    consumer = StreamConsumer(
+        config=mock_cam_config,
+        health_tracker=health_tracker,
+        base_reconnect_delay=10.0,  # Long delay that would time out test if not awakened
+        max_reconnect_delay=30.0,
+    )
+
+    consume_calls = 0
+
+    def mock_consume():
+        nonlocal consume_calls
+        consume_calls += 1
+        if consume_calls >= 2:
+            consumer._stop_event.set()
+        # Simulate stream failure
+        raise RuntimeError("Simulated RTSP drop")
+
+    with patch.object(consumer, "_consume_stream", side_effect=mock_consume):
+        consumer.start()
+        # Give thread a moment to fail once and enter backoff
+        time.sleep(0.05)
+        assert consume_calls == 1
+
+        # Trigger wake_reconnect: should immediately execute cycle 2
+        consumer.wake_reconnect()
+        for _ in range(20):
+            if consume_calls >= 2:
+                break
+            time.sleep(0.05)
+        consumer.stop(timeout=1.0)
+        assert consume_calls >= 2

@@ -202,6 +202,22 @@ export class WatchlistsController {
     return this.watchlistsService.deactivateEntry(entryId, user, requestId);
   }
 
+  @Post('entries/:entryId/backfill')
+  @HttpCode(HttpStatus.OK)
+  @Roles('SUPER_ADMIN', 'DEPARTMENT_ADMIN', 'INVESTIGATOR')
+  @ApiOperation({ summary: 'Manually trigger historical sighting backfill for a watchlist entry' })
+  @ApiResponse({ status: 200, description: 'Historical backfill executed' })
+  @ApiResponse({ status: 403, description: 'Forbidden: Insufficient privileges' })
+  @ApiResponse({ status: 404, description: 'WATCHLIST_ENTRY_NOT_FOUND' })
+  async backfillEntry(
+    @Param('entryId') entryId: string,
+    @Body() body: { lookback_hours?: number },
+    @CurrentUser() user: AuthenticatedUser,
+    @Headers('x-request-id') requestId?: string,
+  ) {
+    return this.watchlistsService.runBackfillForEntry(entryId, body?.lookback_hours, user, requestId);
+  }
+
   @Delete('entries/:entryId')
   @Roles('SUPER_ADMIN', 'DEPARTMENT_ADMIN', 'INVESTIGATOR')
   @ApiOperation({ summary: 'Deactivate watchlist entry (soft-delete alias for DELETE)' })

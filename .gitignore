@@ -87,6 +87,8 @@ frames_cache/
 *.hls
 recordings/*.ts
 video_cache/*.ts
+fixtures/datasets/evaluation/
+eval_datasets/
 
 # Operating system files
 .DS_Store
@@ -112,3 +114,4 @@ databaseKEY.md
 
 
 productionSecret.txt
+ANNOTATE_ai_model.txt

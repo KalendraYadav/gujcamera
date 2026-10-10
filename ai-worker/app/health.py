@@ -27,6 +27,7 @@ class CameraHealthTracker:
         self.decode_failures: int = 0
         self.reconnect_count: int = 0
         self.last_successful_frame_ts: Optional[float] = None
+        self.last_sampled_frame_ts: Optional[float] = None
         self.last_fps_calc_ts: float = time.time()
         self.last_fps_calc_frames: int = 0
         self.fps_actual: float = 0.0
@@ -40,6 +41,7 @@ class CameraHealthTracker:
             self.frames_received += 1
             if sampled:
                 self.frames_sampled += 1
+                self.last_sampled_frame_ts = now
             self.last_successful_frame_ts = now
             self.status = StreamStatus.CONNECTED
 
@@ -81,6 +83,11 @@ class CameraHealthTracker:
     def to_dict(self) -> Dict[str, Any]:
         """Produce telemetry dictionary representation"""
         with self._lock:
+            now = time.time()
+            # If no frame has arrived for more than 3.0 seconds, actual FPS drops to 0.0
+            fps = self.fps_actual
+            if self.last_successful_frame_ts is not None and (now - self.last_successful_frame_ts > 3.0):
+                fps = 0.0
             return {
                 "camera_id": self.camera_id,
                 "status": self.status.value,
@@ -89,7 +96,8 @@ class CameraHealthTracker:
                 "decode_failures": self.decode_failures,
                 "reconnect_count": self.reconnect_count,
                 "last_successful_frame": self.last_successful_frame_ts,
-                "fps_actual": self.fps_actual,
+                "last_sampled_frame": self.last_sampled_frame_ts,
+                "fps_actual": fps,
                 "packet_loss": self.packet_loss,
             }
 
@@ -128,6 +136,74 @@ class WorkerHealthManager:
                 },
                 "streams": stream_metrics
             }
+
+    def get_heartbeat_payload(
+        self,
+        worker_name: str,
+        pipeline_metrics: Optional[Dict[str, Any]] = None,
+        publisher_metrics: Optional[Dict[str, Any]] = None,
+    ) -> Dict[str, Any]:
+        """Produce structured, privacy-safe heartbeat payload for Redis publication"""
+        summary = self.get_summary()
+        w = summary["worker"]
+
+        # Collect process CPU and memory metrics safely
+        cpu_pct = 0.0
+        rss_mb = 0.0
+        try:
+            import psutil
+            import os
+            proc = psutil.Process(os.getpid())
+            cpu_pct = round(proc.cpu_percent(), 1)
+            rss_mb = round(proc.memory_info().rss / (1024 * 1024), 1)
+        except Exception:
+            pass
+
+        now = time.time()
+
+        # Find latest frame processing timestamp across active streams
+        last_proc_ts: Optional[float] = None
+        for sm in summary["streams"].values():
+            ts = sm.get("last_sampled_frame")
+            if ts and (last_proc_ts is None or ts > last_proc_ts):
+                last_proc_ts = ts
+
+        is_processing_active = bool(last_proc_ts and (now - last_proc_ts < 30.0))
+
+        # Determine overall AI health status
+        overall_status = "HEALTHY"
+        if w["status"] != "RUNNING":
+            overall_status = "UNAVAILABLE"
+        elif publisher_metrics and publisher_metrics.get("buffer_drops", 0) > 0:
+            overall_status = "DEGRADED"
+        elif pipeline_metrics and pipeline_metrics.get("p95_latency_ms", 0) > 350.0:
+            overall_status = "DEGRADED"
+        elif w["total_managed_streams"] > 0 and w["connected_streams"] == 0:
+            overall_status = "DEGRADED"
+        elif w["total_managed_streams"] > 0 and last_proc_ts is not None and not is_processing_active:
+            overall_status = "DEGRADED"
+
+        return {
+            "worker_name": worker_name,
+            "status": overall_status,
+            "worker_lifecycle": w["status"],
+            "timestamp": now,
+            "uptime_seconds": w["uptime_seconds"],
+            "streams": {
+                "total": w["total_managed_streams"],
+                "connected": w["connected_streams"],
+                "degraded": w["degraded_streams"],
+                "offline": w["offline_streams"],
+            },
+            "last_processing_timestamp": last_proc_ts,
+            "is_processing_active": is_processing_active,
+            "inference": pipeline_metrics or {},
+            "events": publisher_metrics or {},
+            "system": {
+                "cpu_percent": cpu_pct,
+                "rss_mb": rss_mb,
+            },
+        }
 
 
 # Singleton worker health manager

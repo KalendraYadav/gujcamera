@@ -268,6 +268,36 @@ export class DashboardService {
       aiPipelineStatus = 'DEGRADED';
     } else if (this.sightingConsumer && this.sightingConsumer.totalProcessingErrors > 0) {
       aiPipelineStatus = 'DEGRADED';
+    } else if (this.redisClient && typeof this.redisClient.get === 'function') {
+      try {
+        const telemetryRaw = await this.redisClient.get('gujcamera:telemetry:ai-worker');
+        if (!telemetryRaw) {
+          aiPipelineStatus = 'UNAVAILABLE';
+        } else {
+          const parsed = JSON.parse(telemetryRaw);
+          const nowSec = Date.now() / 1000;
+          const isFresh = nowSec - (parsed.timestamp || 0) < 30;
+          const isProcessingStalled = Boolean(
+            parsed.last_processing_timestamp &&
+            nowSec - parsed.last_processing_timestamp > 30 &&
+            parsed.streams?.total > 0,
+          );
+          if (!isFresh || parsed.status === 'STOPPED') {
+            aiPipelineStatus = 'UNAVAILABLE';
+          } else if (
+            parsed.status === 'DEGRADED' ||
+            isProcessingStalled ||
+            (parsed.events?.buffer_drops && parsed.events.buffer_drops > 0) ||
+            (parsed.inference?.p95_latency_ms && parsed.inference.p95_latency_ms > 350)
+          ) {
+            aiPipelineStatus = 'DEGRADED';
+          } else {
+            aiPipelineStatus = 'HEALTHY';
+          }
+        }
+      } catch {
+        aiPipelineStatus = 'DEGRADED';
+      }
     }
 
     const camSummary = cameraHealthRes.status === 'fulfilled' ? cameraHealthRes.value : null;

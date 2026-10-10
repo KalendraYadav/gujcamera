@@ -74,6 +74,11 @@ describe('SightingEventConsumer & Phase 5 Event Pipeline Validation', () => {
       ensureConsumerGroup: jest.fn().mockResolvedValue(undefined),
       readGroup: jest.fn().mockResolvedValue([]),
       ack: jest.fn().mockResolvedValue(1),
+      autoClaim: jest.fn().mockResolvedValue({
+        nextStartId: '0-0',
+        messages: [],
+        deletedMessageIds: [],
+      }),
     };
 
     configServiceMock = {
@@ -414,6 +419,422 @@ describe('SightingEventConsumer & Phase 5 Event Pipeline Validation', () => {
         consumer.consumerGroup,
         '1700000000003-0',
       );
+    });
+  });
+
+  describe('6. Redis Stream Pending-Message Recovery (Phase 4.2)', () => {
+    const createMockPayload = (
+      overrides?: Partial<VehicleSightingCreatedPayload>,
+    ): VehicleSightingCreatedPayload => ({
+      event_id: 'e-rec-1',
+      event_type: EVENT_TYPE_SIGHTING_CREATED,
+      schema_version: SCHEMA_VERSION,
+      occurred_at: new Date().toISOString(),
+      producer: 'ai-worker',
+      sighting_id: 'sighting-rec-001',
+      evidence_id: 'evidence-rec-001',
+      camera_id: 'CAM-DEMO-01',
+      plate_normalized: 'GJ01AB1234',
+      confidence: 0.95,
+      consensus_of: 3,
+      total_observations: 5,
+      storage_ref: 's3://police-evidence-vault/evidence/rec.jpg',
+      evidence_hash: validSha256,
+      captured_at: new Date().toISOString(),
+      correlation_id: 'corr-rec-001',
+      source_type: VideoSourceType.RESEARCH_VIDEO,
+      ...overrides,
+    });
+
+    it('leaves message unacknowledged in PEL when PostgreSQL persistence fails with transient error', async () => {
+      // Simulate transient PostgreSQL connection drop / timeout
+      prismaMock.$transaction.mockRejectedValueOnce(
+        new Error('Connection terminated unexpectedly by PostgreSQL server'),
+      );
+
+      const msg = {
+        id: '1700000000010-0',
+        fields: { data: JSON.stringify(createMockPayload({ sighting_id: 's-fail-001' })) },
+      };
+
+      const success = await consumer.processStreamMessage(msg);
+
+      expect(success).toBe(false);
+      expect(consumer.totalProcessingErrors).toBe(1);
+      // Critical invariant: safeAck MUST NOT be called on transient failure
+      expect(redisClientMock.ack).not.toHaveBeenCalled();
+    });
+
+    it('retries and acknowledges a pending message once PostgreSQL becomes available', async () => {
+      const msgId = '1700000000011-0';
+      const payload = createMockPayload({ sighting_id: 's-retry-001' });
+      const pendingMessage = {
+        id: msgId,
+        fields: { data: JSON.stringify(payload) },
+      };
+
+      consumer.isRunning = true;
+      redisClientMock.autoClaim.mockResolvedValueOnce({
+        nextStartId: '0-0',
+        messages: [pendingMessage],
+        deletedMessageIds: [],
+      });
+
+      // Database transaction succeeds on retry
+      const nextId = await consumer.recoverPendingBatch('0-0');
+
+      expect(nextId).toBe('0-0');
+      expect(prismaMock.vehicleSighting.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ id: 's-retry-001' }),
+        }),
+      );
+      expect(redisClientMock.ack).toHaveBeenCalledWith(
+        consumer.streamName,
+        consumer.consumerGroup,
+        msgId,
+      );
+      expect(consumer.totalPendingRecovered).toBe(1);
+      expect(consumer.getDeliveryAttempts(msgId)).toBe(0);
+    });
+
+    it('recovers pending messages left behind after previous consumer crashed / was interrupted', async () => {
+      const msgId = '1700000000012-0';
+      const crashedConsumerPayload = createMockPayload({
+        sighting_id: 's-crashed-001',
+        evidence_id: 'ev-crashed-001',
+      });
+      const pendingMessage = {
+        id: msgId,
+        fields: { data: JSON.stringify(crashedConsumerPayload) },
+      };
+
+      consumer.isRunning = true;
+      redisClientMock.autoClaim.mockResolvedValueOnce({
+        nextStartId: '1700000000012-0',
+        messages: [pendingMessage],
+        deletedMessageIds: [],
+      });
+
+      const nextId = await consumer.recoverPendingBatch('0-0');
+
+      expect(nextId).toBe('1700000000012-0');
+      expect(redisClientMock.autoClaim).toHaveBeenCalledWith(
+        consumer.streamName,
+        consumer.consumerGroup,
+        consumer.consumerName,
+        consumer.pendingMinIdleMs,
+        '0-0',
+        consumer.pendingBatchSize,
+      );
+      expect(prismaMock.vehicleSighting.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ id: 's-crashed-001' }),
+        }),
+      );
+      expect(redisClientMock.ack).toHaveBeenCalledWith(
+        consumer.streamName,
+        consumer.consumerGroup,
+        msgId,
+      );
+      expect(consumer.totalPendingRecovered).toBe(1);
+    });
+
+    it('acknowledges a successfully persisted message and clears delivery attempt tracking', async () => {
+      const msgId = '1700000000013-0';
+      const msg = {
+        id: msgId,
+        fields: { data: JSON.stringify(createMockPayload({ sighting_id: 's-norm-001' })) },
+      };
+
+      const success = await consumer.processStreamMessage(msg);
+
+      expect(success).toBe(true);
+      expect(redisClientMock.ack).toHaveBeenCalledWith(
+        consumer.streamName,
+        consumer.consumerGroup,
+        msgId,
+      );
+      expect(consumer.totalAcks).toBe(1);
+      expect(consumer.getDeliveryAttempts(msgId)).toBe(0);
+    });
+
+    it('ensures duplicate event during recovery does not create duplicate sightings or duplicate alerts', async () => {
+      const msgId = '1700000000014-0';
+      const sightingId = 'sighting-dup-rec-001';
+
+      // Sighting was already persisted before
+      prismaMock.vehicleSighting.findUnique.mockResolvedValueOnce({
+        id: sightingId,
+        plateNormalized: 'GJ01AB1234',
+      });
+
+      const pendingMessage = {
+        id: msgId,
+        fields: { data: JSON.stringify(createMockPayload({ sighting_id: sightingId })) },
+      };
+
+      consumer.isRunning = true;
+      redisClientMock.autoClaim.mockResolvedValueOnce({
+        nextStartId: '0-0',
+        messages: [pendingMessage],
+        deletedMessageIds: [],
+      });
+
+      await consumer.recoverPendingBatch('0-0');
+
+      // Idempotency: Create must not be called
+      expect(prismaMock.vehicleSighting.create).not.toHaveBeenCalled();
+      // Watchlist matching must not be re-triggered
+      expect(alertsServiceMock.processSightingMatch).not.toHaveBeenCalled();
+      // Duplicate metric incremented
+      expect(consumer.totalDuplicatesDetected).toBe(1);
+      // Duplicate is safely acknowledged
+      expect(redisClientMock.ack).toHaveBeenCalledWith(
+        consumer.streamName,
+        consumer.consumerGroup,
+        msgId,
+      );
+    });
+
+    it('handles concurrent race condition P2002 unique constraint during transaction idempotently', async () => {
+      const msgId = '1700000000015-0';
+      const sightingId = 'sighting-race-001';
+
+      // Pre-check findUnique returned null (did not exist yet)
+      prismaMock.vehicleSighting.findUnique.mockResolvedValueOnce(null);
+
+      // Concurrent worker inserted record right before this transaction executed
+      prismaMock.$transaction.mockRejectedValueOnce({
+        code: 'P2002',
+        message: 'Unique constraint failed on the fields: (`id`)',
+      });
+
+      const msg = {
+        id: msgId,
+        fields: { data: JSON.stringify(createMockPayload({ sighting_id: sightingId })) },
+      };
+
+      const success = await consumer.processStreamMessage(msg);
+
+      expect(success).toBe(true);
+      expect(consumer.totalDuplicatesDetected).toBe(1);
+      expect(redisClientMock.ack).toHaveBeenCalledWith(
+        consumer.streamName,
+        consumer.consumerGroup,
+        msgId,
+      );
+    });
+
+    it('retries transient DB failures across multiple recovery cycles without permanently stranding message', async () => {
+      const msgId = '1700000000016-0';
+      const pendingMessage = {
+        id: msgId,
+        fields: { data: JSON.stringify(createMockPayload({ sighting_id: 's-multi-001' })) },
+      };
+
+      consumer.isRunning = true;
+
+      // Cycle 1: Database failure
+      prismaMock.$transaction.mockRejectedValueOnce(new Error('Connection reset by peer'));
+      redisClientMock.autoClaim.mockResolvedValueOnce({
+        nextStartId: '0-0',
+        messages: [pendingMessage],
+        deletedMessageIds: [],
+      });
+      await consumer.recoverPendingBatch('0-0');
+
+      expect(consumer.getDeliveryAttempts(msgId)).toBe(1);
+      expect(redisClientMock.ack).not.toHaveBeenCalled();
+      expect(consumer.totalPendingRecovered).toBe(0);
+
+      // Cycle 2: Database failure again
+      prismaMock.$transaction.mockRejectedValueOnce(new Error('Deadlock detected'));
+      redisClientMock.autoClaim.mockResolvedValueOnce({
+        nextStartId: '0-0',
+        messages: [pendingMessage],
+        deletedMessageIds: [],
+      });
+      await consumer.recoverPendingBatch('0-0');
+
+      expect(consumer.getDeliveryAttempts(msgId)).toBe(2);
+      expect(redisClientMock.ack).not.toHaveBeenCalled();
+      expect(consumer.totalPendingRecovered).toBe(0);
+
+      // Cycle 3: Database recovers and succeeds
+      redisClientMock.autoClaim.mockResolvedValueOnce({
+        nextStartId: '0-0',
+        messages: [pendingMessage],
+        deletedMessageIds: [],
+      });
+      await consumer.recoverPendingBatch('0-0');
+
+      expect(redisClientMock.ack).toHaveBeenCalledWith(
+        consumer.streamName,
+        consumer.consumerGroup,
+        msgId,
+      );
+      expect(consumer.totalPendingRecovered).toBe(1);
+      expect(consumer.getDeliveryAttempts(msgId)).toBe(0);
+    });
+
+    it('does not reclaim messages prematurely, respecting pendingMinIdleMs threshold', async () => {
+      consumer.isRunning = true;
+      await consumer.recoverPendingBatch('0-0');
+
+      // Verifies the minIdleTimeMs passed to Redis equals 30000ms (configured threshold)
+      expect(redisClientMock.autoClaim).toHaveBeenCalledWith(
+        consumer.streamName,
+        consumer.consumerGroup,
+        consumer.consumerName,
+        30000,
+        '0-0',
+        10,
+      );
+    });
+
+    it('drops and acknowledges poison-pill messages exceeding pendingMaxDeliveryAttempts to prevent starvation', async () => {
+      const poisonId = '1700000000017-0';
+      const poisonMessage = {
+        id: poisonId,
+        fields: { data: JSON.stringify(createMockPayload({ sighting_id: 's-poison-001' })) },
+      };
+
+      consumer.isRunning = true;
+      // Database transaction always rejects for this corrupt payload
+      prismaMock.$transaction.mockRejectedValue(new Error('Persistent unrecoverable SQL error'));
+
+      // Simulate 5 failed recovery attempts
+      for (let i = 1; i <= 5; i++) {
+        redisClientMock.autoClaim.mockResolvedValueOnce({
+          nextStartId: '0-0',
+          messages: [poisonMessage],
+          deletedMessageIds: [],
+        });
+        await consumer.recoverPendingBatch('0-0');
+        expect(consumer.getDeliveryAttempts(poisonId)).toBe(i);
+        expect(redisClientMock.ack).not.toHaveBeenCalled();
+      }
+
+      // 6th attempt: exceeds pendingMaxDeliveryAttempts (5)
+      redisClientMock.autoClaim.mockResolvedValueOnce({
+        nextStartId: '0-0',
+        messages: [poisonMessage],
+        deletedMessageIds: [],
+      });
+      await consumer.recoverPendingBatch('0-0');
+
+      expect(consumer.totalDeadLettersDropped).toBe(1);
+      // Dead letter message is acknowledged to prevent blocking PEL
+      expect(redisClientMock.ack).toHaveBeenCalledWith(
+        consumer.streamName,
+        consumer.consumerGroup,
+        poisonId,
+      );
+    });
+
+    it('handles malformed events safely via bounded failure path (ACK to prevent infinite retry)', async () => {
+      const corruptMessage = {
+        id: '1700000000018-0',
+        fields: { data: '{not-valid-json' },
+      };
+
+      const success = await consumer.processStreamMessage(corruptMessage);
+
+      expect(success).toBe(false);
+      expect(consumer.totalProcessingErrors).toBe(1);
+      // Malformed payloads cannot be recovered by retrying: acknowledged to unblock stream
+      expect(redisClientMock.ack).toHaveBeenCalledWith(
+        consumer.streamName,
+        consumer.consumerGroup,
+        '1700000000018-0',
+      );
+    });
+
+    it('handles empty pending list safely without errors', async () => {
+      consumer.isRunning = true;
+      redisClientMock.autoClaim.mockResolvedValueOnce({
+        nextStartId: '0-0',
+        messages: [],
+        deletedMessageIds: [],
+      });
+
+      const nextId = await consumer.recoverPendingBatch('0-0');
+
+      expect(nextId).toBe('0-0');
+      expect(consumer.totalPendingRecovered).toBe(0);
+      expect(consumer.totalProcessingErrors).toBe(0);
+    });
+
+    it('ensures Redis connection errors during autoClaim do not crash the consumer', async () => {
+      consumer.isRunning = true;
+      redisClientMock.autoClaim.mockRejectedValueOnce(
+        new Error('ECONNREFUSED: Redis instance offline'),
+      );
+
+      const nextId = await consumer.recoverPendingBatch('0-0');
+
+      expect(nextId).toBe('0-0');
+      // Consumer remains in running state and does not crash
+      expect(consumer.isRunning).toBe(true);
+    });
+
+    it('processes new stream messages independently while pending recovery executes', async () => {
+      const newMsg = {
+        id: '1700000000019-0',
+        fields: { data: JSON.stringify(createMockPayload({ sighting_id: 's-new-live-001' })) },
+      };
+      const pendingMsg = {
+        id: '1700000000020-0',
+        fields: { data: JSON.stringify(createMockPayload({ sighting_id: 's-recovered-001' })) },
+      };
+
+      consumer.isRunning = true;
+      redisClientMock.autoClaim.mockResolvedValueOnce({
+        nextStartId: '0-0',
+        messages: [pendingMsg],
+        deletedMessageIds: [],
+      });
+
+      // Execute new message processing and pending recovery concurrently
+      const [liveSuccess, nextId] = await Promise.all([
+        consumer.processStreamMessage(newMsg),
+        consumer.recoverPendingBatch('0-0'),
+      ]);
+
+      expect(liveSuccess).toBe(true);
+      expect(nextId).toBe('0-0');
+      expect(consumer.totalSightingsPersisted).toBe(2);
+      expect(consumer.totalPendingRecovered).toBe(1);
+      expect(redisClientMock.ack).toHaveBeenCalledWith(
+        consumer.streamName,
+        consumer.consumerGroup,
+        '1700000000019-0',
+      );
+      expect(redisClientMock.ack).toHaveBeenCalledWith(
+        consumer.streamName,
+        consumer.consumerGroup,
+        '1700000000020-0',
+      );
+    });
+
+    it('leaves message unacknowledged when referenced camera is missing so it can be retried', async () => {
+      prismaMock.camera.findMany.mockResolvedValue([]); // Camera not found on primary and fallback search
+
+      const msg = {
+        id: '1700000000021-0',
+        fields: {
+          data: JSON.stringify(
+            createMockPayload({ sighting_id: 's-unreg-cam-001', camera_id: 'CAM-UNKNOWN-99' }),
+          ),
+        },
+      };
+
+      const success = await consumer.processStreamMessage(msg);
+
+      expect(success).toBe(false);
+      // Unacknowledged so once the camera is onboarded, recovery will persist it
+      expect(redisClientMock.ack).not.toHaveBeenCalled();
     });
   });
 });

@@ -190,6 +190,23 @@ export function AlertCard({ alert, onStatusUpdated }: AlertCardProps) {
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <StatusBadge label={alert.severity} variant={style.badgeVariant} size="sm" />
           {getStatusBadge(alert.status)}
+          {(alert.is_historical || alert.match_type === 'HISTORICAL_BACKFILL') && (
+            <span
+              style={{
+                fontFamily: 'var(--font-mono)',
+                fontSize: '10px',
+                fontWeight: 700,
+                color: 'var(--accent-amber, #e5a50a)',
+                backgroundColor: 'rgba(229, 165, 10, 0.15)',
+                border: '1px solid rgba(229, 165, 10, 0.4)',
+                borderRadius: '3px',
+                padding: '2px 6px',
+                letterSpacing: '0.04em',
+              }}
+            >
+              HISTORICAL BACKFILL
+            </span>
+          )}
           <span
             style={{
               fontFamily: 'var(--font-mono)',

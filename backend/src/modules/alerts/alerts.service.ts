@@ -14,6 +14,7 @@ import { AlertQueryDto } from './dto/alert-query.dto';
 import { AlertTransitionDto } from './dto/alert-transition.dto';
 import { normalizeLicensePlate } from '../vehicles/utils/plate-normalizer';
 import { AlertsGateway } from './alerts.gateway';
+import { classifySightingIncidentRelation } from '../watchlists/utils/incident-classifier.util';
 
 @Injectable()
 export class AlertsService {
@@ -237,10 +238,12 @@ export class AlertsService {
       where.id = { gt: query.cursor };
     }
 
+    const effectiveTake = query.match_type ? Math.max(limit * 5, 200) : limit;
+
     const [alerts, total] = await Promise.all([
       this.prisma.alert.findMany({
         where,
-        take: limit,
+        take: effectiveTake,
         skip: query.cursor ? undefined : skip,
         orderBy: [{ status: 'asc' }, { ts: 'desc' }],
         include: {
@@ -271,8 +274,25 @@ export class AlertsService {
       this.prisma.alert.count({ where }),
     ]);
 
+    let formatted = alerts.map((a) => this.formatAlertResponse(a));
+    if (query.match_type) {
+      const targetType = query.match_type.toUpperCase();
+      formatted = formatted.filter((a) => a.match_type === targetType);
+      const filteredTotal = formatted.length;
+      const pagedData = formatted.slice(0, limit);
+      return {
+        data: pagedData,
+        pagination: {
+          page,
+          limit,
+          total: filteredTotal,
+          total_pages: Math.ceil(filteredTotal / limit) || 1,
+        },
+      };
+    }
+
     return {
-      data: alerts.map((a) => this.formatAlertResponse(a)),
+      data: formatted,
       pagination: {
         page,
         limit,
@@ -579,12 +599,38 @@ export class AlertsService {
   /**
    * Format alert response, ensuring clean relational structure and excluding sensitive credentials
    */
-  private formatAlertResponse(alert: any) {
+  public formatAlertResponse(alert: any) {
+    const isHistorical =
+      alert.sighting && alert.watchlistEntry
+        ? new Date(alert.sighting.ts).getTime() < new Date(alert.watchlistEntry.createdAt).getTime()
+        : false;
+
+    const incidentStart = alert.watchlistEntry?.incidentStart || null;
+    const incidentEnd = alert.watchlistEntry?.incidentEnd || null;
+
+    const incidentClassification = alert.sighting
+      ? classifySightingIncidentRelation(alert.sighting.ts, incidentStart, incidentEnd)
+      : 'INCIDENT_TIME_UNKNOWN';
+
+    const incidentTimeRelevance = isHistorical
+      ? (incidentClassification === 'INCIDENT_TIME_UNKNOWN'
+          ? 'UNESTABLISHED_NO_INCIDENT_TIMESTAMP'
+          : incidentClassification)
+      : 'REAL_TIME_MONITORING';
+
     return {
       id: alert.id,
       severity: alert.severity,
       status: alert.status,
       timestamp: alert.ts,
+      match_type: isHistorical ? 'HISTORICAL_BACKFILL' : 'LIVE',
+      is_historical: isHistorical,
+      incident_classification: incidentClassification,
+      incident_time_relevance: incidentTimeRelevance,
+      incident_start: incidentStart ? new Date(incidentStart).toISOString() : null,
+      incident_end: incidentEnd ? new Date(incidentEnd).toISOString() : null,
+      processed_at: alert.createdAt,
+      entry_created_at: alert.watchlistEntry ? alert.watchlistEntry.createdAt : null,
       source_sighting: alert.sighting
         ? {
             id: alert.sighting.id,
@@ -633,6 +679,8 @@ export class AlertsService {
             reason: alert.watchlistEntry.reason,
             priority: alert.watchlistEntry.priority,
             added_by: alert.watchlistEntry.addedBy,
+            incident_start: incidentStart ? new Date(incidentStart).toISOString() : null,
+            incident_end: incidentEnd ? new Date(incidentEnd).toISOString() : null,
             watchlist: alert.watchlistEntry.watchlist
               ? {
                   id: alert.watchlistEntry.watchlist.id,
